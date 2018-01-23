@@ -505,5 +505,8 @@
     "vscode": "^1.1.10",
     "vscode-languageclient": "^4.0.0-next"
   },
-  "false": {}
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cquery-project/vscode-cquery.git"
+  }
 }
