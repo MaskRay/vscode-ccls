@@ -3,7 +3,7 @@
   "description": "Low-latency language server for C++. Highly scalable and designed for huge code bases.",
   "author": "Jacob Dufault",
   "license": "MIT",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "jacobdufault",
   "preview": true,
   "engines": {
