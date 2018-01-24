@@ -1,5 +1,5 @@
 import * as path from 'path';
-import {commands, DecorationRangeBehavior, DecorationRenderOptions, ExtensionContext, QuickPickItem, Range, StatusBarAlignment, TextEditor, TextEditorDecorationType, Uri, window, workspace, ProgressLocation, Progress} from 'vscode';
+import {commands, DecorationRangeBehavior, DecorationRenderOptions, ExtensionContext, Progress, ProgressLocation, QuickPickItem, Range, StatusBarAlignment, TextEditor, TextEditorDecorationType, Uri, window, workspace} from 'vscode';
 import {Message} from 'vscode-jsonrpc';
 import {LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions} from 'vscode-languageclient/lib/main';
 import * as ls from 'vscode-languageserver-types';
@@ -13,6 +13,10 @@ type Nullable<T> = T|null;
 
 export function parseUri(u): Uri {
   return Uri.parse(u);
+}
+
+function setContext(name, value) {
+  commands.executeCommand('setContext', name, value);
 }
 
 // Increment version number whenever we want to make sure the user updates the
@@ -144,8 +148,10 @@ export function activate(context: ExtensionContext) {
             JSON.stringify(clientConfig[key]) !=
                 JSON.stringify(newConfig[key])) {
           const kReload = 'Reload'
-          const message = `Please reload to apply the "cquery.${
-              key}" configuration change.`;
+          const message =
+              `Please reload to apply the "cquery.${
+                                                    key
+                                                  }" configuration change.`;
 
           window.showInformationMessage(message, kReload).then(selected => {
             if (selected == kReload)
@@ -158,7 +164,7 @@ export function activate(context: ExtensionContext) {
 
     // Add version information to the config.
     clientConfig['clientVersion'] = VERSION
-    let args = ['--language-server'].concat(clientConfig['launchArgs'])
+    let args = ['--language-server'].concat(clientConfig['launchArgs']);
 
     let serverOptions: ServerOptions = {
       command: clientConfig.launchCommand,
@@ -173,7 +179,7 @@ export function activate(context: ExtensionContext) {
 
     // Options to control the language client
     let clientOptions: LanguageClientOptions = {
-      documentSelector: [ 'c', 'cpp', 'objective-c', 'objective-cpp'],
+      documentSelector: ['c', 'cpp', 'objective-c', 'objective-cpp'],
       // synchronize: {
       // 	configurationSection: 'cquery',
       // 	fileEvents: workspace.createFileSystemWatcher('**/.cc')
@@ -361,73 +367,6 @@ export function activate(context: ExtensionContext) {
 
   // Progress
   (() => {
-    /* Implementation using progress API.
-    let progressReporter: (s: string) => void;
-    let progressResolver: () => void = () => {};
-
-    // TODO: use progress API
-    function ensuredReport(s: string) {
-      if (progressReporter && progressResolver) {
-        progressReporter(s);
-        return;
-      }
-
-      window.withProgress({
-        location: ProgressLocation.Window,
-        title: 'cquery'
-      }, (p) => {
-        progressReporter = (s: string) => p.report({ message: s });
-        progressReporter(s);
-        return new Promise(resolve => {
-          function ourResolve() {
-            progressReporter = undefined;
-            progressResolver = () => {};
-            resolve();
-          }
-          progressResolver = ourResolve;
-        });
-      });
-    }
-
-    let config = workspace.getConfiguration('cquery');
-    let statusStyle = config.get('misc.status');
-    if (statusStyle == 'short' || statusStyle == 'detailed') {
-      // let statusIcon = window.createStatusBarItem(StatusBarAlignment.Right);
-      // statusIcon.text = 'cquery: loading';
-      // statusIcon.tooltip =
-      //     'cquery is loading project metadata (ie, compile_commands.json)';
-      // statusIcon.show();
-      languageClient.onReady().then(() => {
-        languageClient.onNotification('$cquery/progress', (args) => {
-          let indexRequestCount = args.indexRequestCount;
-          let doIdMapCount = args.doIdMapCount;
-          let loadPreviousIndexCount = args.loadPreviousIndexCount;
-          let onIdMappedCount = args.onIdMappedCount;
-          let onIndexedCount = args.onIndexedCount;
-          let activeThreads = args.activeThreads;
-          let total = indexRequestCount + doIdMapCount +
-              loadPreviousIndexCount + onIdMappedCount + onIndexedCount +
-              activeThreads;
-
-          let detailedJobString = `indexRequest: ${indexRequestCount}, ` +
-              `doIdMap: ${doIdMapCount}, ` +
-              `loadPreviousIndex: ${loadPreviousIndexCount}, ` +
-              `onIdMapped: ${onIdMappedCount}, ` +
-              `onIndexed: ${onIndexedCount}, ` +
-              `activeThreads: ${activeThreads}`;
-
-          if (total == 0) {
-            progressResolver();
-          } else if (statusStyle == 'detailed') {
-            ensuredReport(`cquery: ${indexRequestCount} jobs (${detailedJobString})`);
-          } else {
-            ensuredReport(`cquery: ${indexRequestCount}|${total} jobs`);
-          }
-        });
-      });
-    }
-    */
-
     let config = workspace.getConfiguration('cquery');
     let statusStyle = config.get('misc.status');
     if (statusStyle == 'short' || statusStyle == 'detailed') {
@@ -475,7 +414,7 @@ export function activate(context: ExtensionContext) {
     window.registerTreeDataProvider(
         'cquery.typeHierarchy', typeHierarchyProvider);
     commands.registerTextEditorCommand('cquery.typeHierarchy', (editor) => {
-      commands.executeCommand('setContext', 'extension.cquery.typeHierarchyVisible', true);
+      setContext('extension.cquery.typeHierarchyVisible', true);
 
       let position = editor.selection.active;
       let uri = editor.document.uri;
@@ -486,7 +425,7 @@ export function activate(context: ExtensionContext) {
             },
             position: position
           })
-          .then((typeEntry: TypeHierarchyNode|undefined) => {
+          .then((typeEntry: TypeHierarchyNode | undefined) => {
             if (typeEntry) {
               typeHierarchyProvider.root = [typeEntry];
               typeHierarchyProvider.onDidChangeEmitter.fire();
@@ -494,7 +433,7 @@ export function activate(context: ExtensionContext) {
           })
     });
     commands.registerCommand('cquery.closeTypeHierarchy', () => {
-      commands.executeCommand('setContext', 'extension.cquery.typeHierarchyVisible', false);
+      setContext('extension.cquery.typeHierarchyVisible', false);
       typeHierarchyProvider.root = [];
       typeHierarchyProvider.onDidChangeEmitter.fire();
     });
@@ -514,8 +453,7 @@ export function activate(context: ExtensionContext) {
         languageClient, derivedDark, derivedLight, baseDark, baseLight);
     window.registerTreeDataProvider('cquery.callTree', callTreeProvider);
     commands.registerTextEditorCommand('cquery.callTree', (editor) => {
-      commands.executeCommand('setContext', 'extension.cquery.callTreeVisible', true);
-
+      setContext('extension.cquery.callTreeVisible', true);
       let position = editor.selection.active;
       let uri = editor.document.uri;
       languageClient
@@ -536,7 +474,7 @@ export function activate(context: ExtensionContext) {
           });
     });
     commands.registerCommand('cquery.closeCallTree', (e) => {
-      commands.executeCommand('setContext', 'extension.cquery.callTreeVisible', false);
+      setContext('extension.cquery.callTreeVisible', false);
       callTreeProvider.root = [];
       callTreeProvider.onDidChangeEmitter.fire();
     });
@@ -545,7 +483,7 @@ export function activate(context: ExtensionContext) {
   // Common between tree views.
   (() => {
     commands.registerCommand(
-        'cquery.gotoForTreeView', (node: TypeHierarchyNode|CallTreeNode) => {
+        'cquery.gotoForTreeView', (node: TypeHierarchyNode | CallTreeNode) => {
           if (!node.location)
             return;
 
@@ -559,7 +497,7 @@ export function activate(context: ExtensionContext) {
     let lastGotoClickTime: number
     commands.registerCommand(
         'cquery.hackGotoForTreeView',
-        (node: TypeHierarchyNode|CallTreeNode, hasChildren: boolean) => {
+        (node: TypeHierarchyNode | CallTreeNode, hasChildren: boolean) => {
           if (!node.location)
             return;
 
