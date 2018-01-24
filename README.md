@@ -8,11 +8,7 @@ server which powers this extension is found at
 
 ## Dependencies
 
-Make sure you have `vsce` and `npm` installed.
-
-```bash
-npm install -g vsce
-```
+Make sure you have `npm` installed.
 
 ## Build
 

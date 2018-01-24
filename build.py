@@ -4,5 +4,6 @@ import subprocess
 import sys
 
 if __name__ == "__main__":
-    vsce = 'vsce.cmd' if sys.platform == 'win32' else 'vsce'
-    sys.exit(subprocess.call([vsce, 'package', '-o', 'out/cquery.vsix']))
+  OUT = 'out/cquery.vsix'
+  VSCE = 'node_modules/.bin/' + ('vsce.cmd' if sys.platform == 'win32' else 'vsce')
+  sys.exit(subprocess.call([VSCE, 'package', '-o', OUT]))
