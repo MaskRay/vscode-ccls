@@ -1,10 +1,10 @@
 {
   "name": "cquery",
   "description": "Low-latency language server for C++. Highly scalable and designed for huge code bases.",
-  "author": "Jacob Dufault",
+  "author": "cquery-project",
   "license": "MIT",
   "version": "0.0.2",
-  "publisher": "jacobdufault",
+  "publisher": "cquery-project",
   "preview": true,
   "engines": {
     "vscode": "^1.18.0"

@@ -2,7 +2,7 @@
 
 This is the Visual Studio Code extension for cquery. The main cquery language
 server which powers this extension is found at
-[https://github.com/jacobdufault/cquery](https://github.com/jacobdufault/cquery).
+[https://github.com/cquery-project/cquery](https://github.com/cquery-project/cquery).
 
 # Building
 
