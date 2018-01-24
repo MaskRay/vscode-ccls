@@ -1,32 +1,17 @@
 # cquery
 
-This is the Visual Studio Code extension for cquery. The main cquery language
-server which powers this extension is found at
-[https://github.com/cquery-project/cquery](https://github.com/cquery-project/cquery).
+[cquery](https://github.com/cquery-project/cquery) provides extremely fast,
+robust, and reliable C++ integration into vscode with a ton of features, like
+code lens, references, code completion, semantic highlighting, and much more.
 
-# Building
+You currently need to install and build the main cquery server (eventually this
+will be downloaded for you from prebuilts). See the [Getting
+Started](https://github.com/cquery-project/cquery/wiki/Getting-started) wiki
+entry.
 
-## Dependencies
-
-Make sure you have `npm` installed.
-
-## Build
-
-```bash
-npm install
-python build.py
-```
-
-Now, you can use vscode to install `out/cquery.vsix`.
-
-# Deploying
-
-To deploy a new release to the marketplace, simply run `publish.py` with a
-clean working directory. By default a patch release is performed.
-
-```bash
-python publish.py [patch|minor|major]
-```
+This extension is still in preview. Please see additional documentation at the
+main cquery
+[wiki](https://github.com/cquery-project/cquery/wiki/Visual-Studio-Code).
 
 # LICENSE
 
