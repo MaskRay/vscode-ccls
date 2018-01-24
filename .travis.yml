@@ -21,7 +21,7 @@ deploy:
     tags: true
 - provider: script
   script:
-  - ./node_modules/.bin/vsce publish -p $VSCE_LOGIN_PERSONAL_ACCESS_TOKEN --packagePath out/cquery.vsix
+  - ./node_modules/.bin/vsce publish $TRAVIS_TAG -p $VSCE_LOGIN_PERSONAL_ACCESS_TOKEN --packagePath out/cquery.vsix
   skip_cleanup: true
   on:
     repo: cquery-project/vscode-cquery
