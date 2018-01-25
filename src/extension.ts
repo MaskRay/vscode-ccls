@@ -194,12 +194,16 @@ export function activate(context: ExtensionContext) {
     clientConfig['clientVersion'] = VERSION
     let args = ['--language-server'].concat(clientConfig['launchArgs']);
 
+    let env: any = {};
+    // env.LIBCLANG_LOGGING = '1';
+    // env.MALLOC_CHECK_ = '2';
+
     let serverOptions: ServerOptions = {
       command: clientConfig.launchCommand,
       args: args,
       options: {
-        cwd: clientConfig.launchWorkingDirectory
-        // env: { 'MALLOC_CHECK_': '2' }
+        cwd: clientConfig.launchWorkingDirectory,
+        env: env
       }
     };
     console.log(
