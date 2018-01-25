@@ -657,7 +657,8 @@ export function activate(context: ExtensionContext) {
              ['types', 'freeStandingFunctions', 'memberFunctions',
               'freeStandingVariables', 'memberVariables', 'namespaces',
               'macros', 'enums', 'typeAliases', 'enumConstants', 
-              'staticMemberFunctions', 'parameters']) {
+              'staticMemberFunctions', 'parameters',
+              'staticMemberVariables']) {
       semanticDecorations.set(type, makeDecorations(type));
       semanticEnabled.set(type, false);
     }
@@ -702,6 +703,8 @@ export function activate(context: ExtensionContext) {
         return get('freeStandingVariables');
       } else if (symbol.kind == SemanticSymbolKind.Field) {
         return get('memberVariables');
+      } else if (symbol.kind == SemanticSymbolKind.StaticProperty) {
+        return get('staticMemberVariables');
       } else if (symbol.kind == SemanticSymbolKind.Parameter) {
         return get('parameters');
       } else if (symbol.kind == SemanticSymbolKind.EnumConstant) {
