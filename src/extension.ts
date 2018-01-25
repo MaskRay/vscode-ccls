@@ -1,7 +1,7 @@
 import * as path from 'path';
-import {commands, DecorationRangeBehavior, DecorationRenderOptions, ExtensionContext, Progress, ProgressLocation, QuickPickItem, Range, StatusBarAlignment, TextEditor, TextEditorDecorationType, Uri, window, workspace} from 'vscode';
+import {CodeLens, commands, DecorationOptions, DecorationRangeBehavior, DecorationRenderOptions, ExtensionContext, OverviewRulerLane, Position, Progress, ProgressLocation, ProviderResult, QuickPickItem, Range, StatusBarAlignment, TextDocument, TextEditor, TextEditorDecorationType, ThemeColor, Uri, window, workspace} from 'vscode';
 import {Message} from 'vscode-jsonrpc';
-import {LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions} from 'vscode-languageclient/lib/main';
+import {CancellationToken, LanguageClient, LanguageClientOptions, Middleware, ProvideCodeLensesSignature, RevealOutputChannelOn, ServerOptions} from 'vscode-languageclient/lib/main';
 import * as ls from 'vscode-languageserver-types';
 
 import {CallTreeNode, CallTreeProvider} from './callTree';
@@ -148,10 +148,8 @@ export function activate(context: ExtensionContext) {
             JSON.stringify(clientConfig[key]) !=
                 JSON.stringify(newConfig[key])) {
           const kReload = 'Reload'
-          const message =
-              `Please reload to apply the "cquery.${
-                                                    key
-                                                  }" configuration change.`;
+          const message = `Please reload to apply the "cquery.${
+              key}" configuration change.`;
 
           window.showInformationMessage(message, kReload).then(selected => {
             if (selected == kReload)
@@ -177,6 +175,77 @@ export function activate(context: ExtensionContext) {
     console.log(
         `Starting ${serverOptions.command} in ${serverOptions.options.cwd}`);
 
+
+    // Inline code lens.
+    let decorationOpts: any = {};
+    decorationOpts.rangeBehavior = DecorationRangeBehavior.ClosedClosed;
+    decorationOpts.color = new ThemeColor('editorCodeLens.foreground');
+    decorationOpts.fontStyle = 'italic';
+    let codeLensDecoration = window.createTextEditorDecorationType(
+        <DecorationRenderOptions>decorationOpts);
+
+    function displayCodeLens(document: TextDocument, allCodeLens: CodeLens[]) {
+      for (let editor of window.visibleTextEditors) {
+        if (editor.document != document)
+          continue;
+
+        let opts: DecorationOptions[] = [];
+
+        for (let codeLens of allCodeLens) {
+          // FIXME: show a real warning or disable on-the-side code lens.
+          if (!codeLens.isResolved)
+            console.error('Code lens is not resolved');
+
+          // Default to after the content.
+          let position = codeLens.range.end;
+
+          // If multiline push to the end of the first line - works better for
+          // functions.
+          if (codeLens.range.start.line != codeLens.range.end.line)
+            position = new Position(codeLens.range.start.line, 1000000);
+
+          let range = new Range(position, position);
+          let opt: DecorationOptions = {
+            range: range,
+            renderOptions:
+                {after: {contentText: ' ' + codeLens.command.title + ' '}}
+          };
+
+          opts.push(opt);
+        }
+
+        editor.setDecorations(codeLensDecoration, opts);
+      }
+    }
+
+    function provideCodeLens(
+        document: TextDocument, token: CancellationToken,
+        next: ProvideCodeLensesSignature): ProviderResult<CodeLens[]> {
+      let config = workspace.getConfiguration('cquery');
+      let enableInlineCodeLens = config.get('codeLens.renderInline', false);
+      if (!enableInlineCodeLens)
+        return next(document, token);
+
+      // We run the codeLens request ourselves so we can intercept the response.
+      return languageClient
+          .sendRequest('textDocument/codeLens', {
+            textDocument: {
+              uri: document.uri.toString(),
+            },
+          })
+          .then(
+              (a: ls.CodeLens[]):
+                  CodeLens[] => {
+                    let result: CodeLens[] =
+                        languageClient.protocol2CodeConverter.asCodeLenses(a);
+                    displayCodeLens(document, result);
+                    return [];
+                  },
+              (reason) => {
+                console.log(JSON.stringify(reason));
+              });
+    };
+
     // Options to control the language client
     let clientOptions: LanguageClientOptions = {
       documentSelector: ['c', 'cpp', 'objective-c', 'objective-cpp'],
@@ -188,6 +257,7 @@ export function activate(context: ExtensionContext) {
       outputChannelName: 'cquery',
       revealOutputChannelOn: RevealOutputChannelOn.Never,
       initializationOptions: clientConfig,
+      middleware: {provideCodeLenses: provideCodeLens},
       initializationFailedHandler: (e) => {
         console.log(e);
         return false;
@@ -425,7 +495,7 @@ export function activate(context: ExtensionContext) {
             },
             position: position
           })
-          .then((typeEntry: TypeHierarchyNode | undefined) => {
+          .then((typeEntry: TypeHierarchyNode|undefined) => {
             if (typeEntry) {
               typeHierarchyProvider.root = [typeEntry];
               typeHierarchyProvider.onDidChangeEmitter.fire();
@@ -483,7 +553,7 @@ export function activate(context: ExtensionContext) {
   // Common between tree views.
   (() => {
     commands.registerCommand(
-        'cquery.gotoForTreeView', (node: TypeHierarchyNode | CallTreeNode) => {
+        'cquery.gotoForTreeView', (node: TypeHierarchyNode|CallTreeNode) => {
           if (!node.location)
             return;
 
@@ -497,7 +567,7 @@ export function activate(context: ExtensionContext) {
     let lastGotoClickTime: number
     commands.registerCommand(
         'cquery.hackGotoForTreeView',
-        (node: TypeHierarchyNode | CallTreeNode, hasChildren: boolean) => {
+        (node: TypeHierarchyNode|CallTreeNode, hasChildren: boolean) => {
           if (!node.location)
             return;
 
