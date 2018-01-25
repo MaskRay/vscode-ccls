@@ -274,10 +274,7 @@ export function activate(context: ExtensionContext) {
                         languageClient.protocol2CodeConverter.asCodeLenses(a);
                     displayCodeLens(document, result);
                     return [];
-                  },
-              (reason) => {
-                console.log(JSON.stringify(reason));
-              });
+                  });
     };
 
     // Options to control the language client
@@ -660,7 +657,7 @@ export function activate(context: ExtensionContext) {
     for (let type of
              ['types', 'freeStandingFunctions', 'memberFunctions',
               'freeStandingVariables', 'memberVariables', 'namespaces',
-              'macros', 'enums', 'typeAliases', 'enumConstants', 
+              'macros', 'enums', 'typeAliases', 'enumConstants',
               'staticMemberFunctions', 'parameters',
               'staticMemberVariables']) {
       semanticDecorations.set(type, makeDecorations(type));
@@ -686,7 +683,7 @@ export function activate(context: ExtensionContext) {
         return decorations[symbol.stableId % decorations.length];
       };
 
-      if (symbol.kind == SemanticSymbolKind.Class || 
+      if (symbol.kind == SemanticSymbolKind.Class ||
           symbol.kind == SemanticSymbolKind.Struct ||
           symbol.kind == SemanticSymbolKind.Union) {
         return get('types');
