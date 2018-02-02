@@ -59,10 +59,20 @@ enum SemanticSymbolKind {
   Parameter = 25,
   Using,
 }
+enum StorageClass {
+  Invalid,
+  None,
+  Extern,
+  Static,
+  PrivateExtern,
+  Auto,
+  Register
+}
 class SemanticSymbol {
   constructor(
       readonly stableId: number, readonly kind: SemanticSymbolKind,
-      readonly isTypeMember: boolean, readonly ranges: Array<Range>) {}
+      readonly isTypeMember: boolean, readonly storage: StorageClass,
+      readonly ranges: Array<Range>) {}
 }
 
 function getClientConfig(context: ExtensionContext) {
@@ -658,7 +668,7 @@ export function activate(context: ExtensionContext) {
              ['types', 'freeStandingFunctions', 'memberFunctions',
               'freeStandingVariables', 'memberVariables', 'namespaces',
               'macros', 'enums', 'typeAliases', 'enumConstants',
-              'staticMemberFunctions', 'parameters',
+              'staticMemberFunctions', 'parameters', 'templateParameters',
               'staticMemberVariables']) {
       semanticDecorations.set(type, makeDecorations(type));
       semanticEnabled.set(type, false);
@@ -707,6 +717,9 @@ export function activate(context: ExtensionContext) {
       } else if (symbol.kind == SemanticSymbolKind.StaticProperty) {
         return get('staticMemberVariables');
       } else if (symbol.kind == SemanticSymbolKind.Parameter) {
+        if (symbol.storage == StorageClass.Invalid) {
+          return get('templateParameters');
+        }
         return get('parameters');
       } else if (symbol.kind == SemanticSymbolKind.EnumConstant) {
         return get('enumConstants');

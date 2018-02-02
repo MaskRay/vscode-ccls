@@ -241,6 +241,11 @@
           "default": false,
           "description": "If semantic highlighting for parameters is enabled/disabled."
         },
+        "cquery.highlighting.enabled.templateParameters": {
+          "type": "boolean",
+          "default": false,
+          "description": "If semantic highlighting for template parameters is enabled/disabled."
+        },
         "cquery.highlighting.enabled.staticMemberVariables": {
           "type": "boolean",
           "default": false,
@@ -438,6 +443,22 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
+        "cquery.highlighting.colors.templateParameters": {
+          "type": "array",
+          "default": [
+            "#e1afc3",
+            "#d533bb",
+            "#9b677f",
+            "#e350b6",
+            "#a04360",
+            "#dd82bc",
+            "#de3864",
+            "#ad3f87",
+            "#dd7a90",
+            "#e0438a"
+          ],
+          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
+        },
         "cquery.highlighting.colors.staticMemberVariables": {
           "type": "array",
           "default": [
@@ -502,6 +523,10 @@
           "type": "boolean",
           "default": false
         },
+        "cquery.highlighting.underline.templateParameters": {
+          "type": "boolean",
+          "default": false
+        },
         "cquery.highlighting.underline.staticMemberVariables": {
           "type": "boolean",
           "default": true
@@ -554,6 +579,10 @@
           "type": "boolean",
           "default": true
         },
+        "cquery.highlighting.italic.templateParameters": {
+          "type": "boolean",
+          "default": false
+        },
         "cquery.highlighting.italic.staticMemberVariables": {
           "type": "boolean",
           "default": false
@@ -605,6 +634,10 @@
         "cquery.highlighting.bold.parameters": {
           "type": "boolean",
           "default": false
+        },
+        "cquery.highlighting.bold.templateParameters": {
+          "type": "boolean",
+          "default": true
         },
         "cquery.highlighting.bold.staticMemberVariables": {
           "type": "boolean",
