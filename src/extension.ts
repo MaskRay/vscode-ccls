@@ -24,6 +24,13 @@ function setContext(name, value) {
 // internal number.
 const VERSION = 3;
 
+enum SymbolKind {
+  Invalid,
+  File,
+  Type,
+  Func,
+  Var
+}
 enum SemanticSymbolKind {
   Unknown,
 
@@ -70,9 +77,9 @@ enum StorageClass {
 }
 class SemanticSymbol {
   constructor(
-      readonly stableId: number, readonly kind: SemanticSymbolKind,
-      readonly isTypeMember: boolean, readonly storage: StorageClass,
-      readonly ranges: Array<Range>) {}
+      readonly stableId: number, readonly parentKind: SymbolKind,
+      readonly kind: SemanticSymbolKind, readonly isTypeMember: boolean, 
+      readonly storage: StorageClass, readonly ranges: Array<Range>) {}
 }
 
 function getClientConfig(context: ExtensionContext) {
@@ -669,7 +676,7 @@ export function activate(context: ExtensionContext) {
               'freeStandingVariables', 'memberVariables', 'namespaces',
               'macros', 'enums', 'typeAliases', 'enumConstants',
               'staticMemberFunctions', 'parameters', 'templateParameters',
-              'staticMemberVariables']) {
+              'staticMemberVariables', 'globalVariables']) {
       semanticDecorations.set(type, makeDecorations(type));
       semanticEnabled.set(type, false);
     }
@@ -711,7 +718,10 @@ export function activate(context: ExtensionContext) {
       } else if (symbol.kind == SemanticSymbolKind.StaticMethod) {
         return get('staticMemberFunctions')
       } else if (symbol.kind == SemanticSymbolKind.Variable) {
-        return get('freeStandingVariables');
+        if (symbol.parentKind == SymbolKind.Func) {
+          return get('freeStandingVariables');
+        }
+        return get('globalVariables');
       } else if (symbol.kind == SemanticSymbolKind.Field) {
         return get('memberVariables');
       } else if (symbol.kind == SemanticSymbolKind.StaticProperty) {
