@@ -32,39 +32,45 @@ enum SymbolKind {
   Var
 }
 enum SemanticSymbolKind {
-  Unknown,
-
-  Module = 1,
+  // lsSymbolKind
+  Unknown = 0,
+  File,
+  Module,
   Namespace,
-  NamespaceAlias,
-  Macro,
+  Package,
 
-  Enum = 5,
-  Struct,
-  Class,
-  Protocol,
-  Extension,
-  Union,
-  TypeAlias,
-
-  Function = 12,
-  Variable,
+  Class = 5,
+  Method,
+  Property,
   Field,
-  EnumConstant,
+  Constructor,
 
-  InstanceMethod = 16,
-  ClassMethod,
-  StaticMethod,
-  InstanceProperty,
-  ClassProperty,
-  StaticProperty,
+  Enum = 10,
+  Interface,
+  Function,
+  Variable,
+  Constant,
 
-  Constructor = 22,
-  Destructor,
-  ConversionFunction,
+  String = 15,
+  Number,
+  Boolean,
+  Array,
+  Object,
 
-  Parameter = 25,
-  Using,
+  Key = 20,
+  Null,
+  EnumMember,
+  Struct,
+  Event,
+
+  Operator = 25,
+  TypeParameter,
+
+  // cquery extensions
+  TypeAlias = 252,
+  Parameter = 253,
+  StaticMethod = 254,
+  Macro = 255
 }
 enum StorageClass {
   Invalid,
@@ -701,19 +707,18 @@ export function activate(context: ExtensionContext) {
       };
 
       if (symbol.kind == SemanticSymbolKind.Class ||
-          symbol.kind == SemanticSymbolKind.Struct ||
-          symbol.kind == SemanticSymbolKind.Union) {
+          symbol.kind == SemanticSymbolKind.Struct) {
         return get('types');
       } else if (symbol.kind == SemanticSymbolKind.Enum) {
         return get('enums');
       } else if (symbol.kind == SemanticSymbolKind.TypeAlias) {
         return get('typeAliases');
+      } else if (symbol.kind == SemanticSymbolKind.TypeParameter) {
+        return get('templateParameters');
       } else if (symbol.kind == SemanticSymbolKind.Function) {
         return get('freeStandingFunctions');
-      } else if (symbol.kind == SemanticSymbolKind.InstanceMethod ||
-                 symbol.kind == SemanticSymbolKind.Constructor ||
-                 symbol.kind == SemanticSymbolKind.Destructor ||
-                 symbol.kind == SemanticSymbolKind.ConversionFunction) {
+      } else if (symbol.kind == SemanticSymbolKind.Method ||
+                 symbol.kind == SemanticSymbolKind.Constructor) {
         return get('memberFunctions')
       } else if (symbol.kind == SemanticSymbolKind.StaticMethod) {
         return get('staticMemberFunctions')
@@ -723,15 +728,13 @@ export function activate(context: ExtensionContext) {
         }
         return get('globalVariables');
       } else if (symbol.kind == SemanticSymbolKind.Field) {
-        return get('memberVariables');
-      } else if (symbol.kind == SemanticSymbolKind.StaticProperty) {
-        return get('staticMemberVariables');
-      } else if (symbol.kind == SemanticSymbolKind.Parameter) {
-        if (symbol.storage == StorageClass.Invalid) {
-          return get('templateParameters');
+        if (symbol.storage == StorageClass.Static) {
+          return get('staticMemberVariables');
         }
+        return get('memberVariables');
+      } else if (symbol.kind == SemanticSymbolKind.Parameter) {
         return get('parameters');
-      } else if (symbol.kind == SemanticSymbolKind.EnumConstant) {
+      } else if (symbol.kind == SemanticSymbolKind.EnumMember) {
         return get('enumConstants');
       } else if (symbol.kind == SemanticSymbolKind.Namespace) {
         return get('namespaces');
