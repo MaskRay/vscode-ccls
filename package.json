@@ -25,26 +25,26 @@
     "views": {
       "explorer": [
         {
-          "id": "cquery.typeHierarchy",
-          "name": "Type Hierarchy",
-          "when": "extension.cquery.typeHierarchyVisible"
+          "id": "cquery.inheritanceHierarchy",
+          "name": "Inheritance Hierarchy",
+          "when": "extension.cquery.inheritanceHierarchyVisible"
         },
         {
-          "id": "cquery.callTree",
-          "name": "Call Tree",
-          "when": "extension.cquery.callTreeVisible"
+          "id": "cquery.callHierarchy",
+          "name": "Call Hierarchy",
+          "when": "extension.cquery.callHierarchyVisible"
         }
       ]
     },
     "menus": {
       "editor/context": [
         {
-          "command": "cquery.typeHierarchy",
+          "command": "cquery.inheritanceHierarchy",
           "when": "resourceLangId == cpp",
           "group": "navigation@1.31"
         },
         {
-          "command": "cquery.callTree",
+          "command": "cquery.callHierarchy",
           "when": "resourceLangId == cpp",
           "group": "navigation@1.32"
         },
@@ -66,13 +66,13 @@
       ],
       "view/title": [
         {
-          "command": "cquery.closeTypeHierarchy",
-          "when": "view == cquery.typeHierarchy",
+          "command": "cquery.closeinheritanceHierarchy",
+          "when": "view == cquery.inheritanceHierarchy",
           "group": "navigation"
         },
         {
-          "command": "cquery.closeCallTree",
-          "when": "view == cquery.callTree",
+          "command": "cquery.closecallHierarchy",
+          "when": "view == cquery.callHierarchy",
           "group": "navigation"
         }
       ],
@@ -84,11 +84,11 @@
       ],
       "commandPalette": [
         {
-          "command": "cquery.closeTypeHierarchy",
+          "command": "cquery.closeinheritanceHierarchy",
           "when": "false"
         },
         {
-          "command": "cquery.closeCallTree",
+          "command": "cquery.closecallHierarchy",
           "when": "false"
         },
         {
@@ -104,22 +104,22 @@
         "command": "cquery.freshenIndex"
       },
       {
-        "title": "Type Hierarchy",
+        "title": "Inheritance Hierarchy",
         "category": "cquery",
-        "command": "cquery.typeHierarchy"
+        "command": "cquery.inheritanceHierarchy"
       },
       {
         "title": "Close",
-        "command": "cquery.closeTypeHierarchy"
+        "command": "cquery.closeinheritanceHierarchy"
       },
       {
-        "title": "Call Tree",
+        "title": "Call Hierarchy",
         "category": "cquery",
-        "command": "cquery.callTree"
+        "command": "cquery.callHierarchy"
       },
       {
         "title": "Close",
-        "command": "cquery.closeCallTree"
+        "command": "cquery.closecallHierarchy"
       },
       {
         "title": "Show Variables",

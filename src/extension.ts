@@ -4,9 +4,9 @@ import {Message} from 'vscode-jsonrpc';
 import {CancellationToken, LanguageClient, LanguageClientOptions, Middleware, ProvideCodeLensesSignature, RevealOutputChannelOn, ServerOptions} from 'vscode-languageclient/lib/main';
 import * as ls from 'vscode-languageserver-types';
 
-import {CallTreeNode, CallTreeProvider} from './callTree';
+import {CallHierarchyNode, CallHierarchyProvider} from './callHierarchy';
 import {CqueryErrorHandler} from './cqueryErrorHandler';
-import {TypeHierarchyNode, TypeHierarchyProvider} from './typeHierarchy';
+import {InheritanceHierarchyNode, InheritanceHierarchyProvider} from './inheritanceHierarchy';
 import {jumpToUriAtPosition} from './vscodeUtils';
 
 type Nullable<T> = T|null;
@@ -84,7 +84,7 @@ enum StorageClass {
 class SemanticSymbol {
   constructor(
       readonly stableId: number, readonly parentKind: SymbolKind,
-      readonly kind: SemanticSymbolKind, readonly isTypeMember: boolean, 
+      readonly kind: SemanticSymbolKind, readonly isTypeMember: boolean,
       readonly storage: StorageClass, readonly ranges: Array<Range>) {}
 }
 
@@ -532,38 +532,61 @@ export function activate(context: ExtensionContext) {
     }
   })();
 
-  // Type hierarchy.
+  // Inheritance hierarchy.
   (() => {
-    const typeHierarchyProvider = new TypeHierarchyProvider();
+    const inheritanceHierarchyProvider = new InheritanceHierarchyProvider(languageClient);
     window.registerTreeDataProvider(
-        'cquery.typeHierarchy', typeHierarchyProvider);
-    commands.registerTextEditorCommand('cquery.typeHierarchy', (editor) => {
-      setContext('extension.cquery.typeHierarchyVisible', true);
+        'cquery.inheritanceHierarchy', inheritanceHierarchyProvider);
+    commands.registerTextEditorCommand('cquery.inheritanceHierarchy', (editor) => {
+      setContext('extension.cquery.inheritanceHierarchyVisible', true);
 
       let position = editor.selection.active;
       let uri = editor.document.uri;
       languageClient
-          .sendRequest('$cquery/typeHierarchyTree', {
+          .sendRequest('$cquery/inheritanceHierarchy', {
             textDocument: {
               uri: uri.toString(),
             },
-            position: position
+            position: position,
+            derived: true,
+            detailedName: false,
+            levels: 1
           })
-          .then((typeEntry: TypeHierarchyNode|undefined) => {
-            if (typeEntry) {
-              typeHierarchyProvider.root = [typeEntry];
-              typeHierarchyProvider.onDidChangeEmitter.fire();
-            }
+          .then((entry: InheritanceHierarchyNode) => {
+            InheritanceHierarchyNode.setWantsDerived(entry, true);
+
+            languageClient.sendRequest('$cquery/inheritanceHierarchy', {
+              id: entry.id,
+              kind: entry.kind,
+              derived: false,
+              detailedName: false,
+              levels: 1
+            })
+            .then((parentEntry: InheritanceHierarchyNode) => {
+              if (parentEntry.numChildren > 0) {
+                let parentWrapper = new InheritanceHierarchyNode();
+                parentWrapper.children = parentEntry.children;
+                parentWrapper.numChildren = parentEntry.children.length;
+                parentWrapper.name = '[[Base]]';
+                InheritanceHierarchyNode.setWantsDerived(parentWrapper, false);
+                entry.children.splice(0, 0, parentWrapper);
+                entry.numChildren += 1;
+              }
+
+              inheritanceHierarchyProvider.root = entry;
+              inheritanceHierarchyProvider.onDidChangeEmitter.fire();
+            });
+
           })
     });
-    commands.registerCommand('cquery.closeTypeHierarchy', () => {
-      setContext('extension.cquery.typeHierarchyVisible', false);
-      typeHierarchyProvider.root = [];
-      typeHierarchyProvider.onDidChangeEmitter.fire();
+    commands.registerCommand('cquery.closeinheritanceHierarchy', () => {
+      setContext('extension.cquery.inheritanceHierarchyVisible', false);
+      inheritanceHierarchyProvider.root = undefined;
+      inheritanceHierarchyProvider.onDidChangeEmitter.fire();
     });
   })();
 
-  // Call tree
+  // Call Hierarchy
   (() => {
     let derivedDark =
         context.asAbsolutePath(path.join('resources', 'derived-dark.svg'));
@@ -573,41 +596,40 @@ export function activate(context: ExtensionContext) {
         context.asAbsolutePath(path.join('resources', 'base-dark.svg'));
     let baseLight =
         context.asAbsolutePath(path.join('resources', 'base-light.svg'));
-    const callTreeProvider = new CallTreeProvider(
+    const callHierarchyProvider = new CallHierarchyProvider(
         languageClient, derivedDark, derivedLight, baseDark, baseLight);
-    window.registerTreeDataProvider('cquery.callTree', callTreeProvider);
-    commands.registerTextEditorCommand('cquery.callTree', (editor) => {
-      setContext('extension.cquery.callTreeVisible', true);
+    window.registerTreeDataProvider('cquery.callHierarchy', callHierarchyProvider);
+    commands.registerTextEditorCommand('cquery.callHierarchy', (editor) => {
+      setContext('extension.cquery.callHierarchyVisible', true);
       let position = editor.selection.active;
       let uri = editor.document.uri;
       languageClient
-          .sendRequest('$cquery/callTreeInitial', {
+          .sendRequest('$cquery/callHierarchy', {
             textDocument: {
               uri: uri.toString(),
             },
-            position: position
+            position: position,
+            callee: false,
+            callType: 0x1 | 0x2,
+            detailedName: false,
+            levels: 2
           })
-          .then((callNodes: CallTreeNode[]) => {
-            callTreeProvider.root = [];
-            for (let callNode of callNodes) {
-              callNode._depth = 0
-              callTreeProvider.root.push(callNode);
-            }
-            if (callNodes)
-              callTreeProvider.onDidChangeEmitter.fire();
+          .then((callNode: CallHierarchyNode) => {
+            callHierarchyProvider.root = callNode;
+            callHierarchyProvider.onDidChangeEmitter.fire();
           });
     });
-    commands.registerCommand('cquery.closeCallTree', (e) => {
-      setContext('extension.cquery.callTreeVisible', false);
-      callTreeProvider.root = [];
-      callTreeProvider.onDidChangeEmitter.fire();
+    commands.registerCommand('cquery.closecallHierarchy', (e) => {
+      setContext('extension.cquery.callHierarchyVisible', false);
+      callHierarchyProvider.root = undefined;
+      callHierarchyProvider.onDidChangeEmitter.fire();
     });
   })();
 
   // Common between tree views.
   (() => {
     commands.registerCommand(
-        'cquery.gotoForTreeView', (node: TypeHierarchyNode|CallTreeNode) => {
+        'cquery.gotoForTreeView', (node: InheritanceHierarchyNode|CallHierarchyNode) => {
           if (!node.location)
             return;
 
@@ -617,11 +639,11 @@ export function activate(context: ExtensionContext) {
           jumpToUriAtPosition(parsedUri, parsedPosition, true /*preserveFocus*/)
         });
 
-    let lastGotoNodeUsr: string
+    let lastGotoNodeId: any
     let lastGotoClickTime: number
     commands.registerCommand(
         'cquery.hackGotoForTreeView',
-        (node: TypeHierarchyNode|CallTreeNode, hasChildren: boolean) => {
+        (node: InheritanceHierarchyNode|CallHierarchyNode, hasChildren: boolean) => {
           if (!node.location)
             return;
 
@@ -630,8 +652,8 @@ export function activate(context: ExtensionContext) {
             return;
           }
 
-          if (lastGotoNodeUsr != node.usr) {
-            lastGotoNodeUsr = node.usr;
+          if (lastGotoNodeId != node.id) {
+            lastGotoNodeId = node.id;
             lastGotoClickTime = Date.now();
             return;
           }
