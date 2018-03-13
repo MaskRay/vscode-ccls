@@ -97,43 +97,49 @@ function getClientConfig(context: ExtensionContext) {
     ['launchCommand', 'launch.command'],
     ['launchArgs', 'launch.args'],
     ['cacheDirectory', kCacheDirPrefName],
-    ['indexWhitelist', 'index.whitelist'],
-    ['indexBlacklist', 'index.blacklist'],
+    ['index.whitelist', 'index.whitelist'],
+    ['index.blacklist', 'index.blacklist'],
+    ['index.logSkippedPaths', 'log.skippedPathsForIndex'],
     ['extraClangArguments', 'index.extraClangArguments'],
     ['resourceDirectory', 'misc.resourceDirectory'],
-    ['maxWorkspaceSearchResults', 'misc.maxWorkspaceSearchResults'],
-    ['indexerCount', 'misc.indexerCount'],
-    ['enableIndexing', 'misc.enableIndexing'],
+    ['workspaceSymbol.maxNum', 'misc.maxWorkspaceSearchResults'],
+    ['index.threads', 'misc.indexerCount'],
+    ['index.enabled', 'misc.enableIndexing'],
     ['enableCacheWrite', 'misc.enableCacheWrite'],
     ['enableCacheRead', 'misc.enableCacheRead'],
     ['compilationDatabaseDirectory', 'misc.compilationDatabaseDirectory'],
-    [
-      'includeCompletionMaximumPathLength',
-      'completion.include.maximumPathLength'
-    ],
-    [
-      'includeCompletionWhitelistLiteralEnding',
-      'completion.include.whitelistLiteralEnding'
-    ],
-    ['includeCompletionWhitelist', 'completion.include.whitelist'],
-    ['includeCompletionBlacklist', 'completion.include.blacklist'],
+    ['completion.includeMaxPathSize', 'completion.include.maximumPathLength'],
+    ['completion.includeSuffixWhitelist', 'completion.include.whitelistLiteralEnding'],
+    ['completion.includeWhitelist', 'completion.include.whitelist'],
+    ['completion.includeBlacklist', 'completion.include.blacklist'],
     ['showDocumentLinksOnIncludes', 'showDocumentLinksOnIncludes'],
-    ['diagnosticsOnParse', 'diagnostics.onParse'],
-    ['diagnosticsOnCodeCompletion', 'diagnostics.onCodeCompletion'],
-    ['codeLensOnLocalVariables', 'codeLens.onLocalVariables'],
-    ['enableSnippetInsertion', 'completion.enableSnippetInsertion']
+    ['diagnostics.onParse', 'diagnostics.onParse'],
+    ['diagnostics.onCodeCompletion', 'diagnostics.onCodeCompletion'],
+    ['codeLens.localVariables', 'codeLens.onLocalVariables'],
+    ['client.snippetSupport', 'completion.enableSnippetInsertion']
   ];
   let clientConfig = {
     launchWorkingDirectory: '',
     launchCommand: '',
     cacheDirectory: '',
-    sortWorkspaceSearchResults: false
+    workspaceSymbol: {
+      sort: false,
+    }
   };
   let config = workspace.getConfiguration('cquery');
   for (let prop of configMapping) {
     let value = config.get(prop[1]);
-    if (value != null)
-      clientConfig[prop[0]] = value;
+    if (value != null) {
+      let subprops = prop[0].split('.');
+      let subconfig = clientConfig;
+      for (let subprop of subprops.slice(0, subprops.length - 1)) {
+        if (!subconfig.hasOwnProperty(subprop)) {
+          subconfig[subprop] = {};
+        }
+        subconfig = subconfig[subprop];
+      }
+      subconfig[subprops[subprops.length - 1]] = value;
+    }
   }
 
   // Verify that there is a working directory. If not, exit.
