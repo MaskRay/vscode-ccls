@@ -25,13 +25,6 @@ function setContext(name, value) {
 const VERSION = 3;
 
 enum SymbolKind {
-  Invalid,
-  File,
-  Type,
-  Func,
-  Var
-}
-enum SemanticSymbolKind {
   // lsSymbolKind
   Unknown = 0,
   File,
@@ -84,7 +77,7 @@ enum StorageClass {
 class SemanticSymbol {
   constructor(
       readonly stableId: number, readonly parentKind: SymbolKind,
-      readonly kind: SemanticSymbolKind, readonly isTypeMember: boolean,
+      readonly kind: SymbolKind, readonly isTypeMember: boolean,
       readonly storage: StorageClass, readonly ranges: Array<Range>) {}
 }
 
@@ -734,39 +727,41 @@ export function activate(context: ExtensionContext) {
         return decorations[symbol.stableId % decorations.length];
       };
 
-      if (symbol.kind == SemanticSymbolKind.Class ||
-          symbol.kind == SemanticSymbolKind.Struct) {
+      if (symbol.kind == SymbolKind.Class ||
+          symbol.kind == SymbolKind.Struct) {
         return get('types');
-      } else if (symbol.kind == SemanticSymbolKind.Enum) {
+      } else if (symbol.kind == SymbolKind.Enum) {
         return get('enums');
-      } else if (symbol.kind == SemanticSymbolKind.TypeAlias) {
+      } else if (symbol.kind == SymbolKind.TypeAlias) {
         return get('typeAliases');
-      } else if (symbol.kind == SemanticSymbolKind.TypeParameter) {
+      } else if (symbol.kind == SymbolKind.TypeParameter) {
         return get('templateParameters');
-      } else if (symbol.kind == SemanticSymbolKind.Function) {
+      } else if (symbol.kind == SymbolKind.Function) {
         return get('freeStandingFunctions');
-      } else if (symbol.kind == SemanticSymbolKind.Method ||
-                 symbol.kind == SemanticSymbolKind.Constructor) {
+      } else if (symbol.kind == SymbolKind.Method ||
+                 symbol.kind == SymbolKind.Constructor) {
         return get('memberFunctions')
-      } else if (symbol.kind == SemanticSymbolKind.StaticMethod) {
+      } else if (symbol.kind == SymbolKind.StaticMethod) {
         return get('staticMemberFunctions')
-      } else if (symbol.kind == SemanticSymbolKind.Variable) {
-        if (symbol.parentKind == SymbolKind.Func) {
+      } else if (symbol.kind == SymbolKind.Variable) {
+        if (symbol.parentKind == SymbolKind.Function ||
+            symbol.parentKind == SymbolKind.Method ||
+            symbol.parentKind == SymbolKind.Constructor) {
           return get('freeStandingVariables');
         }
         return get('globalVariables');
-      } else if (symbol.kind == SemanticSymbolKind.Field) {
+      } else if (symbol.kind == SymbolKind.Field) {
         if (symbol.storage == StorageClass.Static) {
           return get('staticMemberVariables');
         }
         return get('memberVariables');
-      } else if (symbol.kind == SemanticSymbolKind.Parameter) {
+      } else if (symbol.kind == SymbolKind.Parameter) {
         return get('parameters');
-      } else if (symbol.kind == SemanticSymbolKind.EnumMember) {
+      } else if (symbol.kind == SymbolKind.EnumMember) {
         return get('enumConstants');
-      } else if (symbol.kind == SemanticSymbolKind.Namespace) {
+      } else if (symbol.kind == SymbolKind.Namespace) {
         return get('namespaces');
-      } else if (symbol.kind == SemanticSymbolKind.Macro) {
+      } else if (symbol.kind == SymbolKind.Macro) {
         return get('macros');
       }
     };
