@@ -216,9 +216,14 @@ export function activate(context: ExtensionContext) {
     clientConfig['clientVersion'] = VERSION
     let args = ['--language-server'].concat(clientConfig['launchArgs']);
 
-    let env: any = {
-      'ProgramData': process.env['ProgramData'],
-    };
+    let env: any = {}
+    let kToFoward = [
+      'ProgramData',
+      'PATH',
+    ];
+    for (let e of kToFoward)
+      env[e] = process.env[e]
+
     // env.LIBCLANG_LOGGING = '1';
     // env.MALLOC_CHECK_ = '2';
 
