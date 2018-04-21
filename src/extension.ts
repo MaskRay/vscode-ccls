@@ -86,7 +86,6 @@ function getClientConfig(context: ExtensionContext) {
 
   // Read prefs; this map goes from `cquery/js name` => `vscode prefs name`.
   let configMapping = [
-    ['launchWorkingDirectory', 'launch.workingDirectory'],
     ['launchCommand', 'launch.command'],
     ['launchArgs', 'launch.args'],
     ['cacheDirectory', kCacheDirPrefName],
@@ -112,7 +111,6 @@ function getClientConfig(context: ExtensionContext) {
     ['client.snippetSupport', 'completion.enableSnippetInsertion']
   ];
   let clientConfig = {
-    launchWorkingDirectory: '',
     launchCommand: '',
     cacheDirectory: '',
     workspaceSymbol: {
@@ -133,18 +131,6 @@ function getClientConfig(context: ExtensionContext) {
       }
       subconfig[subprops[subprops.length - 1]] = value;
     }
-  }
-
-  // Verify that there is a working directory. If not, exit.
-  if (!clientConfig.launchWorkingDirectory) {
-    const kOpenSettings = 'Open Settings';
-    const kErrorMessage =
-        'Please specify the "cquery.launch.workingDirectory" setting and reload vscode';
-    window.showErrorMessage(kErrorMessage, kOpenSettings).then(selected => {
-      if (selected == kOpenSettings)
-        commands.executeCommand('workbench.action.openWorkspaceSettings');
-    });
-    return;
   }
 
   // Set up a cache directory if there is not one.
@@ -231,7 +217,6 @@ export function activate(context: ExtensionContext) {
       command: clientConfig.launchCommand,
       args: args,
       options: {
-        cwd: clientConfig.launchWorkingDirectory,
         env: env
       }
     };
