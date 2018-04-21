@@ -153,8 +153,8 @@
       "properties": {
         "cquery.launch.command": {
           "type": "string",
-          "default": "release/bin/cquery",
-          "description": "Command to start the cquery binary (on Linux release/bin/cquery, on Windows bin/indexer.exe)"
+          "default": "cquery",
+          "description": "Path to the cquery binary (default assumes the binary is in the PATH)"
         },
         "cquery.launch.args": {
           "type": "array",
