@@ -309,8 +309,15 @@ export function activate(context: ExtensionContext) {
     // Create the language client and start the client.
     let languageClient =
         new LanguageClient('cquery', 'cquery', serverOptions, clientOptions);
-    let disposable = languageClient.start();
-    context.subscriptions.push(disposable);
+    let command = serverOptions.command
+    languageClient.onReady().catch(e => {
+      // TODO: remove cquery.launch.workingDirectory after July 2018
+      window.showErrorMessage(
+          'cquery.launch.command has changed; either add cquery to your PATH ' +
+          'or make cquery.launch.command an absolute path. Current value: "' +
+          command + '" cquery.launch.workingDirectory has been removed.');
+    });
+    context.subscriptions.push(languageClient.start());
 
     return languageClient;
   })();
