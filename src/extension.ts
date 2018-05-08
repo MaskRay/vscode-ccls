@@ -202,13 +202,13 @@ export function activate(context: ExtensionContext) {
     clientConfig['clientVersion'] = VERSION
     let args = ['--language-server'].concat(clientConfig['launchArgs']);
 
-    let env: any = {}
-    let kToFoward = [
+    let env: any = {};
+    let kToForward = [
       'ProgramData',
       'PATH',
     ];
-    for (let e of kToFoward)
-      env[e] = process.env[e]
+    for (let e of kToForward)
+      env[e] = process.env[e];
 
     // env.LIBCLANG_LOGGING = '1';
     // env.MALLOC_CHECK_ = '2';
@@ -216,9 +216,7 @@ export function activate(context: ExtensionContext) {
     let serverOptions: ServerOptions = {
       command: clientConfig.launchCommand,
       args: args,
-      options: {
-        env: env
-      }
+      options: {env: env}
     };
     console.log(
         `Starting ${serverOptions.command} in ${serverOptions.options.cwd}`);
@@ -281,14 +279,12 @@ export function activate(context: ExtensionContext) {
               uri: document.uri.toString(),
             },
           })
-          .then(
-              (a: ls.CodeLens[]):
-                  CodeLens[] => {
-                    let result: CodeLens[] =
-                        languageClient.protocol2CodeConverter.asCodeLenses(a);
-                    displayCodeLens(document, result);
-                    return [];
-                  });
+          .then((a: ls.CodeLens[]): CodeLens[] => {
+            let result: CodeLens[] =
+                languageClient.protocol2CodeConverter.asCodeLenses(a);
+            displayCodeLens(document, result);
+            return [];
+          });
     };
 
     // Options to control the language client
@@ -525,51 +521,54 @@ export function activate(context: ExtensionContext) {
 
   // Inheritance hierarchy.
   (() => {
-    const inheritanceHierarchyProvider = new InheritanceHierarchyProvider(languageClient);
+    const inheritanceHierarchyProvider =
+        new InheritanceHierarchyProvider(languageClient);
     window.registerTreeDataProvider(
         'cquery.inheritanceHierarchy', inheritanceHierarchyProvider);
-    commands.registerTextEditorCommand('cquery.inheritanceHierarchy', (editor) => {
-      setContext('extension.cquery.inheritanceHierarchyVisible', true);
+    commands.registerTextEditorCommand(
+        'cquery.inheritanceHierarchy', (editor) => {
+          setContext('extension.cquery.inheritanceHierarchyVisible', true);
 
-      let position = editor.selection.active;
-      let uri = editor.document.uri;
-      languageClient
-          .sendRequest('$cquery/inheritanceHierarchy', {
-            textDocument: {
-              uri: uri.toString(),
-            },
-            position: position,
-            derived: true,
-            detailedName: false,
-            levels: 1
-          })
-          .then((entry: InheritanceHierarchyNode) => {
-            InheritanceHierarchyNode.setWantsDerived(entry, true);
+          let position = editor.selection.active;
+          let uri = editor.document.uri;
+          languageClient
+              .sendRequest('$cquery/inheritanceHierarchy', {
+                textDocument: {
+                  uri: uri.toString(),
+                },
+                position: position,
+                derived: true,
+                detailedName: false,
+                levels: 1
+              })
+              .then((entry: InheritanceHierarchyNode) => {
+                InheritanceHierarchyNode.setWantsDerived(entry, true);
 
-            languageClient.sendRequest('$cquery/inheritanceHierarchy', {
-              id: entry.id,
-              kind: entry.kind,
-              derived: false,
-              detailedName: false,
-              levels: 1
-            })
-            .then((parentEntry: InheritanceHierarchyNode) => {
-              if (parentEntry.numChildren > 0) {
-                let parentWrapper = new InheritanceHierarchyNode();
-                parentWrapper.children = parentEntry.children;
-                parentWrapper.numChildren = parentEntry.children.length;
-                parentWrapper.name = '[[Base]]';
-                InheritanceHierarchyNode.setWantsDerived(parentWrapper, false);
-                entry.children.splice(0, 0, parentWrapper);
-                entry.numChildren += 1;
-              }
+                languageClient
+                    .sendRequest('$cquery/inheritanceHierarchy', {
+                      id: entry.id,
+                      kind: entry.kind,
+                      derived: false,
+                      detailedName: false,
+                      levels: 1
+                    })
+                    .then((parentEntry: InheritanceHierarchyNode) => {
+                      if (parentEntry.numChildren > 0) {
+                        let parentWrapper = new InheritanceHierarchyNode();
+                        parentWrapper.children = parentEntry.children;
+                        parentWrapper.numChildren = parentEntry.children.length;
+                        parentWrapper.name = '[[Base]]';
+                        InheritanceHierarchyNode.setWantsDerived(
+                            parentWrapper, false);
+                        entry.children.splice(0, 0, parentWrapper);
+                        entry.numChildren += 1;
+                      }
 
-              inheritanceHierarchyProvider.root = entry;
-              inheritanceHierarchyProvider.onDidChangeEmitter.fire();
-            });
-
-          })
-    });
+                      inheritanceHierarchyProvider.root = entry;
+                      inheritanceHierarchyProvider.onDidChangeEmitter.fire();
+                    });
+              })
+        });
     commands.registerCommand('cquery.closeinheritanceHierarchy', () => {
       setContext('extension.cquery.inheritanceHierarchyVisible', false);
       inheritanceHierarchyProvider.root = undefined;
@@ -589,7 +588,8 @@ export function activate(context: ExtensionContext) {
         context.asAbsolutePath(path.join('resources', 'base-light.svg'));
     const callHierarchyProvider = new CallHierarchyProvider(
         languageClient, derivedDark, derivedLight, baseDark, baseLight);
-    window.registerTreeDataProvider('cquery.callHierarchy', callHierarchyProvider);
+    window.registerTreeDataProvider(
+        'cquery.callHierarchy', callHierarchyProvider);
     commands.registerTextEditorCommand('cquery.callHierarchy', (editor) => {
       setContext('extension.cquery.callHierarchyVisible', true);
       let position = editor.selection.active;
@@ -620,7 +620,8 @@ export function activate(context: ExtensionContext) {
   // Common between tree views.
   (() => {
     commands.registerCommand(
-        'cquery.gotoForTreeView', (node: InheritanceHierarchyNode|CallHierarchyNode) => {
+        'cquery.gotoForTreeView',
+        (node: InheritanceHierarchyNode|CallHierarchyNode) => {
           if (!node.location)
             return;
 
@@ -634,7 +635,8 @@ export function activate(context: ExtensionContext) {
     let lastGotoClickTime: number
     commands.registerCommand(
         'cquery.hackGotoForTreeView',
-        (node: InheritanceHierarchyNode|CallHierarchyNode, hasChildren: boolean) => {
+        (node: InheritanceHierarchyNode|CallHierarchyNode,
+         hasChildren: boolean) => {
           if (!node.location)
             return;
 
@@ -719,8 +721,7 @@ export function activate(context: ExtensionContext) {
         return decorations[symbol.stableId % decorations.length];
       };
 
-      if (symbol.kind == SymbolKind.Class ||
-          symbol.kind == SymbolKind.Struct) {
+      if (symbol.kind == SymbolKind.Class || symbol.kind == SymbolKind.Struct) {
         return get('types');
       } else if (symbol.kind == SymbolKind.Enum) {
         return get('enums');
@@ -730,8 +731,9 @@ export function activate(context: ExtensionContext) {
         return get('templateParameters');
       } else if (symbol.kind == SymbolKind.Function) {
         return get('freeStandingFunctions');
-      } else if (symbol.kind == SymbolKind.Method ||
-                 symbol.kind == SymbolKind.Constructor) {
+      } else if (
+          symbol.kind == SymbolKind.Method ||
+          symbol.kind == SymbolKind.Constructor) {
         return get('memberFunctions')
       } else if (symbol.kind == SymbolKind.StaticMethod) {
         return get('staticMemberFunctions')
