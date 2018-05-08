@@ -100,6 +100,7 @@ function getClientConfig(context: ExtensionContext) {
     ['enableCacheWrite', 'misc.enableCacheWrite'],
     ['enableCacheRead', 'misc.enableCacheRead'],
     ['compilationDatabaseDirectory', 'misc.compilationDatabaseDirectory'],
+    ['completion.enableSnippets', 'completion.enableSnippetInsertion'],
     ['completion.includeMaxPathSize', 'completion.include.maximumPathLength'],
     ['completion.includeSuffixWhitelist', 'completion.include.whitelistLiteralEnding'],
     ['completion.includeWhitelist', 'completion.include.whitelist'],
@@ -108,7 +109,6 @@ function getClientConfig(context: ExtensionContext) {
     ['diagnostics.onParse', 'diagnostics.onParse'],
     ['diagnostics.onCodeCompletion', 'diagnostics.onCodeCompletion'],
     ['codeLens.localVariables', 'codeLens.onLocalVariables'],
-    ['client.snippetSupport', 'completion.enableSnippetInsertion']
   ];
   let clientConfig = {
     launchCommand: '',
