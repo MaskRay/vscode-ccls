@@ -107,7 +107,7 @@ function getClientConfig(context: ExtensionContext) {
     ['completion.includeBlacklist', 'completion.include.blacklist'],
     ['showDocumentLinksOnIncludes', 'showDocumentLinksOnIncludes'],
     ['diagnostics.onParse', 'diagnostics.onParse'],
-    ['diagnostics.onCodeCompletion', 'diagnostics.onCodeCompletion'],
+    ['diagnostics.onType', 'diagnostics.onType'],
     ['codeLens.localVariables', 'codeLens.onLocalVariables'],
   ];
   let clientConfig = {
