@@ -315,7 +315,7 @@ export function activate(context: ExtensionContext) {
       window.showErrorMessage(
           'cquery.launch.command has changed; either add cquery to your PATH ' +
           'or make cquery.launch.command an absolute path. Current value: "' +
-          command + '" cquery.launch.workingDirectory has been removed.');
+          command + '". cquery.launch.workingDirectory has been removed.');
     });
     context.subscriptions.push(languageClient.start());
 
