@@ -19,11 +19,6 @@ function setContext(name, value) {
   commands.executeCommand('setContext', name, value);
 }
 
-// Increment version number whenever we want to make sure the user updates the
-// extension. cquery will emit an error notification if this does not match its
-// internal number.
-const VERSION = 3;
-
 enum SymbolKind {
   // lsSymbolKind
   Unknown = 0,
@@ -198,8 +193,6 @@ export function activate(context: ExtensionContext) {
       }
     }));
 
-    // Add version information to the config.
-    clientConfig['clientVersion'] = VERSION
     let args = ['--language-server'].concat(clientConfig['launchArgs']);
 
     let env: any = {};
