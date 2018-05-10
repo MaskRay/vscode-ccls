@@ -352,8 +352,6 @@ export function activate(context: ExtensionContext) {
         'cquery.callers', makeRefHandler('$cquery/callers'));
     commands.registerCommand(
         'cquery.base', makeRefHandler('$cquery/base', true));
-    commands.registerCommand(
-        'cquery.derived', makeRefHandler('$cquery/derived'));
   })();
 
   // The language client does not correctly deserialize arguments, so we have a
