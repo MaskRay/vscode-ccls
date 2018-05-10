@@ -567,7 +567,7 @@ export function activate(context: ExtensionContext) {
                     });
               })
         });
-    commands.registerCommand('cquery.closeinheritanceHierarchy', () => {
+    commands.registerCommand('cquery.closeInheritanceHierarchy', () => {
       setContext('extension.cquery.inheritanceHierarchyVisible', false);
       inheritanceHierarchyProvider.root = undefined;
       inheritanceHierarchyProvider.onDidChangeEmitter.fire();
@@ -608,7 +608,7 @@ export function activate(context: ExtensionContext) {
             callHierarchyProvider.onDidChangeEmitter.fire();
           });
     });
-    commands.registerCommand('cquery.closecallHierarchy', (e) => {
+    commands.registerCommand('cquery.closeCallHierarchy', (e) => {
       setContext('extension.cquery.callHierarchyVisible', false);
       callHierarchyProvider.root = undefined;
       callHierarchyProvider.onDidChangeEmitter.fire();

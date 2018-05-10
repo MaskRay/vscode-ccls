@@ -61,12 +61,12 @@
       ],
       "view/title": [
         {
-          "command": "cquery.closeinheritanceHierarchy",
+          "command": "cquery.closeInheritanceHierarchy",
           "when": "view == cquery.inheritanceHierarchy",
           "group": "navigation"
         },
         {
-          "command": "cquery.closecallHierarchy",
+          "command": "cquery.closeCallHierarchy",
           "when": "view == cquery.callHierarchy",
           "group": "navigation"
         }
@@ -79,11 +79,11 @@
       ],
       "commandPalette": [
         {
-          "command": "cquery.closeinheritanceHierarchy",
+          "command": "cquery.closeInheritanceHierarchy",
           "when": "false"
         },
         {
-          "command": "cquery.closecallHierarchy",
+          "command": "cquery.closeCallHierarchy",
           "when": "false"
         },
         {
@@ -105,7 +105,7 @@
       },
       {
         "title": "Close",
-        "command": "cquery.closeinheritanceHierarchy"
+        "command": "cquery.closeInheritanceHierarchy"
       },
       {
         "title": "Call Hierarchy",
@@ -114,7 +114,7 @@
       },
       {
         "title": "Close",
-        "command": "cquery.closecallHierarchy"
+        "command": "cquery.closeCallHierarchy"
       },
       {
         "title": "Show Variables",
