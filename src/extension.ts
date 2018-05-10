@@ -84,6 +84,7 @@ function getClientConfig(context: ExtensionContext) {
     ['launchCommand', 'launch.command'],
     ['launchArgs', 'launch.args'],
     ['cacheDirectory', kCacheDirPrefName],
+    ['emitQueryDbBlocked', 'cquery.developer.emitQueryDbBlocked'],
     ['index.whitelist', 'index.whitelist'],
     ['index.blacklist', 'index.blacklist'],
     ['index.logSkippedPaths', 'log.skippedPathsForIndex'],
@@ -515,6 +516,42 @@ export function activate(context: ExtensionContext) {
         });
       });
     }
+  })();
+
+  // QueryDb busy
+  (() => {
+    // Notifications have a minimum time to live. If the status changes multiple
+    // times within that interface, we will show multiple notifications. Try to
+    // avoid that.
+    const kGracePeriodMs = 250;
+
+    var timeout: NodeJS.Timer
+    var resolvePromise: any
+    languageClient.onReady().then(() => {
+      languageClient.onNotification('$cquery/queryDbStatus', (args) => {
+        let isActive: boolean = args.isActive;
+        if (isActive) {
+          if (timeout) {
+            clearTimeout(timeout);
+            timeout = undefined;
+          }
+          else {
+            window.withProgress({location: ProgressLocation.Notification, title: 'querydb is busy'}, (p) => {
+              p.report({increment: 100})
+              return new Promise((resolve, reject) => {
+                resolvePromise = resolve;
+              });
+            });
+          }
+        } else if (resolvePromise) {
+          timeout = setTimeout(() => {
+            resolvePromise();
+            resolvePromise = undefined;
+            timeout = undefined;
+          }, kGracePeriodMs);
+        }
+      });
+    });
   })();
 
   // Inheritance hierarchy.
