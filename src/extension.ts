@@ -84,7 +84,7 @@ function getClientConfig(context: ExtensionContext) {
     ['launchCommand', 'launch.command'],
     ['launchArgs', 'launch.args'],
     ['cacheDirectory', kCacheDirPrefName],
-    ['emitQueryDbBlocked', 'cquery.developer.emitQueryDbBlocked'],
+    ['emitQueryDbBlocked', 'developer.emitQueryDbBlocked'],
     ['index.whitelist', 'index.whitelist'],
     ['index.blacklist', 'index.blacklist'],
     ['index.logSkippedPaths', 'log.skippedPathsForIndex'],
