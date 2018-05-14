@@ -3,7 +3,7 @@
   "description": "Low-latency language server for C++. Highly scalable and designed for huge code bases.",
   "author": "cquery-project",
   "license": "MIT",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "publisher": "cquery-project",
   "preview": true,
   "engines": {
