@@ -133,6 +133,7 @@ function getClientConfig(context: ExtensionContext) {
     ['diagnostics.onType', 'diagnostics.onType'],
     ['codeLens.localVariables', 'codeLens.onLocalVariables'],
     ['emitInactiveRegions', 'misc.showInactiveRegions'],
+    ['formatting.enabled', 'formatting.enabled'],
   ];
   let clientConfig = {
     launchCommand: '',
@@ -142,7 +143,7 @@ function getClientConfig(context: ExtensionContext) {
     },
     workspaceSymbol: {
       sort: false,
-    }
+    },
   };
   let config = workspace.getConfiguration('cquery');
   for (let prop of configMapping) {
