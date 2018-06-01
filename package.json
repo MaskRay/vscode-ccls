@@ -734,6 +734,11 @@
           "default": "",
           "description": "If not empty, the compilation database directory to use instead of the project root"
         },
+        "cquery.misc.showInactiveRegions": {
+          "type": "boolean",
+          "default": true,
+          "description": "If true, cquery will highlight inactive regions."
+        },
         "cquery.completion.include.maximumPathLength": {
           "type": "integer",
           "default": 37,

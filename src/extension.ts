@@ -79,6 +79,31 @@ class SemanticSymbol {
 function getClientConfig(context: ExtensionContext) {
   const kCacheDirPrefName = 'cacheDirectory';
 
+  function hasAnySemanticHighlighting() {
+    let options = [
+      'cquery.highlighting.enabled.types',
+      'cquery.highlighting.enabled.freeStandingFunctions',
+      'cquery.highlighting.enabled.memberFunctions',
+      'cquery.highlighting.enabled.freeStandingVariables',
+      'cquery.highlighting.enabled.memberVariables',
+      'cquery.highlighting.enabled.namespaces',
+      'cquery.highlighting.enabled.macros',
+      'cquery.highlighting.enabled.enums',
+      'cquery.highlighting.enabled.typeAliases',
+      'cquery.highlighting.enabled.enumConstants',
+      'cquery.highlighting.enabled.staticMemberFunctions',
+      'cquery.highlighting.enabled.parameters',
+      'cquery.highlighting.enabled.templateParameters',
+      'cquery.highlighting.enabled.staticMemberVariables',
+      'cquery.highlighting.enabled.globalVariables'];
+    let config = workspace.getConfiguration();
+    for (let name of options) {
+      if (config.get(name, false))
+        return true;
+    }
+    return false;
+  }
+
   // Read prefs; this map goes from `cquery/js name` => `vscode prefs name`.
   let configMapping = [
     ['launchCommand', 'launch.command'],
@@ -105,10 +130,14 @@ function getClientConfig(context: ExtensionContext) {
     ['diagnostics.onParse', 'diagnostics.onParse'],
     ['diagnostics.onType', 'diagnostics.onType'],
     ['codeLens.localVariables', 'codeLens.onLocalVariables'],
+    ['emitInactiveRegions', 'misc.showInactiveRegions'],
   ];
   let clientConfig = {
     launchCommand: '',
     cacheDirectory: '',
+    highlight: {
+      enabled: hasAnySemanticHighlighting()
+    },
     workspaceSymbol: {
       sort: false,
     }
