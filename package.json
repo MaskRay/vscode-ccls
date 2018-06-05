@@ -769,6 +769,16 @@
           "default": true,
           "description": "If true, document links (an underline) will be rendered on includes. Goto definition (control click) will still work on includes even if this is false."
         },
+        "cquery.diagnostics.blacklist": {
+          "type": "array",
+          "default": [],
+          "description": "Files that match these patterns won't be displayed in diagnostics view."
+        },
+        "cquery.diagnostics.whitelist": {
+          "type": "array",
+          "default": [],
+          "description": "Files that match these patterns will be displayed in diagnostics view."
+        },
         "cquery.diagnostics.onParse": {
           "type": "boolean",
           "default": true,
