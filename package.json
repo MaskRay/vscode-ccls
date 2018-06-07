@@ -17,8 +17,9 @@
     "onLanguage:cpp",
     "onLanguage:objective-c",
     "onLanguage:objective-cpp",
+    "workspaceContains:.cquery",
     "workspaceContains:compile_commands.json",
-    "workspaceContains:.cquery"
+    "workspaceContains:build/compile_commands.json"
   ],
   "main": "./out/extension",
   "contributes": {
