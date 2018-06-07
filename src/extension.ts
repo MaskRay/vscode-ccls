@@ -516,12 +516,12 @@ export function activate(context: ExtensionContext) {
       statusIcon.show();
       languageClient.onReady().then(() => {
         languageClient.onNotification('$cquery/progress', (args) => {
-          let indexRequestCount = args.indexRequestCount;
-          let doIdMapCount = args.doIdMapCount;
-          let loadPreviousIndexCount = args.loadPreviousIndexCount;
-          let onIdMappedCount = args.onIdMappedCount;
-          let onIndexedCount = args.onIndexedCount;
-          let activeThreads = args.activeThreads;
+          let indexRequestCount = args.indexRequestCount || 0;
+          let doIdMapCount = args.doIdMapCount || 0;
+          let loadPreviousIndexCount = args.loadPreviousIndexCount || 0;
+          let onIdMappedCount = args.onIdMappedCount || 0;
+          let onIndexedCount = args.onIndexedCount || 0;
+          let activeThreads = args.activeThreads || 0;
           let total = indexRequestCount + doIdMapCount +
               loadPreviousIndexCount + onIdMappedCount + onIndexedCount +
               activeThreads;
