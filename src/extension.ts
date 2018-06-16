@@ -104,6 +104,24 @@ function getClientConfig(context: ExtensionContext) {
     return false;
   }
 
+  function resolveVariablesInString(value: string) {
+    return value.replace('${workspaceFolder}', workspace.rootPath);
+  }
+
+  function resloveVariablesInArray(value: any[]) {
+    return value.map(v => resolveVariables(v));
+  }
+
+  function resolveVariables(value: any) {
+    if (typeof(value) == 'string') {
+      return resolveVariablesInString(value);
+    }
+    if (Array.isArray(value)) {
+        return resloveVariablesInArray(value);
+    }
+    return value
+  }
+
   // Read prefs; this map goes from `cquery/js name` => `vscode prefs name`.
   let configMapping = [
     ['launchCommand', 'launch.command'],
@@ -158,7 +176,7 @@ function getClientConfig(context: ExtensionContext) {
         }
         subconfig = subconfig[subprop];
       }
-      subconfig[subprops[subprops.length - 1]] = value;
+      subconfig[subprops[subprops.length - 1]] = resolveVariables(value);
     }
   }
 
@@ -182,11 +200,9 @@ function getClientConfig(context: ExtensionContext) {
     // the project since if the user has an SSD they most likely have their
     // source files on the SSD as well.
     let cacheDir = '${workspaceFolder}/.vscode/cquery_cached_index/';
-    clientConfig.cacheDirectory = cacheDir;
+    clientConfig.cacheDirectory = resolveVariables(cacheDir);
     config.update(kCacheDirPrefName, cacheDir, false /*global*/);
   }
-  clientConfig.cacheDirectory = clientConfig.cacheDirectory.replace(
-      '${workspaceFolder}', workspace.rootPath);
 
   return clientConfig;
 }
