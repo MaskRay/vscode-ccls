@@ -133,7 +133,7 @@ function getClientConfig(context: ExtensionContext) {
     ['diagnostics.onType', 'diagnostics.onType'],
     ['codeLens.localVariables', 'codeLens.onLocalVariables'],
     ['emitInactiveRegions', 'misc.showInactiveRegions'],
-    ['misc.discoverSystemIncludes','discoverSystemIncludes'],
+    ['discoverSystemIncludes','misc.discoverSystemIncludes'],
     ['formatting.enabled', 'formatting.enabled'],
   ];
   let clientConfig = {
