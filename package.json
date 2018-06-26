@@ -100,6 +100,11 @@
         "command": "cquery.freshenIndex"
       },
       {
+        "title": "Restart language server",
+        "category": "cquery",
+        "command": "cquery.restart"
+      },
+      {
         "title": "Inheritance Hierarchy",
         "category": "cquery",
         "command": "cquery.inheritanceHierarchy"

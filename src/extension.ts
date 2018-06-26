@@ -199,7 +199,7 @@ export function activate(context: ExtensionContext) {
   /////////////////////////////////////
 
   // Load configuration and start the client.
-  let languageClient = (() => {
+  let getLanguageClient = (() => {
     let clientConfig = getClientConfig(context);
     if (!clientConfig)
       return;
@@ -347,7 +347,9 @@ export function activate(context: ExtensionContext) {
     context.subscriptions.push(languageClient.start());
 
     return languageClient;
-  })();
+  });
+
+  let languageClient = getLanguageClient();
 
   let p2c = languageClient.protocol2CodeConverter;
 
@@ -355,6 +357,10 @@ export function activate(context: ExtensionContext) {
   (() => {
     commands.registerCommand('cquery.freshenIndex', () => {
       languageClient.sendNotification('$cquery/freshenIndex');
+    });
+    commands.registerCommand('cquery.restart', () => {
+      languageClient.stop();
+      languageClient = getLanguageClient();
     });
 
     function makeRefHandler(methodName, autoGotoIfSingle = false) {
