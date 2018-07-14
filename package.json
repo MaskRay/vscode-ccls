@@ -1,10 +1,10 @@
 {
-  "name": "cquery",
-  "description": "Low-latency language server for C++. Highly scalable and designed for huge code bases.",
-  "author": "cquery-project",
+  "name": "ccls",
+  "description": "C/C++/ObjC language server supporting cross references, hierarchies, completion and semantic highlighting",
+  "author": "ccls-project",
   "license": "MIT",
   "version": "0.1.10",
-  "publisher": "cquery-project",
+  "publisher": "ccls-project",
   "preview": true,
   "engines": {
     "vscode": "^1.22.0"
@@ -17,7 +17,7 @@
     "onLanguage:cpp",
     "onLanguage:objective-c",
     "onLanguage:objective-cpp",
-    "workspaceContains:.cquery",
+    "workspaceContains:.ccls",
     "workspaceContains:compile_commands.json",
     "workspaceContains:build/compile_commands.json"
   ],
@@ -26,69 +26,69 @@
     "views": {
       "explorer": [
         {
-          "id": "cquery.inheritanceHierarchy",
+          "id": "ccls.inheritanceHierarchy",
           "name": "Inheritance Hierarchy",
-          "when": "extension.cquery.inheritanceHierarchyVisible"
+          "when": "extension.ccls.inheritanceHierarchyVisible"
         },
         {
-          "id": "cquery.callHierarchy",
+          "id": "ccls.callHierarchy",
           "name": "Call Hierarchy",
-          "when": "extension.cquery.callHierarchyVisible"
+          "when": "extension.ccls.callHierarchyVisible"
         }
       ]
     },
     "menus": {
       "editor/context": [
         {
-          "command": "cquery.inheritanceHierarchy",
+          "command": "ccls.inheritanceHierarchy",
           "when": "resourceLangId == cpp",
           "group": "navigation@1.31"
         },
         {
-          "command": "cquery.callHierarchy",
+          "command": "ccls.callHierarchy",
           "when": "resourceLangId == cpp",
           "group": "navigation@1.32"
         },
         {
-          "command": "cquery.vars",
+          "command": "ccls.vars",
           "when": "resourceLangId == cpp",
           "group": "navigation@1.33"
         },
         {
-          "command": "cquery.base",
+          "command": "ccls.base",
           "when": "resourceLangId == cpp",
           "group": "navigation@1.34"
         }
       ],
       "view/title": [
         {
-          "command": "cquery.closeInheritanceHierarchy",
-          "when": "view == cquery.inheritanceHierarchy",
+          "command": "ccls.closeInheritanceHierarchy",
+          "when": "view == ccls.inheritanceHierarchy",
           "group": "navigation"
         },
         {
-          "command": "cquery.closeCallHierarchy",
-          "when": "view == cquery.callHierarchy",
+          "command": "ccls.closeCallHierarchy",
+          "when": "view == ccls.callHierarchy",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "cquery.gotoForTreeView",
-          "when": "viewItem == cqueryGoto"
+          "command": "ccls.gotoForTreeView",
+          "when": "viewItem == cclsGoto"
         }
       ],
       "commandPalette": [
         {
-          "command": "cquery.closeInheritanceHierarchy",
+          "command": "ccls.closeInheritanceHierarchy",
           "when": "false"
         },
         {
-          "command": "cquery.closeCallHierarchy",
+          "command": "ccls.closeCallHierarchy",
           "when": "false"
         },
         {
-          "command": "cquery.gotoForTreeView",
+          "command": "ccls.gotoForTreeView",
           "when": "false"
         }
       ]
@@ -96,163 +96,163 @@
     "commands": [
       {
         "title": "Freshen Index",
-        "category": "cquery",
-        "command": "cquery.freshenIndex"
+        "category": "ccls",
+        "command": "ccls.freshenIndex"
       },
       {
         "title": "Restart language server",
-        "category": "cquery",
-        "command": "cquery.restart"
+        "category": "ccls",
+        "command": "ccls.restart"
       },
       {
         "title": "Inheritance Hierarchy",
-        "category": "cquery",
-        "command": "cquery.inheritanceHierarchy"
+        "category": "ccls",
+        "command": "ccls.inheritanceHierarchy"
       },
       {
         "title": "Close",
-        "command": "cquery.closeInheritanceHierarchy"
+        "command": "ccls.closeInheritanceHierarchy"
       },
       {
         "title": "Call Hierarchy",
-        "category": "cquery",
-        "command": "cquery.callHierarchy"
+        "category": "ccls",
+        "command": "ccls.callHierarchy"
       },
       {
         "title": "Close",
-        "command": "cquery.closeCallHierarchy"
+        "command": "ccls.closeCallHierarchy"
       },
       {
         "title": "Show Variables",
-        "category": "cquery",
-        "command": "cquery.vars"
+        "category": "ccls",
+        "command": "ccls.vars"
       },
       {
         "title": "Show Callers",
-        "category": "cquery",
-        "command": "cquery.callers"
+        "category": "ccls",
+        "command": "ccls.callers"
       },
       {
         "title": "Show Base",
-        "category": "cquery",
-        "command": "cquery.base"
+        "category": "ccls",
+        "command": "ccls.base"
       },
       {
         "title": "Go to Tree View Entry",
-        "category": "cquery",
-        "command": "cquery.gotoForTreeView"
+        "category": "ccls",
+        "command": "ccls.gotoForTreeView"
       }
     ],
     "configuration": {
       "type": "object",
-      "title": "cquery",
+      "title": "ccls",
       "properties": {
-        "cquery.launch.command": {
+        "ccls.launch.command": {
           "type": "string",
-          "default": "cquery",
-          "description": "Path to the cquery binary (default assumes the binary is in the PATH)"
+          "default": "ccls",
+          "description": "Path to the ccls binary (default assumes the binary is in the PATH)"
         },
-        "cquery.launch.args": {
+        "ccls.launch.args": {
           "type": "array",
           "default": [],
-          "description": "Array containing extra arguments to pass to the cquery binary"
+          "description": "Array containing extra arguments to pass to the ccls binary"
         },
-        "cquery.launch.autoRestart": {
+        "ccls.launch.autoRestart": {
           "type": "boolean",
           "default": true,
-          "description": "If true, cquery will be automatically restarted if it crashes."
+          "description": "If true, ccls will be automatically restarted if it crashes."
         },
-        "cquery.launch.notifyOnCrash": {
+        "ccls.launch.notifyOnCrash": {
           "type": "boolean",
           "default": false,
-          "description": "If true, a notification message will be displayed whenever cquery crashes."
+          "description": "If true, a notification message will be displayed whenever ccls crashes."
         },
-        "cquery.cacheDirectory": {
+        "ccls.cacheDirectory": {
           "type": "string",
           "default": "",
-          "description": "Absolute path to the directory that the cached index will be stored in. Try to have this directory on an SSD. If not explicitly set, this will be automatically populated with the extension cache directory.\n\n${workspaceFolder} will be replaced by the folder where .vscode/settings.json resides.\n\nCache directories are project-wide, so this should be configured in the workspace settings so multiple indexes do not clash.\n\nExample value: \"/work/cquery-cache/chrome/\""
+          "description": "Absolute path to the directory that the cached index will be stored in. Try to have this directory on an SSD. If not explicitly set, this will be automatically populated with the extension cache directory.\n\n${workspaceFolder} will be replaced by the folder where .vscode/settings.json resides.\n\nCache directories are project-wide, so this should be configured in the workspace settings so multiple indexes do not clash.\n\nExample value: \"/work/ccls-cache/chrome/\""
         },
-        "cquery.developer.emitQueryDbBlocked": {
+        "ccls.developer.emitQueryDbBlocked": {
           "type": "boolean",
           "default": false,
           "description": "If true, a notification will be shown whenever the querydb thread is busy."
         },
-        "cquery.highlighting.enabled.types": {
+        "ccls.highlighting.enabled.types": {
           "type": "boolean",
           "default": false,
           "description": "If semantic highlighting for classes, structs, and unions is enabled/disabled."
         },
-        "cquery.highlighting.enabled.freeStandingFunctions": {
+        "ccls.highlighting.enabled.freeStandingFunctions": {
           "type": "boolean",
           "default": false,
           "description": "If semantic highlighting for member functions is enabled/disabled."
         },
-        "cquery.highlighting.enabled.memberFunctions": {
+        "ccls.highlighting.enabled.memberFunctions": {
           "type": "boolean",
           "default": false,
           "description": "If semantic highlighting for member functions is enabled/disabled."
         },
-        "cquery.highlighting.enabled.freeStandingVariables": {
+        "ccls.highlighting.enabled.freeStandingVariables": {
           "type": "boolean",
           "default": false,
           "description": "If semantic highlighting for member free-standing variables is enabled/disabled."
         },
-        "cquery.highlighting.enabled.memberVariables": {
+        "ccls.highlighting.enabled.memberVariables": {
           "type": "boolean",
           "default": false,
           "description": "If semantic highlighting for member variables is enabled/disabled."
         },
-        "cquery.highlighting.enabled.namespaces": {
+        "ccls.highlighting.enabled.namespaces": {
           "type": "boolean",
           "default": false,
           "description": "If semantic highlighting for namespaces is enabled/disabled."
         },
-        "cquery.highlighting.enabled.macros": {
+        "ccls.highlighting.enabled.macros": {
           "type": "boolean",
           "default": false,
           "description": "If semantic highlighting for macros is enabled/disabled."
         },
-        "cquery.highlighting.enabled.enums": {
+        "ccls.highlighting.enabled.enums": {
           "type": "boolean",
           "default": false,
           "description": "If semantic highlighting for enumerations is enabled/disabled."
         },
-        "cquery.highlighting.enabled.typeAliases": {
+        "ccls.highlighting.enabled.typeAliases": {
           "type": "boolean",
           "default": false,
           "description": "If semantic highlighting for type aliases is enabled/disabled."
         },
-        "cquery.highlighting.enabled.enumConstants": {
+        "ccls.highlighting.enabled.enumConstants": {
           "type": "boolean",
           "default": false,
           "description": "If semantic highlighting for enumerators is enabled/disabled."
         },
-        "cquery.highlighting.enabled.staticMemberFunctions": {
+        "ccls.highlighting.enabled.staticMemberFunctions": {
           "type": "boolean",
           "default": false,
           "description": "If semantic highlighting for static member functions is enabled/disabled."
         },
-        "cquery.highlighting.enabled.parameters": {
+        "ccls.highlighting.enabled.parameters": {
           "type": "boolean",
           "default": false,
           "description": "If semantic highlighting for parameters is enabled/disabled."
         },
-        "cquery.highlighting.enabled.templateParameters": {
+        "ccls.highlighting.enabled.templateParameters": {
           "type": "boolean",
           "default": false,
           "description": "If semantic highlighting for template parameters is enabled/disabled."
         },
-        "cquery.highlighting.enabled.staticMemberVariables": {
+        "ccls.highlighting.enabled.staticMemberVariables": {
           "type": "boolean",
           "default": false,
           "description": "If semantic highlighting for static member variables is enabled/disabled."
         },
-        "cquery.highlighting.enabled.globalVariables": {
+        "ccls.highlighting.enabled.globalVariables": {
           "type": "boolean",
           "default": false,
           "description": "If semantic highlighting for global variables is enabled/disabled."
         },
-        "cquery.highlighting.colors.types": {
+        "ccls.highlighting.colors.types": {
           "type": "array",
           "default": [
             "#e1afc3",
@@ -268,7 +268,7 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
-        "cquery.highlighting.colors.freeStandingFunctions": {
+        "ccls.highlighting.colors.freeStandingFunctions": {
           "type": "array",
           "default": [
             "#e5b124",
@@ -284,7 +284,7 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
-        "cquery.highlighting.colors.memberFunctions": {
+        "ccls.highlighting.colors.memberFunctions": {
           "type": "array",
           "default": [
             "#e5b124",
@@ -300,7 +300,7 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
-        "cquery.highlighting.colors.freeStandingVariables": {
+        "ccls.highlighting.colors.freeStandingVariables": {
           "type": "array",
           "default": [
             "#587d87",
@@ -316,7 +316,7 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
-        "cquery.highlighting.colors.memberVariables": {
+        "ccls.highlighting.colors.memberVariables": {
           "type": "array",
           "default": [
             "#587d87",
@@ -332,7 +332,7 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
-        "cquery.highlighting.colors.namespaces": {
+        "ccls.highlighting.colors.namespaces": {
           "type": "array",
           "default": [
             "#429921",
@@ -348,7 +348,7 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
-        "cquery.highlighting.colors.macros": {
+        "ccls.highlighting.colors.macros": {
           "type": "array",
           "default": [
             "#e79528",
@@ -364,7 +364,7 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
-        "cquery.highlighting.colors.enums": {
+        "ccls.highlighting.colors.enums": {
           "type": "array",
           "default": [
             "#e1afc3",
@@ -380,7 +380,7 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
-        "cquery.highlighting.colors.typeAliases": {
+        "ccls.highlighting.colors.typeAliases": {
           "type": "array",
           "default": [
             "#e1afc3",
@@ -396,7 +396,7 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
-        "cquery.highlighting.colors.staticMemberFunctions": {
+        "ccls.highlighting.colors.staticMemberFunctions": {
           "type": "array",
           "default": [
             "#e5b124",
@@ -412,7 +412,7 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
-        "cquery.highlighting.colors.enumConstants": {
+        "ccls.highlighting.colors.enumConstants": {
           "type": "array",
           "default": [
             "#587d87",
@@ -428,7 +428,7 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
-        "cquery.highlighting.colors.parameters": {
+        "ccls.highlighting.colors.parameters": {
           "type": "array",
           "default": [
             "#587d87",
@@ -444,7 +444,7 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
-        "cquery.highlighting.colors.templateParameters": {
+        "ccls.highlighting.colors.templateParameters": {
           "type": "array",
           "default": [
             "#e1afc3",
@@ -460,7 +460,7 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
-        "cquery.highlighting.colors.staticMemberVariables": {
+        "ccls.highlighting.colors.staticMemberVariables": {
           "type": "array",
           "default": [
             "#587d87",
@@ -476,7 +476,7 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
-        "cquery.highlighting.colors.globalVariables": {
+        "ccls.highlighting.colors.globalVariables": {
           "type": "array",
           "default": [
             "#587d87",
@@ -492,207 +492,207 @@
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
-        "cquery.highlighting.underline.types": {
+        "ccls.highlighting.underline.types": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.underline.freeStandingFunctions": {
+        "ccls.highlighting.underline.freeStandingFunctions": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.underline.memberFunctions": {
+        "ccls.highlighting.underline.memberFunctions": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.underline.freeStandingVariables": {
+        "ccls.highlighting.underline.freeStandingVariables": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.underline.memberVariables": {
+        "ccls.highlighting.underline.memberVariables": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.underline.namespaces": {
+        "ccls.highlighting.underline.namespaces": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.underline.macros": {
+        "ccls.highlighting.underline.macros": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.underline.enums": {
+        "ccls.highlighting.underline.enums": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.underline.typeAliases": {
+        "ccls.highlighting.underline.typeAliases": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.underline.enumConstants": {
+        "ccls.highlighting.underline.enumConstants": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.underline.staticMemberFunctions": {
+        "ccls.highlighting.underline.staticMemberFunctions": {
           "type": "boolean",
           "default": true
         },
-        "cquery.highlighting.underline.parameters": {
+        "ccls.highlighting.underline.parameters": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.underline.templateParameters": {
+        "ccls.highlighting.underline.templateParameters": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.underline.staticMemberVariables": {
+        "ccls.highlighting.underline.staticMemberVariables": {
           "type": "boolean",
           "default": true
         },
-        "cquery.highlighting.underline.globalVariables": {
+        "ccls.highlighting.underline.globalVariables": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.italic.types": {
+        "ccls.highlighting.italic.types": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.italic.freeStandingFunctions": {
+        "ccls.highlighting.italic.freeStandingFunctions": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.italic.memberFunctions": {
+        "ccls.highlighting.italic.memberFunctions": {
           "type": "boolean",
           "default": true
         },
-        "cquery.highlighting.italic.freeStandingVariables": {
+        "ccls.highlighting.italic.freeStandingVariables": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.italic.memberVariables": {
+        "ccls.highlighting.italic.memberVariables": {
           "type": "boolean",
           "default": true
         },
-        "cquery.highlighting.italic.namespaces": {
+        "ccls.highlighting.italic.namespaces": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.italic.macros": {
+        "ccls.highlighting.italic.macros": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.italic.enums": {
+        "ccls.highlighting.italic.enums": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.italic.typeAliases": {
+        "ccls.highlighting.italic.typeAliases": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.italic.enumConstants": {
+        "ccls.highlighting.italic.enumConstants": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.italic.staticMemberFunctions": {
+        "ccls.highlighting.italic.staticMemberFunctions": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.italic.parameters": {
+        "ccls.highlighting.italic.parameters": {
           "type": "boolean",
           "default": true
         },
-        "cquery.highlighting.italic.templateParameters": {
+        "ccls.highlighting.italic.templateParameters": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.italic.staticMemberVariables": {
+        "ccls.highlighting.italic.staticMemberVariables": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.italic.globalVariables": {
+        "ccls.highlighting.italic.globalVariables": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.bold.types": {
+        "ccls.highlighting.bold.types": {
           "type": "boolean",
           "default": true
         },
-        "cquery.highlighting.bold.freeStandingFunctions": {
+        "ccls.highlighting.bold.freeStandingFunctions": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.bold.memberFunctions": {
+        "ccls.highlighting.bold.memberFunctions": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.bold.freeStandingVariables": {
+        "ccls.highlighting.bold.freeStandingVariables": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.bold.memberVariables": {
+        "ccls.highlighting.bold.memberVariables": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.bold.namespaces": {
+        "ccls.highlighting.bold.namespaces": {
           "type": "boolean",
           "default": true
         },
-        "cquery.highlighting.bold.macros": {
+        "ccls.highlighting.bold.macros": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.bold.enums": {
+        "ccls.highlighting.bold.enums": {
           "type": "boolean",
           "default": true
         },
-        "cquery.highlighting.bold.typeAliases": {
+        "ccls.highlighting.bold.typeAliases": {
           "type": "boolean",
           "default": true
         },
-        "cquery.highlighting.bold.enumConstants": {
+        "ccls.highlighting.bold.enumConstants": {
           "type": "boolean",
           "default": true
         },
-        "cquery.highlighting.bold.staticMemberFunctions": {
+        "ccls.highlighting.bold.staticMemberFunctions": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.bold.parameters": {
+        "ccls.highlighting.bold.parameters": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.bold.templateParameters": {
+        "ccls.highlighting.bold.templateParameters": {
           "type": "boolean",
           "default": true
         },
-        "cquery.highlighting.bold.staticMemberVariables": {
+        "ccls.highlighting.bold.staticMemberVariables": {
           "type": "boolean",
           "default": false
         },
-        "cquery.highlighting.bold.globalVariables": {
+        "ccls.highlighting.bold.globalVariables": {
           "type": "boolean",
           "default": false
         },
-        "cquery.index.extraClangArguments": {
+        "ccls.index.extraClangArguments": {
           "type": "array",
           "default": [],
           "description": "An extra set of command line arguments to give clang when indexing. Each list entry is a separate argument."
         },
-        "cquery.index.whitelist": {
+        "ccls.index.whitelist": {
           "type": "array",
           "default": [],
-          "description": "If a translation unit's absolute path matches any EMCAScript regex in this list, it will be indexed. The whitelist takes priority over the blacklist. To only index files in the whitelist, make \"cquery.index.blacklist\" match everything, ie, set it to \".*\".\n\nYou probably want to begin the regex using \".*\" because the passed paths are absolute."
+          "description": "If a translation unit's absolute path matches any EMCAScript regex in this list, it will be indexed. The whitelist takes priority over the blacklist. To only index files in the whitelist, make \"ccls.index.blacklist\" match everything, ie, set it to \".*\".\n\nYou probably want to begin the regex using \".*\" because the passed paths are absolute."
         },
-        "cquery.index.blacklist": {
+        "ccls.index.blacklist": {
           "type": "array",
           "default": [],
           "description": "A translation unit (cc/cpp file) is not indexed if any of the EMCAScript regexes in this list matches translation unit's the absolute path.\n\nYou probably want to begin the regex using \".*\" because the passed paths are absolute."
         },
-        "cquery.log.skippedPathsForIndex": {
+        "ccls.log.skippedPathsForIndex": {
           "type": "boolean",
           "default": false,
-          "description": "If true, paths which were skipped by `cquery.index.whitelist` and `cquery.index.blacklist` will be logged and viewable in the cquery output window."
+          "description": "If true, paths which were skipped by `ccls.index.whitelist` and `ccls.index.blacklist` will be logged and viewable in the ccls output window."
         },
-        "cquery.misc.status": {
+        "ccls.misc.status": {
           "type": "string",
           "default": "short",
           "enum": [
@@ -702,60 +702,60 @@
           ],
           "description": "Controls the visibility of the status indicator."
         },
-        "cquery.misc.resourceDirectory": {
+        "ccls.misc.resourceDirectory": {
           "type": "string",
           "default": "",
-          "description": "Default value to use for clang -resource-dir argument. This will be automatically supplied by cquery if not provided."
+          "description": "Default value to use for clang -resource-dir argument. This will be automatically supplied by ccls if not provided."
         },
-        "cquery.misc.maxWorkspaceSearchResults": {
+        "ccls.misc.maxWorkspaceSearchResults": {
           "type": [
             "number",
             "null"
           ],
           "default": null,
-          "description": "The maximum number of global search (ie, Ctrl+P + #foo) search results to report. For small search strings on large projects there can be a massive number of results (ie, over 1,000,000) so this limit is important to avoid extremely long delays. null means use the default value provided by the cquery language server."
+          "description": "The maximum number of global search (ie, Ctrl+P + #foo) search results to report. For small search strings on large projects there can be a massive number of results (ie, over 1,000,000) so this limit is important to avoid extremely long delays. null means use the default value provided by the ccls language server."
         },
-        "cquery.misc.indexerCount": {
+        "ccls.misc.indexerCount": {
           "type": "number",
           "default": 0,
-          "description": "Forcibly set the number of indexing/working jobs. This value is automatically computed by the indexer and you should not need to set it manually.\n\nIdeally, this should be the number of CPU cores you have, minus one. cquery scales quite well so this number can go very high; cquery will use 5000%+ CPU usage on machines with over 50 cores. If you set the value higher than your number of hardware threads, cquery will slow down significantly due to thread contention.\n\nIf set to 0 or a negative value, the indexer will ignore this value.\n\nFor example, if you have a 4 core hyper-threaded processor, this should be set to 7. If you have dual 13 core hyper-threaded processors, this should be set to 2*13*2-1=51."
+          "description": "Forcibly set the number of indexing/working jobs. This value is automatically computed by the indexer and you should not need to set it manually.\n\nIdeally, this should be the number of CPU cores you have, minus one. ccls scales quite well so this number can go very high; ccls will use 5000%+ CPU usage on machines with over 50 cores. If you set the value higher than your number of hardware threads, ccls will slow down significantly due to thread contention.\n\nIf set to 0 or a negative value, the indexer will ignore this value.\n\nFor example, if you have a 4 core hyper-threaded processor, this should be set to 7. If you have dual 13 core hyper-threaded processors, this should be set to 2*13*2-1=51."
         },
-        "cquery.misc.enableIndexing": {
+        "ccls.misc.enableIndexing": {
           "type": "boolean",
           "default": true,
           "description": "If set to false, updating the index will be disabled. You should not need to use this."
         },
-        "cquery.misc.enableCacheWrite": {
+        "ccls.misc.enableCacheWrite": {
           "type": "boolean",
           "default": true,
           "description": "If set to false, writing indexed files out to cache will be disabled. Only useful if |enableIndexing| is true. You should not need to use this."
         },
-        "cquery.misc.enableCacheRead": {
+        "ccls.misc.enableCacheRead": {
           "type": "boolean",
           "default": true,
           "description": "If set to false, restoring the cached index will be disabled. Only useful if there is a cached index stored on disk. You should not need to use this."
         },
-        "cquery.misc.compilationDatabaseDirectory": {
+        "ccls.misc.compilationDatabaseDirectory": {
           "type": "string",
           "default": "",
           "description": "If not empty, the compilation database directory to use instead of the project root"
         },
-        "cquery.misc.showInactiveRegions": {
+        "ccls.misc.showInactiveRegions": {
           "type": "boolean",
           "default": true,
-          "description": "If true, cquery will highlight inactive regions."
+          "description": "If true, ccls will highlight inactive regions."
         },
-        "cquery.misc.discoverSystemIncludes": {
+        "ccls.misc.discoverSystemIncludes": {
           "type": "boolean",
           "default": true,
-          "description": "If true, cquery will detect system includes using clang -E."
+          "description": "If true, ccls will detect system includes using clang -E."
         },
-        "cquery.completion.include.maximumPathLength": {
+        "ccls.completion.include.maximumPathLength": {
           "type": "integer",
           "default": 37,
           "description": "Maximum length for path in #include proposals. If the path length goes beyond this number it will be elided. Set to 0 to always display the full path."
         },
-        "cquery.completion.include.whitelistLiteralEnding": {
+        "ccls.completion.include.whitelistLiteralEnding": {
           "type": "array",
           "default": [
             ".h",
@@ -764,82 +764,82 @@
           ],
           "description": "Only files ending in one of these values will be shown in include auto-complete. Set to the empty-list to disable include auto-complete."
         },
-        "cquery.completion.include.whitelist": {
+        "ccls.completion.include.whitelist": {
           "type": "array",
           "default": [],
           "description": "EMCAScript regex that checks absolute file path. If it does not match, the file is not added to include path auto-complete. An example is \".*/src/.*\""
         },
-        "cquery.completion.include.blacklist": {
+        "ccls.completion.include.blacklist": {
           "type": "array",
           "default": [],
           "description": "EMCAScript regex that checks absolute path. If it matches, the file is not added to include path auto-complete. An example is \".*/CACHE/.*\""
         },
-        "cquery.showDocumentLinksOnIncludes": {
+        "ccls.showDocumentLinksOnIncludes": {
           "type": "boolean",
           "default": true,
           "description": "If true, document links (an underline) will be rendered on includes. Goto definition (control click) will still work on includes even if this is false."
         },
-        "cquery.diagnostics.blacklist": {
+        "ccls.diagnostics.blacklist": {
           "type": "array",
           "default": [],
           "description": "Files that match these patterns won't be displayed in diagnostics view."
         },
-        "cquery.diagnostics.whitelist": {
+        "ccls.diagnostics.whitelist": {
           "type": "array",
           "default": [],
           "description": "Files that match these patterns will be displayed in diagnostics view."
         },
-        "cquery.diagnostics.onParse": {
+        "ccls.diagnostics.onParse": {
           "type": "boolean",
           "default": true,
           "description": "If true, diagnostics will be reported when a file is parsed (ie, saving or indexed)."
         },
-        "cquery.diagnostics.onType": {
+        "ccls.diagnostics.onType": {
           "type": "boolean",
           "default": true,
           "description": "If true, code completion will trigger diagnostic updates."
         },
-        "cquery.codeLens.renderInline": {
+        "ccls.codeLens.renderInline": {
           "type": "boolean",
           "default": false,
           "description": "Enables a custom code lens renderer so code lens are displayed inline with code. This removes any vertical-space footprint at the cost of horizontal space."
         },
-        "cquery.codeLens.onLocalVariables": {
+        "ccls.codeLens.onLocalVariables": {
           "type": "boolean",
           "default": false,
           "description": "Set to false to hide code lens on parameters and function local variables."
         },
-        "cquery.treeViews.doubleClickTimeoutMs": {
+        "ccls.treeViews.doubleClickTimeoutMs": {
           "type": "number",
           "default": 500,
           "description": "If a tree view entry is double-clicked within this timeout value, vscode will navigate to the entry."
         },
-        "cquery.theme.light.inactiveRegion.textColor": {
+        "ccls.theme.light.inactiveRegion.textColor": {
           "type": "string",
           "default": "rgb(100, 100, 100)",
           "description": "css styling to apply to text when the code region has been disabled by the preprocessor in a light theme."
         },
-        "cquery.theme.light.inactiveRegion.backgroundColor": {
+        "ccls.theme.light.inactiveRegion.backgroundColor": {
           "type": "string",
           "default": "rgba(220, 220, 220, 0.3)",
           "description": "css styling to apply to the background when the code region has been disabled by the preprocessor in a light theme."
         },
-        "cquery.theme.dark.inactiveRegion.textColor": {
+        "ccls.theme.dark.inactiveRegion.textColor": {
           "type": "string",
           "default": "rgb(100, 100, 100)",
           "description": "css styling to apply to text when the code region has been disabled by the preprocessor in a dark theme."
         },
-        "cquery.theme.dark.inactiveRegion.backgroundColor": {
+        "ccls.theme.dark.inactiveRegion.backgroundColor": {
           "type": "string",
           "default": "rgba(18, 18, 18, 0.3)",
           "description": "css styling to apply to the background when the code region has been disabled by the preprocessor in a dark theme."
         },
-        "cquery.completion.enableSnippetInsertion": {
+        "ccls.completion.enableSnippetInsertion": {
           "type": "boolean",
           "default": true,
           "description": "If true, parameter declarations are inserted as snippets in function/method call arguments when completing a function/method call"
         },
-        "cquery.formatting.enabled": {
+        "ccls.formatting.enabled": {
           "type": "boolean",
           "default": true,
           "description": "If document formatting is enabled/disabled"
@@ -864,6 +864,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/cquery-project/vscode-cquery.git"
+    "url": "https://github.com/MaskRay/vscode-ccls.git"
   }
 }

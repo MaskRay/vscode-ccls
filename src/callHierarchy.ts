@@ -62,9 +62,9 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
     return {
       label: label,
       collapsibleState: collapseState,
-      contextValue: 'cqueryGoto',
+      contextValue: 'cclsGoto',
       command: {
-        command: 'cquery.hackGotoForTreeView',
+        command: 'ccls.hackGotoForTreeView',
         title: 'Goto',
         arguments: [element, element.numChildren > 0]
       },
@@ -81,7 +81,7 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
       return element.children;
 
     return this.languageClient
-      .sendRequest('$cquery/callHierarchy', {
+      .sendRequest('$ccls/callHierarchy', {
         id: element.id,
         callee: false,
         callType: CallType.All,

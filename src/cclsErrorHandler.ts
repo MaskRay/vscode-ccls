@@ -2,7 +2,7 @@ import {window, WorkspaceConfiguration} from 'vscode';
 import {Message} from 'vscode-jsonrpc';
 import {CloseAction, ErrorAction, ErrorHandler} from 'vscode-languageclient';
 
-export class CqueryErrorHandler implements ErrorHandler {
+export class cclsErrorHandler implements ErrorHandler {
   constructor(readonly config: WorkspaceConfiguration) {}
 
   error(error: Error, message: Message, count: number): ErrorAction {
@@ -15,8 +15,8 @@ export class CqueryErrorHandler implements ErrorHandler {
 
     if (notifyOnCrash) {
       window.showInformationMessage(
-          restart ? 'cquery has crashed; it has been restarted.' :
-                    'cquery has crashed; it has not been restarted.');
+          restart ? 'ccls has crashed; it has been restarted.' :
+                    'ccls has crashed; it has not been restarted.');
     }
 
     if (restart)
