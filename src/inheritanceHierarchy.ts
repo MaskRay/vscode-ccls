@@ -49,9 +49,9 @@ export class InheritanceHierarchyProvider implements
     return {
       label: label,
       collapsibleState: collapseState,
-      contextValue: 'cqueryGoto',
+      contextValue: 'cclsGoto',
       command: {
-        command: 'cquery.hackGotoForTreeView',
+        command: 'ccls.hackGotoForTreeView',
         title: 'Goto',
         arguments: [element, element.numChildren > 0]
       }
@@ -68,7 +68,7 @@ export class InheritanceHierarchyProvider implements
       return element.children;
 
     return this.languageClient
-      .sendRequest('$cquery/inheritanceHierarchy', {
+      .sendRequest('$ccls/inheritanceHierarchy', {
         id: element.id,
         kind: element.kind,
         derived: element._wantsDerived,

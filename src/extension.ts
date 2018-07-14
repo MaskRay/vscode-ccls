@@ -5,7 +5,7 @@ import {CancellationToken, LanguageClient, LanguageClientOptions, Middleware, Pr
 import * as ls from 'vscode-languageserver-types';
 
 import {CallHierarchyNode, CallHierarchyProvider} from './callHierarchy';
-import {CqueryErrorHandler} from './cqueryErrorHandler';
+import {cclsErrorHandler} from './cclsErrorHandler';
 import {InheritanceHierarchyNode, InheritanceHierarchyProvider} from './inheritanceHierarchy';
 import {jumpToUriAtPosition} from './vscodeUtils';
 
@@ -54,7 +54,7 @@ enum SymbolKind {
   Operator = 25,
   TypeParameter,
 
-  // cquery extensions
+  // ccls extensions
   TypeAlias = 252,
   Parameter = 253,
   StaticMethod = 254,
@@ -73,7 +73,7 @@ class SemanticSymbol {
   constructor(
       readonly stableId: number, readonly parentKind: SymbolKind,
       readonly kind: SymbolKind, readonly isTypeMember: boolean,
-      readonly storage: StorageClass, readonly ranges: Array<Range>) {}
+      readonly storage: StorageClass, readonly lsRanges: Array<Range>) {}
 }
 
 function getClientConfig(context: ExtensionContext) {
@@ -81,21 +81,21 @@ function getClientConfig(context: ExtensionContext) {
 
   function hasAnySemanticHighlighting() {
     let options = [
-      'cquery.highlighting.enabled.types',
-      'cquery.highlighting.enabled.freeStandingFunctions',
-      'cquery.highlighting.enabled.memberFunctions',
-      'cquery.highlighting.enabled.freeStandingVariables',
-      'cquery.highlighting.enabled.memberVariables',
-      'cquery.highlighting.enabled.namespaces',
-      'cquery.highlighting.enabled.macros',
-      'cquery.highlighting.enabled.enums',
-      'cquery.highlighting.enabled.typeAliases',
-      'cquery.highlighting.enabled.enumConstants',
-      'cquery.highlighting.enabled.staticMemberFunctions',
-      'cquery.highlighting.enabled.parameters',
-      'cquery.highlighting.enabled.templateParameters',
-      'cquery.highlighting.enabled.staticMemberVariables',
-      'cquery.highlighting.enabled.globalVariables'];
+      'ccls.highlighting.enabled.types',
+      'ccls.highlighting.enabled.freeStandingFunctions',
+      'ccls.highlighting.enabled.memberFunctions',
+      'ccls.highlighting.enabled.freeStandingVariables',
+      'ccls.highlighting.enabled.memberVariables',
+      'ccls.highlighting.enabled.namespaces',
+      'ccls.highlighting.enabled.macros',
+      'ccls.highlighting.enabled.enums',
+      'ccls.highlighting.enabled.typeAliases',
+      'ccls.highlighting.enabled.enumConstants',
+      'ccls.highlighting.enabled.staticMemberFunctions',
+      'ccls.highlighting.enabled.parameters',
+      'ccls.highlighting.enabled.templateParameters',
+      'ccls.highlighting.enabled.staticMemberVariables',
+      'ccls.highlighting.enabled.globalVariables'];
     let config = workspace.getConfiguration();
     for (let name of options) {
       if (config.get(name, false))
@@ -104,7 +104,7 @@ function getClientConfig(context: ExtensionContext) {
     return false;
   }
 
-  // Read prefs; this map goes from `cquery/js name` => `vscode prefs name`.
+  // Read prefs; this map goes from `ccls/js name` => `vscode prefs name`.
   let configMapping = [
     ['launchCommand', 'launch.command'],
     ['launchArgs', 'launch.args'],
@@ -140,13 +140,14 @@ function getClientConfig(context: ExtensionContext) {
     launchCommand: '',
     cacheDirectory: '',
     highlight: {
-      enabled: hasAnySemanticHighlighting()
+      lsRanges: true,
+      enabled: hasAnySemanticHighlighting(),
     },
     workspaceSymbol: {
       sort: false,
     },
   };
-  let config = workspace.getConfiguration('cquery');
+  let config = workspace.getConfiguration('ccls');
   for (let prop of configMapping) {
     let value = config.get(prop[1]);
     if (value != null) {
@@ -169,7 +170,7 @@ function getClientConfig(context: ExtensionContext) {
       window
           .showErrorMessage(
               'Could not auto-discover cache directory. Please use "Open Folder" ' +
-                  'or specify it in the |cquery.cacheDirectory| setting.',
+                  'or specify it in the |ccls.cacheDirectory| setting.',
               kOpenSettings)
           .then((selected) => {
             if (selected == kOpenSettings)
@@ -181,7 +182,7 @@ function getClientConfig(context: ExtensionContext) {
     // Provide a default cache directory if it is not present. Insert next to
     // the project since if the user has an SSD they most likely have their
     // source files on the SSD as well.
-    let cacheDir = '${workspaceFolder}/.vscode/cquery_cached_index/';
+    let cacheDir = '${workspaceFolder}/.vscode/ccls_cached_index/';
     clientConfig.cacheDirectory = cacheDir;
     config.update(kCacheDirPrefName, cacheDir, false /*global*/);
   }
@@ -203,7 +204,7 @@ export function activate(context: ExtensionContext) {
     let clientConfig = getClientConfig(context);
     if (!clientConfig)
       return;
-    // Notify the user that if they change a cquery setting they need to restart
+    // Notify the user that if they change a ccls setting they need to restart
     // vscode.
     context.subscriptions.push(workspace.onDidChangeConfiguration(() => {
       let newConfig = getClientConfig(context);
@@ -215,7 +216,7 @@ export function activate(context: ExtensionContext) {
             JSON.stringify(clientConfig[key]) !=
                 JSON.stringify(newConfig[key])) {
           const kReload = 'Reload'
-          const message = `Please reload to apply the "cquery.${
+          const message = `Please reload to apply the "ccls.${
               key}" configuration change.`;
 
           window.showInformationMessage(message, kReload).then(selected => {
@@ -227,7 +228,7 @@ export function activate(context: ExtensionContext) {
       }
     }));
 
-    let args = ['--language-server'].concat(clientConfig['launchArgs']);
+    let args = clientConfig['launchArgs'];
 
     let env: any = {};
     let kToForward = [
@@ -294,7 +295,7 @@ export function activate(context: ExtensionContext) {
     function provideCodeLens(
         document: TextDocument, token: CancellationToken,
         next: ProvideCodeLensesSignature): ProviderResult<CodeLens[]> {
-      let config = workspace.getConfiguration('cquery');
+      let config = workspace.getConfiguration('ccls');
       let enableInlineCodeLens = config.get('codeLens.renderInline', false);
       if (!enableInlineCodeLens)
         return next(document, token);
@@ -318,11 +319,11 @@ export function activate(context: ExtensionContext) {
     let clientOptions: LanguageClientOptions = {
       documentSelector: ['c', 'cpp', 'objective-c', 'objective-cpp'],
       // synchronize: {
-      // 	configurationSection: 'cquery',
+      // 	configurationSection: 'ccls',
       // 	fileEvents: workspace.createFileSystemWatcher('**/.cc')
       // },
-      diagnosticCollectionName: 'cquery',
-      outputChannelName: 'cquery',
+      diagnosticCollectionName: 'ccls',
+      outputChannelName: 'ccls',
       revealOutputChannelOn: RevealOutputChannelOn.Never,
       initializationOptions: clientConfig,
       middleware: {provideCodeLenses: provideCodeLens},
@@ -330,19 +331,19 @@ export function activate(context: ExtensionContext) {
         console.log(e);
         return false;
       },
-      errorHandler: new CqueryErrorHandler(workspace.getConfiguration('cquery'))
+      errorHandler: new cclsErrorHandler(workspace.getConfiguration('ccls'))
     }
 
     // Create the language client and start the client.
     let languageClient =
-        new LanguageClient('cquery', 'cquery', serverOptions, clientOptions);
+        new LanguageClient('ccls', 'ccls', serverOptions, clientOptions);
     let command = serverOptions.command
     languageClient.onReady().catch(e => {
-      // TODO: remove cquery.launch.workingDirectory after July 2018
+      // TODO: remove ccls.launch.workingDirectory after July 2018
       window.showErrorMessage(
-          'cquery.launch.command has changed; either add cquery to your PATH ' +
-          'or make cquery.launch.command an absolute path. Current value: "' +
-          command + '". cquery.launch.workingDirectory has been removed.');
+          'ccls.launch.command has changed; either add ccls to your PATH ' +
+          'or make ccls.launch.command an absolute path. Current value: "' +
+          command + '". ccls.launch.workingDirectory has been removed.');
     });
     context.subscriptions.push(languageClient.start());
 
@@ -353,8 +354,8 @@ export function activate(context: ExtensionContext) {
 
   // General commands.
   (() => {
-    commands.registerCommand('cquery.freshenIndex', () => {
-      languageClient.sendNotification('$cquery/freshenIndex');
+    commands.registerCommand('ccls.freshenIndex', () => {
+      languageClient.sendNotification('$ccls/freshenIndex');
     });
 
     function makeRefHandler(methodName, autoGotoIfSingle = false) {
@@ -372,7 +373,7 @@ export function activate(context: ExtensionContext) {
               if (autoGotoIfSingle && locations.length == 1) {
                 let location = p2c.asLocation(locations[0]);
                 commands.executeCommand(
-                    'cquery.goto', location.uri, location.range.start, []);
+                    'ccls.goto', location.uri, location.range.start, []);
               } else {
                 commands.executeCommand(
                     'editor.action.showReferences', uri, position,
@@ -381,18 +382,18 @@ export function activate(context: ExtensionContext) {
             })
       }
     }
-    commands.registerCommand('cquery.vars', makeRefHandler('$cquery/vars'));
+    commands.registerCommand('ccls.vars', makeRefHandler('$ccls/vars'));
     commands.registerCommand(
-        'cquery.callers', makeRefHandler('$cquery/callers'));
+        'ccls.callers', makeRefHandler('$ccls/callers'));
     commands.registerCommand(
-        'cquery.base', makeRefHandler('$cquery/base', true));
+        'ccls.base', makeRefHandler('$ccls/base', true));
   })();
 
   // The language client does not correctly deserialize arguments, so we have a
   // wrapper command that does it for us.
   (() => {
     commands.registerCommand(
-        'cquery.showReferences',
+        'ccls.showReferences',
         (uri: string, position: ls.Position, locations: ls.Location[]) => {
           commands.executeCommand(
               'editor.action.showReferences', p2c.asUri(uri),
@@ -401,7 +402,7 @@ export function activate(context: ExtensionContext) {
 
 
     commands.registerCommand(
-        'cquery.goto',
+        'ccls.goto',
         (uri: string, position: ls.Position, locations: ls.Location[]) => {
           jumpToUriAtPosition(
               p2c.asUri(uri), p2c.asPosition(position),
@@ -411,7 +412,7 @@ export function activate(context: ExtensionContext) {
 
   // FixIt support
   (() => {
-    commands.registerCommand('cquery._applyFixIt', (uri, pTextEdits) => {
+    commands.registerCommand('ccls._applyFixIt', (uri, pTextEdits) => {
       const textEdits = p2c.asTextEdits(pTextEdits);
 
       function applyEdits(e: TextEditor) {
@@ -446,20 +447,20 @@ export function activate(context: ExtensionContext) {
 
   // AutoImplement
   (() => {
-    commands.registerCommand('cquery._autoImplement', (uri, pTextEdits) => {
-      commands.executeCommand('cquery._applyFixIt', uri, pTextEdits)
+    commands.registerCommand('ccls._autoImplement', (uri, pTextEdits) => {
+      commands.executeCommand('ccls._applyFixIt', uri, pTextEdits)
           .then(() => {
             commands.executeCommand(
-                'cquery.goto', uri, pTextEdits[0].range.start);
+                'ccls.goto', uri, pTextEdits[0].range.start);
           });
     });
   })();
 
   // Insert include.
   (() => {
-    commands.registerCommand('cquery._insertInclude', (uri, pTextEdits) => {
+    commands.registerCommand('ccls._insertInclude', (uri, pTextEdits) => {
       if (pTextEdits.length == 1)
-        commands.executeCommand('cquery._applyFixIt', uri, pTextEdits);
+        commands.executeCommand('ccls._applyFixIt', uri, pTextEdits);
       else {
         let items: Array<QuickPickItem> = [];
         class MyQuickPick implements QuickPickItem {
@@ -471,7 +472,7 @@ export function activate(context: ExtensionContext) {
           items.push(new MyQuickPick(edit.newText, '', edit));
         }
         window.showQuickPick(items).then((selected: MyQuickPick) => {
-          commands.executeCommand('cquery._applyFixIt', uri, [selected.edit]);
+          commands.executeCommand('ccls._applyFixIt', uri, [selected.edit]);
         });
       }
     });
@@ -479,28 +480,28 @@ export function activate(context: ExtensionContext) {
 
   // Inactive regions.
   (() => {
-    let config = workspace.getConfiguration('cquery');
-    const inactiveRegionDecorationType = window.createTextEditorDecorationType({
+    let config = workspace.getConfiguration('ccls');
+    const skippedRangeDecorationType = window.createTextEditorDecorationType({
       isWholeLine: true,
       light: {
-        color: config.get('theme.light.inactiveRegion.textColor'),
+        color: config.get('theme.light.skippedRange.textColor'),
         backgroundColor:
-            config.get('theme.light.inactiveRegion.backgroundColor'),
+            config.get('theme.light.skippedRange.backgroundColor'),
       },
       dark: {
-        color: config.get('theme.dark.inactiveRegion.textColor'),
+        color: config.get('theme.dark.skippedRange.textColor'),
         backgroundColor:
-            config.get('theme.dark.inactiveRegion.backgroundColor'),
+            config.get('theme.dark.skippedRange.backgroundColor'),
       }
     });
     languageClient.onReady().then(() => {
-      languageClient.onNotification('$cquery/setInactiveRegions', (args) => {
+      languageClient.onNotification('$ccls/setSkippedRanges', (args) => {
         let uri = args.uri;
-        let ranges: Range[] = args.inactiveRegions.map(p2c.asRange);
+        let ranges: Range[] = args.skippedRanges.map(p2c.asRange);
         for (const textEditor of window.visibleTextEditors) {
           if (textEditor.document.uri.toString() == uri) {
             window.activeTextEditor.setDecorations(
-                inactiveRegionDecorationType, ranges);
+                skippedRangeDecorationType, ranges);
             break;
           }
         }
@@ -510,16 +511,16 @@ export function activate(context: ExtensionContext) {
 
   // Progress
   (() => {
-    let config = workspace.getConfiguration('cquery');
+    let config = workspace.getConfiguration('ccls');
     let statusStyle = config.get('misc.status');
     if (statusStyle == 'short' || statusStyle == 'detailed') {
       let statusIcon = window.createStatusBarItem(StatusBarAlignment.Right);
-      statusIcon.text = 'cquery: loading';
+      statusIcon.text = 'ccls: loading';
       statusIcon.tooltip =
-          'cquery is loading project metadata (ie, compile_commands.json)';
+          'ccls is loading project metadata (ie, compile_commands.json)';
       statusIcon.show();
       languageClient.onReady().then(() => {
-        languageClient.onNotification('$cquery/progress', (args) => {
+        languageClient.onNotification('$ccls/progress', (args) => {
           let indexRequestCount = args.indexRequestCount || 0;
           let doIdMapCount = args.doIdMapCount || 0;
           let loadPreviousIndexCount = args.loadPreviousIndexCount || 0;
@@ -538,14 +539,14 @@ export function activate(context: ExtensionContext) {
               `activeThreads: ${activeThreads}`;
 
           if (total == 0 && statusStyle == 'short') {
-            statusIcon.text = 'cquery: idle';
+            statusIcon.text = 'ccls: idle';
           } else {
-            statusIcon.text = `cquery: ${indexRequestCount}|${total} jobs`;
+            statusIcon.text = `ccls: ${indexRequestCount}|${total} jobs`;
             if (statusStyle == 'detailed') {
               statusIcon.text += ` (${detailedJobString})`
             }
           }
-          statusIcon.tooltip = 'cquery jobs: ' + detailedJobString;
+          statusIcon.tooltip = 'ccls jobs: ' + detailedJobString;
         });
       });
     }
@@ -561,7 +562,7 @@ export function activate(context: ExtensionContext) {
     var timeout: NodeJS.Timer
     var resolvePromise: any
     languageClient.onReady().then(() => {
-      languageClient.onNotification('$cquery/queryDbStatus', (args) => {
+      languageClient.onNotification('$ccls/queryDbStatus', (args) => {
         let isActive: boolean = args.isActive;
         if (isActive) {
           if (timeout) {
@@ -592,15 +593,15 @@ export function activate(context: ExtensionContext) {
     const inheritanceHierarchyProvider =
         new InheritanceHierarchyProvider(languageClient);
     window.registerTreeDataProvider(
-        'cquery.inheritanceHierarchy', inheritanceHierarchyProvider);
+        'ccls.inheritanceHierarchy', inheritanceHierarchyProvider);
     commands.registerTextEditorCommand(
-        'cquery.inheritanceHierarchy', (editor) => {
-          setContext('extension.cquery.inheritanceHierarchyVisible', true);
+        'ccls.inheritanceHierarchy', (editor) => {
+          setContext('extension.ccls.inheritanceHierarchyVisible', true);
 
           let position = editor.selection.active;
           let uri = editor.document.uri;
           languageClient
-              .sendRequest('$cquery/inheritanceHierarchy', {
+              .sendRequest('$ccls/inheritanceHierarchy', {
                 textDocument: {
                   uri: uri.toString(),
                 },
@@ -613,7 +614,7 @@ export function activate(context: ExtensionContext) {
                 InheritanceHierarchyNode.setWantsDerived(entry, true);
 
                 languageClient
-                    .sendRequest('$cquery/inheritanceHierarchy', {
+                    .sendRequest('$ccls/inheritanceHierarchy', {
                       id: entry.id,
                       kind: entry.kind,
                       derived: false,
@@ -637,8 +638,8 @@ export function activate(context: ExtensionContext) {
                     });
               })
         });
-    commands.registerCommand('cquery.closeInheritanceHierarchy', () => {
-      setContext('extension.cquery.inheritanceHierarchyVisible', false);
+    commands.registerCommand('ccls.closeInheritanceHierarchy', () => {
+      setContext('extension.ccls.inheritanceHierarchyVisible', false);
       inheritanceHierarchyProvider.root = undefined;
       inheritanceHierarchyProvider.onDidChangeEmitter.fire();
     });
@@ -657,13 +658,13 @@ export function activate(context: ExtensionContext) {
     const callHierarchyProvider = new CallHierarchyProvider(
         languageClient, derivedDark, derivedLight, baseDark, baseLight);
     window.registerTreeDataProvider(
-        'cquery.callHierarchy', callHierarchyProvider);
-    commands.registerTextEditorCommand('cquery.callHierarchy', (editor) => {
-      setContext('extension.cquery.callHierarchyVisible', true);
+        'ccls.callHierarchy', callHierarchyProvider);
+    commands.registerTextEditorCommand('ccls.callHierarchy', (editor) => {
+      setContext('extension.ccls.callHierarchyVisible', true);
       let position = editor.selection.active;
       let uri = editor.document.uri;
       languageClient
-          .sendRequest('$cquery/callHierarchy', {
+          .sendRequest('$ccls/callHierarchy', {
             textDocument: {
               uri: uri.toString(),
             },
@@ -678,8 +679,8 @@ export function activate(context: ExtensionContext) {
             callHierarchyProvider.onDidChangeEmitter.fire();
           });
     });
-    commands.registerCommand('cquery.closeCallHierarchy', (e) => {
-      setContext('extension.cquery.callHierarchyVisible', false);
+    commands.registerCommand('ccls.closeCallHierarchy', (e) => {
+      setContext('extension.ccls.callHierarchyVisible', false);
       callHierarchyProvider.root = undefined;
       callHierarchyProvider.onDidChangeEmitter.fire();
     });
@@ -688,7 +689,7 @@ export function activate(context: ExtensionContext) {
   // Common between tree views.
   (() => {
     commands.registerCommand(
-        'cquery.gotoForTreeView',
+        'ccls.gotoForTreeView',
         (node: InheritanceHierarchyNode|CallHierarchyNode) => {
           if (!node.location)
             return;
@@ -702,14 +703,14 @@ export function activate(context: ExtensionContext) {
     let lastGotoNodeId: any
     let lastGotoClickTime: number
     commands.registerCommand(
-        'cquery.hackGotoForTreeView',
+        'ccls.hackGotoForTreeView',
         (node: InheritanceHierarchyNode|CallHierarchyNode,
          hasChildren: boolean) => {
           if (!node.location)
             return;
 
           if (!hasChildren) {
-            commands.executeCommand('cquery.gotoForTreeView', node);
+            commands.executeCommand('ccls.gotoForTreeView', node);
             return;
           }
 
@@ -719,13 +720,13 @@ export function activate(context: ExtensionContext) {
             return;
           }
 
-          let config = workspace.getConfiguration('cquery');
+          let config = workspace.getConfiguration('ccls');
           const kDoubleClickTimeMs =
               config.get('treeViews.doubleClickTimeoutMs');
           const elapsed = Date.now() - lastGotoClickTime;
           lastGotoClickTime = Date.now();
           if (elapsed < kDoubleClickTimeMs)
-            commands.executeCommand('cquery.gotoForTreeView', node);
+            commands.executeCommand('ccls.gotoForTreeView', node);
         });
   })();
 
@@ -751,7 +752,7 @@ export function activate(context: ExtensionContext) {
     };
 
     function makeDecorations(type: string) {
-      let config = workspace.getConfiguration('cquery');
+      let config = workspace.getConfiguration('ccls');
       let colors = config.get(`highlighting.colors.${type}`, []);
       let u = config.get(`highlighting.underline.${type}`, false);
       let i = config.get(`highlighting.italic.${type}`, false);
@@ -772,7 +773,7 @@ export function activate(context: ExtensionContext) {
 
     function updateConfigValues() {
       // Fetch new config instance, since vscode will cache the previous one.
-      let config = workspace.getConfiguration('cquery');
+      let config = workspace.getConfiguration('ccls');
       for (let [name, value] of semanticEnabled) {
         semanticEnabled.set(
             name, config.get(`highlighting.enabled.${name}`, false));
@@ -834,7 +835,7 @@ export function activate(context: ExtensionContext) {
     }
     languageClient.onReady().then(() => {
       languageClient.onNotification(
-          '$cquery/publishSemanticHighlighting',
+          '$ccls/publishSemanticHighlighting',
           (args: PublishSemanticHighlightingArgs) => {
             updateConfigValues();
 
@@ -851,10 +852,10 @@ export function activate(context: ExtensionContext) {
                   continue;
                 if (decorations.has(type)) {
                   let existing = decorations.get(type);
-                  for (let range of symbol.ranges)
+                  for (let range of symbol.lsRanges)
                     existing.push(range);
                 } else {
-                  decorations.set(type, symbol.ranges);
+                  decorations.set(type, symbol.lsRanges);
                 }
               }
 
@@ -874,13 +875,13 @@ export function activate(context: ExtensionContext) {
     });
   })();
 
-  // Send $cquery/textDocumentDidView. Always send a notification - this will
+  // Send $ccls/textDocumentDidView. Always send a notification - this will
   // result in some extra work, but it shouldn't be a problem in practice.
   (() => {
     window.onDidChangeVisibleTextEditors(visible => {
       for (let editor of visible) {
         languageClient.sendNotification(
-            '$cquery/textDocumentDidView',
+            '$ccls/textDocumentDidView',
             {textDocumentUri: editor.document.uri.toString()});
       }
     });

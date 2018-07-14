@@ -1,8 +1,10 @@
-# cquery
+# ccls
 
-This is the Visual Studio Code extension for cquery. The main cquery language
-server which powers this extension is found at
-[https://github.com/cquery-project/cquery](https://github.com/cquery-project/cquery).
+This is the Visual Studio Code extension for ccls, which is a rewrite of cquery.
+This repository is just a rename of vscode-cquery.
+
+The main ccls language server which powers this extension is found at
+[https://github.com/cquery-project/ccls](https://github.com/cquery-project/cquery).
 
 # Building
 
@@ -17,7 +19,7 @@ npm install
 python build.py
 ```
 
-Now, you can use vscode to install `out/cquery.vsix`.
+Now, you can use vscode to install `out/ccls.vsix`.
 
 # Deploying
 
