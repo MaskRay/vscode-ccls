@@ -250,6 +250,8 @@ export function activate(context: ExtensionContext) {
     let kToForward = [
       'ProgramData',
       'PATH',
+      'CPATH',
+      'LIBRARY_PATH',
     ];
     for (let e of kToForward)
       env[e] = process.env[e];
