@@ -266,12 +266,16 @@ export function activate(context: ExtensionContext) {
 
 
     // Inline code lens.
-    let decorationOpts: any = {};
-    decorationOpts.rangeBehavior = DecorationRangeBehavior.ClosedClosed;
-    decorationOpts.color = new ThemeColor('editorCodeLens.foreground');
-    decorationOpts.fontStyle = 'italic';
+    let decorationOpts: DecorationRenderOptions = {
+      after: {
+        fontStyle: 'italic',
+        color: new ThemeColor('editorCodeLens.foreground'),
+      },
+      rangeBehavior: DecorationRangeBehavior.ClosedClosed,
+    };
+
     let codeLensDecoration = window.createTextEditorDecorationType(
-        <DecorationRenderOptions>decorationOpts);
+      decorationOpts);
 
     function displayCodeLens(document: TextDocument, allCodeLens: CodeLens[]) {
       for (let editor of window.visibleTextEditors) {
