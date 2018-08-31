@@ -123,40 +123,47 @@ function getClientConfig(context: ExtensionContext) {
   }
 
   // Read prefs; this map goes from `ccls/js name` => `vscode prefs name`.
-  let configMapping = [
+  const configMapping = [
     ['launchCommand', 'launch.command'],
     ['launchArgs', 'launch.args'],
     ['cacheDirectory', kCacheDirPrefName],
-    ['emitQueryDbBlocked', 'developer.emitQueryDbBlocked'],
-    ['index.whitelist', 'index.whitelist'],
-    ['index.blacklist', 'index.blacklist'],
-    ['index.logSkippedPaths', 'log.skippedPathsForIndex'],
-    ['extraClangArguments', 'index.extraClangArguments'],
-    ['resourceDirectory', 'misc.resourceDirectory'],
-    ['workspaceSymbol.maxNum', 'misc.maxWorkspaceSearchResults'],
-    ['index.threads', 'misc.indexerCount'],
-    ['index.enabled', 'misc.enableIndexing'],
-    ['enableCacheWrite', 'misc.enableCacheWrite'],
-    ['enableCacheRead', 'misc.enableCacheRead'],
+    ['compilationDatabaseCommand', 'misc.compilationDatabaseCommand'],
     ['compilationDatabaseDirectory', 'misc.compilationDatabaseDirectory'],
-    ['completion.enableSnippets', 'completion.enableSnippetInsertion'],
+    ['clang.excludeArgs', 'index.excludeArgs'],
+    ['clang.extraArgs', 'index.extraArgs'],
+    ['clang.resourceDir', 'misc.resourceDirectory'],
+    ['codeLens.localVariables', 'codeLens.onLocalVariables'],
+    ['completion.caseSensitivity', 'completion.caseSensitivity'],
+    ['completion.detailedLabel', 'completion.detailedLabel'],
+    ['completion.duplicateOptional', 'completion.duplicateOptional'],
+    ['completion.filterAndSort', 'completion.filterAndSort'],
     ['completion.includeMaxPathSize', 'completion.include.maximumPathLength'],
     ['completion.includeSuffixWhitelist', 'completion.include.whitelistLiteralEnding'],
     ['completion.includeWhitelist', 'completion.include.whitelist'],
     ['completion.includeBlacklist', 'completion.include.blacklist'],
-    ['showDocumentLinksOnIncludes', 'showDocumentLinksOnIncludes'],
+    ['client.snippetSupport', 'completion.enableSnippetInsertion'],
     ['diagnostics.blacklist', 'diagnostics.blacklist'],
     ['diagnostics.whitelist', 'diagnostics.whitelist'],
-    ['diagnostics.onParse', 'diagnostics.onParse'],
-    ['diagnostics.onType', 'diagnostics.onType'],
-    ['codeLens.localVariables', 'codeLens.onLocalVariables'],
-    ['emitInactiveRegions', 'misc.showInactiveRegions'],
-    ['discoverSystemIncludes','misc.discoverSystemIncludes'],
-    ['formatting.enabled', 'formatting.enabled'],
+    ['diagnostics.onOpen', 'diagnostics.onOpen'],
+    ['diagnostics.onSave', 'diagnostics.onSave'],
+    ['diagnostics.onChange', 'diagnostics.onType'],
+    ['diagnostics.spellChecking', 'diagnostics.spellChecking'],
+    ['highlight.blacklist', 'highlight.blacklist'],
+    ['highlight.whitelist', 'highlight.whitelist'],
+    ['largeFileSize', 'highlight.largeFileSize'],
+    ['index.whitelist', 'index.whitelist'],
+    ['index.blacklist', 'index.blacklist'],
+    ['index.multiVersion', 'index.multiVersion'],
+    ['index.onChange', 'index.onChange'],
+    ['workspaceSymbol.maxNum', 'misc.maxWorkspaceSearchResults'],
+    ['workspaceSymbol.caseSensitivity', 'misc.workspaceSymbolCaseSensitive'],
+    ['index.threads', 'misc.indexerCount'],
+    ['index.enabled', 'misc.enableIndexing'],
   ];
+  const castBooleanToInteger = ['index.multiVersion'];
   let clientConfig = {
     launchCommand: '',
-    cacheDirectory: '',
+    cacheDirectory: '.ccls-cache',
     highlight: {
       lsRanges: true,
       enabled: hasAnySemanticHighlighting(),
@@ -177,34 +184,12 @@ function getClientConfig(context: ExtensionContext) {
         }
         subconfig = subconfig[subprop];
       }
+      if (castBooleanToInteger.includes(prop[1])) {
+        value = +value;
+      }
       subconfig[subprops[subprops.length - 1]] = resolveVariables(value);
     }
   }
-
-  // Set up a cache directory if there is not one.
-  if (!clientConfig.cacheDirectory) {
-    if (!context.storagePath) {
-      const kOpenSettings = 'Open Settings';
-      window
-          .showErrorMessage(
-              'Could not auto-discover cache directory. Please use "Open Folder" ' +
-                  'or specify it in the |ccls.cacheDirectory| setting.',
-              kOpenSettings)
-          .then((selected) => {
-            if (selected == kOpenSettings)
-              commands.executeCommand('workbench.action.openWorkspaceSettings');
-          });
-      return;
-    }
-
-    // Provide a default cache directory if it is not present. Insert next to
-    // the project since if the user has an SSD they most likely have their
-    // source files on the SSD as well.
-    let cacheDir = '${workspaceFolder}/.vscode/ccls_cached_index/';
-    clientConfig.cacheDirectory = resolveVariables(cacheDir);
-    config.update(kCacheDirPrefName, cacheDir, false /*global*/);
-  }
-
   return clientConfig;
 }
 
