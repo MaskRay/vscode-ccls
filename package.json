@@ -157,25 +157,10 @@
           "default": [],
           "description": "Array containing extra arguments to pass to the ccls binary"
         },
-        "ccls.launch.autoRestart": {
-          "type": "boolean",
-          "default": true,
-          "description": "If true, ccls will be automatically restarted if it crashes."
-        },
-        "ccls.launch.notifyOnCrash": {
-          "type": "boolean",
-          "default": false,
-          "description": "If true, a notification message will be displayed whenever ccls crashes."
-        },
         "ccls.cacheDirectory": {
           "type": "string",
-          "default": "",
-          "description": "Absolute path to the directory that the cached index will be stored in. Try to have this directory on an SSD. If not explicitly set, this will be automatically populated with the extension cache directory.\n\n${workspaceFolder} will be replaced by the folder where .vscode/settings.json resides.\n\nCache directories are project-wide, so this should be configured in the workspace settings so multiple indexes do not clash.\n\nExample value: \"/work/ccls-cache/chrome/\""
-        },
-        "ccls.developer.emitQueryDbBlocked": {
-          "type": "boolean",
-          "default": false,
-          "description": "If true, a notification will be shown whenever the querydb thread is busy."
+          "default": ".ccls-cache",
+          "description": "Absolute or relative (from the project root) path to the directory that the cached index will be stored in. Try to have this directory on an SSD. If empty, cached indexes will not be saved on disk.\n\n${workspaceFolder} will be replaced by the folder where .vscode/settings.json resides.\n\nCache directories are project-wide, so this should be configured in the workspace settings so multiple indexes do not clash.\n\nExample value: \"/work/ccls-cache/chrome/\""
         },
         "ccls.highlighting.enabled.types": {
           "type": "boolean",
@@ -672,35 +657,25 @@
           "type": "boolean",
           "default": false
         },
-        "ccls.index.extraClangArguments": {
+        "ccls.index.extraArgs": {
           "type": "array",
           "default": [],
           "description": "An extra set of command line arguments to give clang when indexing. Each list entry is a separate argument."
         },
+        "ccls.index.excludeArgs": {
+          "type": "array",
+          "default": [],
+          "description": "An set of command line arguments to strip before passing to clang when indexing. Each list entry is a separate argument."
+        },
         "ccls.index.whitelist": {
           "type": "array",
           "default": [],
-          "description": "If a translation unit's absolute path matches any EMCAScript regex in this list, it will be indexed. The whitelist takes priority over the blacklist. To only index files in the whitelist, make \"ccls.index.blacklist\" match everything, ie, set it to \".*\".\n\nYou probably want to begin the regex using \".*\" because the passed paths are absolute."
+          "description": "If a translation unit's absolute path matches any ECMAScript regex in this list, it will be indexed. The whitelist takes priority over the blacklist. To only index files in the whitelist, make \"ccls.index.blacklist\" match everything, ie, set it to \".*\".\n\nYou probably want to begin the regex using \".*\" because the passed paths are absolute."
         },
         "ccls.index.blacklist": {
           "type": "array",
           "default": [],
-          "description": "A translation unit (cc/cpp file) is not indexed if any of the EMCAScript regexes in this list matches translation unit's the absolute path.\n\nYou probably want to begin the regex using \".*\" because the passed paths are absolute."
-        },
-        "ccls.log.skippedPathsForIndex": {
-          "type": "boolean",
-          "default": false,
-          "description": "If true, paths which were skipped by `ccls.index.whitelist` and `ccls.index.blacklist` will be logged and viewable in the ccls output window."
-        },
-        "ccls.misc.status": {
-          "type": "string",
-          "default": "short",
-          "enum": [
-            "short",
-            "detailed",
-            "off"
-          ],
-          "description": "Controls the visibility of the status indicator."
+          "description": "A translation unit (cc/cpp file) is not indexed if any of the ECMAScript regexes in this list matches translation unit's the absolute path.\n\nYou probably want to begin the regex using \".*\" because the passed paths are absolute."
         },
         "ccls.misc.resourceDirectory": {
           "type": "string",
@@ -725,15 +700,10 @@
           "default": true,
           "description": "If set to false, updating the index will be disabled. You should not need to use this."
         },
-        "ccls.misc.enableCacheWrite": {
-          "type": "boolean",
-          "default": true,
-          "description": "If set to false, writing indexed files out to cache will be disabled. Only useful if |enableIndexing| is true. You should not need to use this."
-        },
-        "ccls.misc.enableCacheRead": {
-          "type": "boolean",
-          "default": true,
-          "description": "If set to false, restoring the cached index will be disabled. Only useful if there is a cached index stored on disk. You should not need to use this."
+        "ccls.misc.compilationDatabaseCommand": {
+          "type": "string",
+          "default": "",
+          "description": "If not empty, the compilation database command to use"
         },
         "ccls.misc.compilationDatabaseDirectory": {
           "type": "string",
@@ -744,11 +714,6 @@
           "type": "boolean",
           "default": true,
           "description": "If true, ccls will highlight inactive regions."
-        },
-        "ccls.misc.discoverSystemIncludes": {
-          "type": "boolean",
-          "default": true,
-          "description": "If true, ccls will detect system includes using clang -E."
         },
         "ccls.completion.include.maximumPathLength": {
           "type": "integer",
@@ -767,17 +732,27 @@
         "ccls.completion.include.whitelist": {
           "type": "array",
           "default": [],
-          "description": "EMCAScript regex that checks absolute file path. If it does not match, the file is not added to include path auto-complete. An example is \".*/src/.*\""
+          "description": "ECMAScript regex that checks absolute file path. If it does not match, the file is not added to include path auto-complete. An example is \".*/src/.*\""
         },
         "ccls.completion.include.blacklist": {
           "type": "array",
           "default": [],
-          "description": "EMCAScript regex that checks absolute path. If it matches, the file is not added to include path auto-complete. An example is \".*/CACHE/.*\""
+          "description": "ECMAScript regex that checks absolute path. If it matches, the file is not added to include path auto-complete. An example is \".*/CACHE/.*\""
         },
-        "ccls.showDocumentLinksOnIncludes": {
+        "ccls.completion.caseSensitivity": {
+          "type": "integer",
+          "default": 2,
+          "description": "Case sensitivity when code completion is filtered. 0: case-insensitive, 1: case-folded, i.e. insensitive if no input character is uppercase, 2: case-sensitive"
+        },
+        "ccls.completion.detailedLabel": {
           "type": "boolean",
-          "default": true,
-          "description": "If true, document links (an underline) will be rendered on includes. Goto definition (control click) will still work on includes even if this is false."
+          "default": false,
+          "description": "When this option is enabled, the completion item label is very detailed, it shows the full signature of the candidate."
+        },
+        "ccls.completion.duplicateOptional": {
+          "type": "boolean",
+          "default": false,
+          "description": "For functions with default arguments, generate one more item per default argument."
         },
         "ccls.diagnostics.blacklist": {
           "type": "array",
@@ -789,15 +764,55 @@
           "default": [],
           "description": "Files that match these patterns will be displayed in diagnostics view."
         },
-        "ccls.diagnostics.onParse": {
-          "type": "boolean",
-          "default": true,
-          "description": "If true, diagnostics will be reported when a file is parsed (ie, saving or indexed)."
+        "ccls.diagnostics.onOpen": {
+          "type": "integer",
+          "default": 0,
+          "description": "Time in milliseconds to wait before computing diagnostics when a file is opened."
+        },
+        "ccls.diagnostics.onSave": {
+          "type": "integer",
+          "default": 0,
+          "description": "Time in milliseconds to wait before computing diagnostics when a file is saved."
         },
         "ccls.diagnostics.onType": {
+          "type": "integer",
+          "default": 1000,
+          "description": "Time in milliseconds to wait before computing diagnostics on type. -1: disable diagnostics on type."
+        },
+        "ccls.diagnostics.spellChecking": {
           "type": "boolean",
           "default": true,
-          "description": "If true, code completion will trigger diagnostic updates."
+          "description": "Whether to do spell checking on undefined symbol names when computing diagnostics."
+        },
+        "ccls.highlight.blacklist": {
+          "type": ["array", "null"],
+          "default": null,
+          "description": "Files that match these patterns won't have semantic highlighting."
+        },
+        "ccls.highlight.whitelist": {
+          "type": ["array", "null"],
+          "default": null,
+          "description": "Files that match these patterns will have semantic highlighting."
+        },
+        "ccls.highlight.largeFileSize": {
+          "type": ["integer", "null"],
+          "default": null,
+          "description": "Disable semantic highlighting for files larger than the size."
+        },
+        "ccls.index.multiVersion": {
+          "type": "boolean",
+          "default": false,
+          "description": "If enabled, a file will be indexed in each tranlation unit that includes it."
+        },
+        "ccls.index.onChange": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow indexing on textDocument/didChange. May be too slow for big projects, so it is off by default."
+        },
+        "ccls.misc.workspaceSymbolCaseSensitive": {
+          "type": "integer",
+          "default": 1,
+          "description": "Case sensitivity when searching workspace symbols. 0: case-insensitive, 1: case-folded, i.e. insensitive if no input character is uppercase, 2: case-sensitive"
         },
         "ccls.codeLens.renderInline": {
           "type": "boolean",
@@ -817,32 +832,27 @@
         "ccls.theme.light.inactiveRegion.textColor": {
           "type": "string",
           "default": "rgb(100, 100, 100)",
-          "description": "css styling to apply to text when the code region has been disabled by the preprocessor in a light theme."
+          "description": "CSS color to apply to text when the code region has been disabled by the preprocessor in a light theme."
         },
         "ccls.theme.light.inactiveRegion.backgroundColor": {
           "type": "string",
           "default": "rgba(220, 220, 220, 0.3)",
-          "description": "css styling to apply to the background when the code region has been disabled by the preprocessor in a light theme."
+          "description": "CSS color to apply to the background when the code region has been disabled by the preprocessor in a light theme."
         },
         "ccls.theme.dark.inactiveRegion.textColor": {
           "type": "string",
           "default": "rgb(100, 100, 100)",
-          "description": "css styling to apply to text when the code region has been disabled by the preprocessor in a dark theme."
+          "description": "CSS color to apply to text when the code region has been disabled by the preprocessor in a dark theme."
         },
         "ccls.theme.dark.inactiveRegion.backgroundColor": {
           "type": "string",
           "default": "rgba(18, 18, 18, 0.3)",
-          "description": "css styling to apply to the background when the code region has been disabled by the preprocessor in a dark theme."
+          "description": "CSS color to apply to the background when the code region has been disabled by the preprocessor in a dark theme."
         },
         "ccls.completion.enableSnippetInsertion": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "If true, parameter declarations are inserted as snippets in function/method call arguments when completing a function/method call"
-        },
-        "ccls.formatting.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "If document formatting is enabled/disabled"
         }
       }
     }
