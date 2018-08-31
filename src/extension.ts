@@ -190,6 +190,7 @@ function getClientConfig(context: ExtensionContext) {
       subconfig[subprops[subprops.length - 1]] = resolveVariables(value);
     }
   }
+
   return clientConfig;
 }
 
@@ -240,9 +241,6 @@ export function activate(context: ExtensionContext) {
     ];
     for (let e of kToForward)
       env[e] = process.env[e];
-
-    // env.LIBCLANG_LOGGING = '1';
-    // env.MALLOC_CHECK_ = '2';
 
     let serverOptions: ServerOptions = {
       command: clientConfig.launchCommand,
@@ -362,13 +360,10 @@ export function activate(context: ExtensionContext) {
     // Create the language client and start the client.
     let languageClient =
         new LanguageClient('ccls', 'ccls', serverOptions, clientOptions);
-    let command = serverOptions.command
+    let command = serverOptions.command;
     languageClient.onReady().catch(e => {
-      // TODO: remove ccls.launch.workingDirectory after July 2018
       window.showErrorMessage(
-          'ccls.launch.command has changed; either add ccls to your PATH ' +
-          'or make ccls.launch.command an absolute path. Current value: "' +
-          command + '". ccls.launch.workingDirectory has been removed.');
+          `Failed to start ccls with command "${command}".`);
     });
     context.subscriptions.push(languageClient.start());
 
@@ -535,85 +530,6 @@ export function activate(context: ExtensionContext) {
                 skippedRangeDecorationType, ranges);
             break;
           }
-        }
-      });
-    });
-  })();
-
-  // Progress
-  (() => {
-    let config = workspace.getConfiguration('ccls');
-    let statusStyle = config.get('misc.status');
-    if (statusStyle == 'short' || statusStyle == 'detailed') {
-      let statusIcon = window.createStatusBarItem(StatusBarAlignment.Right);
-      statusIcon.text = 'ccls: loading';
-      statusIcon.tooltip =
-          'ccls is loading project metadata (ie, compile_commands.json)';
-      statusIcon.show();
-      languageClient.onReady().then(() => {
-        languageClient.onNotification('$ccls/progress', (args) => {
-          let indexRequestCount = args.indexRequestCount || 0;
-          let doIdMapCount = args.doIdMapCount || 0;
-          let loadPreviousIndexCount = args.loadPreviousIndexCount || 0;
-          let onIdMappedCount = args.onIdMappedCount || 0;
-          let onIndexedCount = args.onIndexedCount || 0;
-          let activeThreads = args.activeThreads || 0;
-          let total = indexRequestCount + doIdMapCount +
-              loadPreviousIndexCount + onIdMappedCount + onIndexedCount +
-              activeThreads;
-
-          let detailedJobString = `indexRequest: ${indexRequestCount}, ` +
-              `doIdMap: ${doIdMapCount}, ` +
-              `loadPreviousIndex: ${loadPreviousIndexCount}, ` +
-              `onIdMapped: ${onIdMappedCount}, ` +
-              `onIndexed: ${onIndexedCount}, ` +
-              `activeThreads: ${activeThreads}`;
-
-          if (total == 0 && statusStyle == 'short') {
-            statusIcon.text = 'ccls: idle';
-          } else {
-            statusIcon.text = `ccls: ${indexRequestCount}|${total} jobs`;
-            if (statusStyle == 'detailed') {
-              statusIcon.text += ` (${detailedJobString})`
-            }
-          }
-          statusIcon.tooltip = 'ccls jobs: ' + detailedJobString;
-        });
-      });
-    }
-  })();
-
-  // QueryDb busy
-  (() => {
-    // Notifications have a minimum time to live. If the status changes multiple
-    // times within that interface, we will show multiple notifications. Try to
-    // avoid that.
-    const kGracePeriodMs = 250;
-
-    var timeout: NodeJS.Timer
-    var resolvePromise: any
-    languageClient.onReady().then(() => {
-      languageClient.onNotification('$ccls/queryDbStatus', (args) => {
-        let isActive: boolean = args.isActive;
-        if (isActive) {
-          if (timeout) {
-            clearTimeout(timeout);
-            timeout = undefined;
-          }
-          else {
-            window.withProgress({location: ProgressLocation.Notification, title: 'querydb is busy'}, (p) => {
-              p.report({increment: 100})
-              return new Promise((resolve, reject) => {
-                resolvePromise = resolve;
-              });
-            });
-          }
-        } else if (resolvePromise) {
-          timeout = setTimeout(() => {
-            resolvePromise();
-            resolvePromise = undefined;
-            timeout = undefined;
-          }, kGracePeriodMs);
         }
       });
     });
