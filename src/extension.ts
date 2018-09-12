@@ -11,7 +11,7 @@ import {jumpToUriAtPosition} from './vscodeUtils';
 
 type Nullable<T> = T|null;
 
-export function parseUri(u): Uri {
+export function parseUri(u: string): Uri {
   return Uri.parse(u);
 }
 
@@ -384,7 +384,9 @@ export function activate(context: ExtensionContext) {
       languageClient = getLanguageClient();
     });
 
-    function makeRefHandler(methodName, autoGotoIfSingle = false) {
+    function makeRefHandler(
+        methodName: string, extraParams: object = {},
+        autoGotoIfSingle = false) {
       return () => {
         let position = window.activeTextEditor.selection.active;
         let uri = window.activeTextEditor.document.uri;
@@ -393,7 +395,8 @@ export function activate(context: ExtensionContext) {
               textDocument: {
                 uri: uri.toString(),
               },
-              position: position
+              position: position,
+              ...extraParams,
             })
             .then((locations: Array<ls.Location>) => {
               if (autoGotoIfSingle && locations.length == 1) {
@@ -412,7 +415,9 @@ export function activate(context: ExtensionContext) {
     commands.registerCommand(
         'ccls.callers', makeRefHandler('$ccls/callers'));
     commands.registerCommand(
-        'ccls.base', makeRefHandler('$ccls/base', true));
+        'ccls.base',
+        makeRefHandler(
+            '$ccls/inheritanceHierarchy', {derived: false, flat: true}, true));
   })();
 
   // The language client does not correctly deserialize arguments, so we have a

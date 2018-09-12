@@ -1,12 +1,13 @@
-import { Event, EventEmitter, Location, TreeDataProvider, TreeItem, TreeItemCollapsibleState, Uri } from 'vscode';
+import { Event, EventEmitter, TreeDataProvider, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { parseUri } from './extension';
 import { LanguageClient } from 'vscode-languageclient/lib/main';
+import * as ls from 'vscode-languageserver-types';
 
 export class InheritanceHierarchyNode {
   id: any
   kind: number
   name: string
-  location: Location
+  location: ls.Location
   numChildren: number
   children: InheritanceHierarchyNode[]
 
