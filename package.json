@@ -95,9 +95,9 @@
     },
     "commands": [
       {
-        "title": "Freshen Index",
+        "title": "Reload Index",
         "category": "ccls",
-        "command": "ccls.freshenIndex"
+        "command": "ccls.reload"
       },
       {
         "title": "Restart language server",
