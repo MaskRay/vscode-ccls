@@ -376,8 +376,8 @@ export function activate(context: ExtensionContext) {
 
   // General commands.
   (() => {
-    commands.registerCommand('ccls.freshenIndex', () => {
-      languageClient.sendNotification('$ccls/freshenIndex');
+    commands.registerCommand('ccls.reload', () => {
+      languageClient.sendNotification('$ccls/reload');
     });
     commands.registerCommand('ccls.restart', () => {
       languageClient.stop();
