@@ -81,12 +81,13 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
       return element.children;
 
     return this.languageClient
-      .sendRequest('$ccls/callHierarchy', {
+      .sendRequest('$ccls/call', {
         id: element.id,
         callee: false,
         callType: CallType.All,
-        detailedName: false,
-        levels: 1
+        qualified: false,
+        levels: 1,
+        hierarchy: true,
       })
       .then((result: CallHierarchyNode) => {
         element.children = result.children;

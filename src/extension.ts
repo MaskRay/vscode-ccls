@@ -412,12 +412,9 @@ export function activate(context: ExtensionContext) {
       }
     }
     commands.registerCommand('ccls.vars', makeRefHandler('$ccls/vars'));
+    commands.registerCommand('ccls.callers', makeRefHandler('$ccls/call'));
     commands.registerCommand(
-        'ccls.callers', makeRefHandler('$ccls/callers'));
-    commands.registerCommand(
-        'ccls.base',
-        makeRefHandler(
-            '$ccls/inheritanceHierarchy', {derived: false, flat: true}, true));
+      'ccls.base', makeRefHandler('$ccls/inheritance', {derived: false}, true));
   })();
 
   // The language client does not correctly deserialize arguments, so we have a
@@ -553,25 +550,27 @@ export function activate(context: ExtensionContext) {
           let position = editor.selection.active;
           let uri = editor.document.uri;
           languageClient
-              .sendRequest('$ccls/inheritanceHierarchy', {
+              .sendRequest('$ccls/inheritance', {
                 textDocument: {
                   uri: uri.toString(),
                 },
                 position: position,
                 derived: true,
-                detailedName: false,
-                levels: 1
+                qualified: false,
+                levels: 1,
+                hierarchy: true,
               })
               .then((entry: InheritanceHierarchyNode) => {
                 InheritanceHierarchyNode.setWantsDerived(entry, true);
 
                 languageClient
-                    .sendRequest('$ccls/inheritanceHierarchy', {
+                    .sendRequest('$ccls/inheritance', {
                       id: entry.id,
                       kind: entry.kind,
                       derived: false,
-                      detailedName: false,
-                      levels: 1
+                      qualified: false,
+                      levels: 1,
+                      hierarchy: true,
                     })
                     .then((parentEntry: InheritanceHierarchyNode) => {
                       if (parentEntry.numChildren > 0) {
@@ -616,15 +615,16 @@ export function activate(context: ExtensionContext) {
       let position = editor.selection.active;
       let uri = editor.document.uri;
       languageClient
-          .sendRequest('$ccls/callHierarchy', {
+          .sendRequest('$ccls/call', {
             textDocument: {
               uri: uri.toString(),
             },
             position: position,
             callee: false,
             callType: 0x1 | 0x2,
-            detailedName: false,
-            levels: 2
+            qualified: false,
+            levels: 2,
+            hierarchy: true,
           })
           .then((callNode: CallHierarchyNode) => {
             callHierarchyProvider.root = callNode;
