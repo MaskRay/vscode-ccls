@@ -826,16 +826,4 @@ export function activate(context: ExtensionContext) {
           });
     });
   })();
-
-  // Send $ccls/textDocumentDidView. Always send a notification - this will
-  // result in some extra work, but it shouldn't be a problem in practice.
-  (() => {
-    window.onDidChangeVisibleTextEditors(visible => {
-      for (let editor of visible) {
-        languageClient.sendNotification(
-            '$ccls/textDocumentDidView',
-            {textDocumentUri: editor.document.uri.toString()});
-      }
-    });
-  })();
 }
