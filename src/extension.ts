@@ -15,6 +15,10 @@ export function parseUri(u: string): Uri {
   return Uri.parse(u);
 }
 
+function normalizeUri(u: string): string {
+  return parseUri(u).toString();
+}
+
 function setContext(name, value) {
   commands.executeCommand('setContext', name, value);
 }
@@ -455,7 +459,7 @@ export function activate(context: ExtensionContext) {
 
       // Find existing open document.
       for (const textEditor of window.visibleTextEditors) {
-        if (textEditor.document.uri.toString() == uri) {
+        if (textEditor.document.uri.toString() == normalizeUri(uri)) {
           applyEdits(textEditor);
           return;
         }
@@ -509,7 +513,8 @@ export function activate(context: ExtensionContext) {
   // Inactive regions.
   (() => {
     let config = workspace.getConfiguration('ccls');
-    const skippedRangeDecorationType = window.createTextEditorDecorationType({
+    if (!config.get('misc.showInactiveRegions')) return;
+    const decorationType = window.createTextEditorDecorationType({
       isWholeLine: true,
       light: {
         color: config.get('theme.light.skippedRange.textColor'),
@@ -520,21 +525,38 @@ export function activate(context: ExtensionContext) {
         color: config.get('theme.dark.skippedRange.textColor'),
         backgroundColor:
             config.get('theme.dark.skippedRange.backgroundColor'),
-      }
+      },
+      rangeBehavior: DecorationRangeBehavior.ClosedClosed
     });
+
+    let skippedRanges = new Map<string, Range[]>();
+
     languageClient.onReady().then(() => {
       languageClient.onNotification('$ccls/setSkippedRanges', (args) => {
-        let uri = args.uri;
+        let uri = normalizeUri(args.uri);
         let ranges: Range[] = args.skippedRanges.map(p2c.asRange);
-        for (const textEditor of window.visibleTextEditors) {
-          if (textEditor.document.uri.toString() == uri) {
-            window.activeTextEditor.setDecorations(
-                skippedRangeDecorationType, ranges);
-            break;
-          }
-        }
+        ranges = ranges.map((range) => {
+          if (range.isEmpty || range.isSingleLine) return range;
+          return range.with({end: range.end.translate(-1, 23333)});
+        });
+        skippedRanges.set(uri, ranges);
+        window.visibleTextEditors
+          .filter(editor => editor.document.uri.toString() == uri)
+          .forEach(editor => editor.setDecorations(decorationType, ranges));
       });
     });
+
+    window.onDidChangeActiveTextEditor(editor => {
+      const uri = editor.document.uri.toString();
+      if (skippedRanges.has(uri)) {
+        editor.setDecorations(decorationType, skippedRanges.get(uri));
+      }
+    });
+
+    // This only got called during dispose, which perfectly matches our goal.
+    workspace.onDidCloseTextDocument(document => {
+      skippedRanges.delete(document.uri.toString());
+    })
   })();
 
   // Inheritance hierarchy.
@@ -792,7 +814,7 @@ export function activate(context: ExtensionContext) {
             updateConfigValues();
 
             for (let visibleEditor of window.visibleTextEditors) {
-              if (args.uri != visibleEditor.document.uri.toString())
+              if (normalizeUri(args.uri) != visibleEditor.document.uri.toString())
                 continue;
 
               let decorations =

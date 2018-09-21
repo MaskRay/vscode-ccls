@@ -713,7 +713,7 @@
         "ccls.misc.showInactiveRegions": {
           "type": "boolean",
           "default": true,
-          "description": "If true, ccls will highlight inactive regions."
+          "description": "If true, ccls will highlight skipped ranges."
         },
         "ccls.completion.include.maximumPathLength": {
           "type": "integer",
@@ -829,22 +829,22 @@
           "default": 500,
           "description": "If a tree view entry is double-clicked within this timeout value, vscode will navigate to the entry."
         },
-        "ccls.theme.light.inactiveRegion.textColor": {
+        "ccls.theme.light.skippedRange.textColor": {
           "type": "string",
           "default": "rgb(100, 100, 100)",
           "description": "CSS color to apply to text when the code region has been disabled by the preprocessor in a light theme."
         },
-        "ccls.theme.light.inactiveRegion.backgroundColor": {
+        "ccls.theme.light.skippedRange.backgroundColor": {
           "type": "string",
           "default": "rgba(220, 220, 220, 0.3)",
           "description": "CSS color to apply to the background when the code region has been disabled by the preprocessor in a light theme."
         },
-        "ccls.theme.dark.inactiveRegion.textColor": {
+        "ccls.theme.dark.skippedRange.textColor": {
           "type": "string",
           "default": "rgb(100, 100, 100)",
           "description": "CSS color to apply to text when the code region has been disabled by the preprocessor in a dark theme."
         },
-        "ccls.theme.dark.inactiveRegion.backgroundColor": {
+        "ccls.theme.dark.skippedRange.backgroundColor": {
           "type": "string",
           "default": "rgba(18, 18, 18, 0.3)",
           "description": "CSS color to apply to the background when the code region has been disabled by the preprocessor in a dark theme."
