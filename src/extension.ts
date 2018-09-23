@@ -315,10 +315,28 @@ export function activate(context: ExtensionContext) {
     function provideCodeLens(
         document: TextDocument, token: CancellationToken,
         next: ProvideCodeLensesSignature): ProviderResult<CodeLens[]> {
+      let enableCodeLens = workspace.getConfiguration().get('editor.codeLens');
+      if (!enableCodeLens) return;
       let config = workspace.getConfiguration('ccls');
       let enableInlineCodeLens = config.get('codeLens.renderInline', false);
-      if (!enableInlineCodeLens)
-        return next(document, token);
+      if (!enableInlineCodeLens) {
+        let uri = document.uri;
+        let position = document.positionAt(0);
+        return languageClient
+          .sendRequest<Array<any>>('textDocument/codeLens', {
+            textDocument: {
+              uri: uri.toString(),
+            },
+            position: position
+          })
+          .then((lenses: Array<any>) => {
+            return lenses.map(lense => {
+              let command  = lense.command;
+              command.arguments = [ command.arguments.uri, command.arguments.position, command.arguments.locations ]
+              return p2c.asCodeLens(lense);
+            });
+          });
+      }
 
       // We run the codeLens request ourselves so we can intercept the response.
       return languageClient
@@ -389,7 +407,7 @@ export function activate(context: ExtensionContext) {
         let position = window.activeTextEditor.selection.active;
         let uri = window.activeTextEditor.document.uri;
         languageClient
-            .sendRequest(methodName, {
+          .sendRequest<Array<ls.Location>>(methodName, {
               textDocument: {
                 uri: uri.toString(),
               },
