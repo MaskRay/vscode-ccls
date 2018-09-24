@@ -919,6 +919,37 @@ export function activate(context: ExtensionContext) {
     });
   })();
 
+  // Semantaic navigate
+
+  (() => {
+    function makeNavigateHandler(methodName, direction) {
+      return () => {
+        let position = window.activeTextEditor.selection.active;
+        let uri = window.activeTextEditor.document.uri;
+        languageClient
+          .sendRequest<Array<ls.Location>>(methodName, {
+              textDocument: {
+                uri: uri.toString(),
+              },
+              position: position,
+              direction: direction
+            })
+            .then((locations: Array<ls.Location>) => {
+              if (locations.length == 1){
+                let location = p2c.asLocation(locations[0]);
+                commands.executeCommand(
+                    'ccls.goto', location.uri, location.range.start, []);
+              }
+            })
+      }
+    }
+    commands.registerCommand('ccls.navigatePrevious', makeNavigateHandler('$ccls/navigate', 'L'))
+    commands.registerCommand('ccls.navigateNext', makeNavigateHandler('$ccls/navigate', 'R'))
+    commands.registerCommand('ccls.navigateParent', makeNavigateHandler('$ccls/navigate', 'U'))
+    commands.registerCommand('ccls.navigateFirstChild', makeNavigateHandler('$ccls/navigate', 'D'))
+  })();
+  
+
   // Send $ccls/textDocumentDidView. Always send a notification - this will
   // result in some extra work, but it shouldn't be a problem in practice.
   (() => {
