@@ -901,7 +901,7 @@ export function activate(context: ExtensionContext) {
     });
   })();
 
-  // Sementaic navigate
+  // Semantaic navigate
 
   (() => {
     function makeNavigateHandler(methodName, direction) {
