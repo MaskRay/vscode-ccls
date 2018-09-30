@@ -1,7 +1,7 @@
-import { Event, EventEmitter, Location, TreeDataProvider, TreeItem, TreeItemCollapsibleState } from 'vscode';
+import { Event, EventEmitter, TreeDataProvider, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { LanguageClient } from 'vscode-languageclient/lib/main';
 import { parseUri } from './extension';
-
+import * as ls from 'vscode-languageserver-types';
 
 enum CallType {
   Normal = 0,
@@ -13,7 +13,7 @@ export class CallHierarchyNode {
   // These properties come directly from the language server.
   id: any
   name: string
-  location: Location
+  location: ls.Location
   callType: CallType
 
   // If |numChildren| != |children.length|, then the node has not been expanded
@@ -81,12 +81,13 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
       return element.children;
 
     return this.languageClient
-      .sendRequest('$ccls/callHierarchy', {
+      .sendRequest('$ccls/call', {
         id: element.id,
         callee: false,
         callType: CallType.All,
-        detailedName: false,
-        levels: 1
+        qualified: false,
+        levels: 1,
+        hierarchy: true,
       })
       .then((result: CallHierarchyNode) => {
         element.children = result.children;

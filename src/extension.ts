@@ -11,8 +11,12 @@ import {jumpToUriAtPosition} from './vscodeUtils';
 
 type Nullable<T> = T|null;
 
-export function parseUri(u): Uri {
+export function parseUri(u: string): Uri {
   return Uri.parse(u);
+}
+
+function normalizeUri(u: string): string {
+  return parseUri(u).toString();
 }
 
 function setContext(name, value) {
@@ -123,40 +127,47 @@ function getClientConfig(context: ExtensionContext) {
   }
 
   // Read prefs; this map goes from `ccls/js name` => `vscode prefs name`.
-  let configMapping = [
+  const configMapping = [
     ['launchCommand', 'launch.command'],
     ['launchArgs', 'launch.args'],
     ['cacheDirectory', kCacheDirPrefName],
-    ['emitQueryDbBlocked', 'developer.emitQueryDbBlocked'],
-    ['index.whitelist', 'index.whitelist'],
-    ['index.blacklist', 'index.blacklist'],
-    ['index.logSkippedPaths', 'log.skippedPathsForIndex'],
-    ['extraClangArguments', 'index.extraClangArguments'],
-    ['resourceDirectory', 'misc.resourceDirectory'],
-    ['workspaceSymbol.maxNum', 'misc.maxWorkspaceSearchResults'],
-    ['index.threads', 'misc.indexerCount'],
-    ['index.enabled', 'misc.enableIndexing'],
-    ['enableCacheWrite', 'misc.enableCacheWrite'],
-    ['enableCacheRead', 'misc.enableCacheRead'],
+    ['compilationDatabaseCommand', 'misc.compilationDatabaseCommand'],
     ['compilationDatabaseDirectory', 'misc.compilationDatabaseDirectory'],
-    ['completion.enableSnippets', 'completion.enableSnippetInsertion'],
-    ['completion.includeMaxPathSize', 'completion.include.maximumPathLength'],
-    ['completion.includeSuffixWhitelist', 'completion.include.whitelistLiteralEnding'],
-    ['completion.includeWhitelist', 'completion.include.whitelist'],
-    ['completion.includeBlacklist', 'completion.include.blacklist'],
-    ['showDocumentLinksOnIncludes', 'showDocumentLinksOnIncludes'],
+    ['clang.excludeArgs', 'clang.excludeArgs'],
+    ['clang.extraArgs', 'clang.extraArgs'],
+    ['clang.pathMappings', 'clang.pathMappings'],
+    ['clang.resourceDir', 'clang.resourceDir'],
+    ['codeLens.localVariables', 'codeLens.localVariables'],
+    ['completion.caseSensitivity', 'completion.caseSensitivity'],
+    ['completion.detailedLabel', 'completion.detailedLabel'],
+    ['completion.duplicateOptional', 'completion.duplicateOptional'],
+    ['completion.filterAndSort', 'completion.filterAndSort'],
+    ['completion.include.maxPathSize', 'completion.include.maxPathSize'],
+    ['completion.include.suffixWhitelist', 'completion.include.suffixWhitelist'],
+    ['completion.include.whitelist', 'completion.include.whitelist'],
+    ['completion.include.blacklist', 'completion.include.blacklist'],
+    ['client.snippetSupport', 'completion.enableSnippetInsertion'],
     ['diagnostics.blacklist', 'diagnostics.blacklist'],
     ['diagnostics.whitelist', 'diagnostics.whitelist'],
-    ['diagnostics.onParse', 'diagnostics.onParse'],
-    ['diagnostics.onType', 'diagnostics.onType'],
-    ['codeLens.localVariables', 'codeLens.onLocalVariables'],
-    ['emitInactiveRegions', 'misc.showInactiveRegions'],
-    ['discoverSystemIncludes','misc.discoverSystemIncludes'],
-    ['formatting.enabled', 'formatting.enabled'],
+    ['diagnostics.onOpen', 'diagnostics.onOpen'],
+    ['diagnostics.onSave', 'diagnostics.onSave'],
+    ['diagnostics.onChange', 'diagnostics.onType'],
+    ['diagnostics.spellChecking', 'diagnostics.spellChecking'],
+    ['highlight.blacklist', 'highlight.blacklist'],
+    ['highlight.whitelist', 'highlight.whitelist'],
+    ['largeFileSize', 'highlight.largeFileSize'],
+    ['index.whitelist', 'index.whitelist'],
+    ['index.blacklist', 'index.blacklist'],
+    ['index.multiVersion', 'index.multiVersion'],
+    ['index.onChange', 'index.onChange'],
+    ['index.threads', 'index.threads'],
+    ['workspaceSymbol.maxNum', 'workspaceSymbol.maxNum'],
+    ['workspaceSymbol.caseSensitivity', 'workspaceSymbol.caseSensitivity'],
   ];
+  const castBooleanToInteger = [];
   let clientConfig = {
     launchCommand: '',
-    cacheDirectory: '',
+    cacheDirectory: '.ccls-cache',
     highlight: {
       lsRanges: true,
       enabled: hasAnySemanticHighlighting(),
@@ -177,32 +188,11 @@ function getClientConfig(context: ExtensionContext) {
         }
         subconfig = subconfig[subprop];
       }
+      if (castBooleanToInteger.includes(prop[1])) {
+        value = +value;
+      }
       subconfig[subprops[subprops.length - 1]] = resolveVariables(value);
     }
-  }
-
-  // Set up a cache directory if there is not one.
-  if (!clientConfig.cacheDirectory) {
-    if (!context.storagePath) {
-      const kOpenSettings = 'Open Settings';
-      window
-          .showErrorMessage(
-              'Could not auto-discover cache directory. Please use "Open Folder" ' +
-                  'or specify it in the |ccls.cacheDirectory| setting.',
-              kOpenSettings)
-          .then((selected) => {
-            if (selected == kOpenSettings)
-              commands.executeCommand('workbench.action.openWorkspaceSettings');
-          });
-      return;
-    }
-
-    // Provide a default cache directory if it is not present. Insert next to
-    // the project since if the user has an SSD they most likely have their
-    // source files on the SSD as well.
-    let cacheDir = '${workspaceFolder}/.vscode/ccls_cached_index/';
-    clientConfig.cacheDirectory = resolveVariables(cacheDir);
-    config.update(kCacheDirPrefName, cacheDir, false /*global*/);
   }
 
   return clientConfig;
@@ -250,12 +240,11 @@ export function activate(context: ExtensionContext) {
     let kToForward = [
       'ProgramData',
       'PATH',
+      'CPATH',
+      'LIBRARY_PATH',
     ];
     for (let e of kToForward)
       env[e] = process.env[e];
-
-    // env.LIBCLANG_LOGGING = '1';
-    // env.MALLOC_CHECK_ = '2';
 
     let serverOptions: ServerOptions = {
       command: clientConfig.launchCommand,
@@ -375,13 +364,10 @@ export function activate(context: ExtensionContext) {
     // Create the language client and start the client.
     let languageClient =
         new LanguageClient('ccls', 'ccls', serverOptions, clientOptions);
-    let command = serverOptions.command
+    let command = serverOptions.command;
     languageClient.onReady().catch(e => {
-      // TODO: remove ccls.launch.workingDirectory after July 2018
       window.showErrorMessage(
-          'ccls.launch.command has changed; either add ccls to your PATH ' +
-          'or make ccls.launch.command an absolute path. Current value: "' +
-          command + '". ccls.launch.workingDirectory has been removed.');
+          `Failed to start ccls with command "${command}".`);
     });
     context.subscriptions.push(languageClient.start());
 
@@ -394,16 +380,22 @@ export function activate(context: ExtensionContext) {
 
   // General commands.
   (() => {
-    commands.registerCommand('ccls.freshenIndex', () => {
-      languageClient.sendNotification('$ccls/freshenIndex');
+    commands.registerCommand('ccls.reload', () => {
+      languageClient.sendNotification('$ccls/reload');
     });
     commands.registerCommand('ccls.restart', () => {
       languageClient.stop();
       languageClient = getLanguageClient();
     });
 
-    function makeRefHandler(methodName, autoGotoIfSingle = false) {
-      return () => {
+    function makeRefHandler(
+        methodName: string, extraParams: object = {},
+        autoGotoIfSingle = false) {
+      return (userParams) => {
+        /* 
+        userParams: a dict defined as `args` in keybindings.json (or passed by other extensions like VSCodeVIM)
+        Values defined by user have higher priority than `extraParams`
+        */
         let position = window.activeTextEditor.selection.active;
         let uri = window.activeTextEditor.document.uri;
         languageClient
@@ -411,7 +403,9 @@ export function activate(context: ExtensionContext) {
               textDocument: {
                 uri: uri.toString(),
               },
-              position: position
+              position: position,
+              ...extraParams,
+              ...userParams
             })
             .then((locations: Array<ls.Location>) => {
               if (autoGotoIfSingle && locations.length == 1) {
@@ -427,10 +421,9 @@ export function activate(context: ExtensionContext) {
       }
     }
     commands.registerCommand('ccls.vars', makeRefHandler('$ccls/vars'));
+    commands.registerCommand('ccls.call', makeRefHandler('$ccls/call'));
     commands.registerCommand(
-        'ccls.callers', makeRefHandler('$ccls/callers'));
-    commands.registerCommand(
-        'ccls.base', makeRefHandler('$ccls/base', true));
+      'ccls.base', makeRefHandler('$ccls/inheritance', {derived: false}, true));
   })();
 
   // The language client does not correctly deserialize arguments, so we have a
@@ -443,7 +436,6 @@ export function activate(context: ExtensionContext) {
               'editor.action.showReferences', p2c.asUri(uri),
               p2c.asPosition(position), locations.map(p2c.asLocation));
         });
-
 
     commands.registerCommand(
         'ccls.goto',
@@ -471,7 +463,7 @@ export function activate(context: ExtensionContext) {
 
       // Find existing open document.
       for (const textEditor of window.visibleTextEditors) {
-        if (textEditor.document.uri.toString() == uri) {
+        if (textEditor.document.uri.toString() == normalizeUri(uri)) {
           applyEdits(textEditor);
           return;
         }
@@ -525,7 +517,8 @@ export function activate(context: ExtensionContext) {
   // Inactive regions.
   (() => {
     let config = workspace.getConfiguration('ccls');
-    const skippedRangeDecorationType = window.createTextEditorDecorationType({
+    if (!config.get('misc.showInactiveRegions')) return;
+    const decorationType = window.createTextEditorDecorationType({
       isWholeLine: true,
       light: {
         color: config.get('theme.light.skippedRange.textColor'),
@@ -536,100 +529,38 @@ export function activate(context: ExtensionContext) {
         color: config.get('theme.dark.skippedRange.textColor'),
         backgroundColor:
             config.get('theme.dark.skippedRange.backgroundColor'),
-      }
+      },
+      rangeBehavior: DecorationRangeBehavior.ClosedClosed
     });
+
+    let skippedRanges = new Map<string, Range[]>();
+
     languageClient.onReady().then(() => {
       languageClient.onNotification('$ccls/setSkippedRanges', (args) => {
-        let uri = args.uri;
+        let uri = normalizeUri(args.uri);
         let ranges: Range[] = args.skippedRanges.map(p2c.asRange);
-        for (const textEditor of window.visibleTextEditors) {
-          if (textEditor.document.uri.toString() == uri) {
-            window.activeTextEditor.setDecorations(
-                skippedRangeDecorationType, ranges);
-            break;
-          }
-        }
-      });
-    });
-  })();
-
-  // Progress
-  (() => {
-    let config = workspace.getConfiguration('ccls');
-    let statusStyle = config.get('misc.status');
-    if (statusStyle == 'short' || statusStyle == 'detailed') {
-      let statusIcon = window.createStatusBarItem(StatusBarAlignment.Right);
-      statusIcon.text = 'ccls: loading';
-      statusIcon.tooltip =
-          'ccls is loading project metadata (ie, compile_commands.json)';
-      statusIcon.show();
-      languageClient.onReady().then(() => {
-        languageClient.onNotification('$ccls/progress', (args) => {
-          let indexRequestCount = args.indexRequestCount || 0;
-          let doIdMapCount = args.doIdMapCount || 0;
-          let loadPreviousIndexCount = args.loadPreviousIndexCount || 0;
-          let onIdMappedCount = args.onIdMappedCount || 0;
-          let onIndexedCount = args.onIndexedCount || 0;
-          let activeThreads = args.activeThreads || 0;
-          let total = indexRequestCount + doIdMapCount +
-              loadPreviousIndexCount + onIdMappedCount + onIndexedCount +
-              activeThreads;
-
-          let detailedJobString = `indexRequest: ${indexRequestCount}, ` +
-              `doIdMap: ${doIdMapCount}, ` +
-              `loadPreviousIndex: ${loadPreviousIndexCount}, ` +
-              `onIdMapped: ${onIdMappedCount}, ` +
-              `onIndexed: ${onIndexedCount}, ` +
-              `activeThreads: ${activeThreads}`;
-
-          if (total == 0 && statusStyle == 'short') {
-            statusIcon.text = 'ccls: idle';
-          } else {
-            statusIcon.text = `ccls: ${indexRequestCount}|${total} jobs`;
-            if (statusStyle == 'detailed') {
-              statusIcon.text += ` (${detailedJobString})`
-            }
-          }
-          statusIcon.tooltip = 'ccls jobs: ' + detailedJobString;
+        ranges = ranges.map((range) => {
+          if (range.isEmpty || range.isSingleLine) return range;
+          return range.with({end: range.end.translate(-1, 23333)});
         });
-      });
-    }
-  })();
-
-  // QueryDb busy
-  (() => {
-    // Notifications have a minimum time to live. If the status changes multiple
-    // times within that interface, we will show multiple notifications. Try to
-    // avoid that.
-    const kGracePeriodMs = 250;
-
-    var timeout: NodeJS.Timer
-    var resolvePromise: any
-    languageClient.onReady().then(() => {
-      languageClient.onNotification('$ccls/queryDbStatus', (args) => {
-        let isActive: boolean = args.isActive;
-        if (isActive) {
-          if (timeout) {
-            clearTimeout(timeout);
-            timeout = undefined;
-          }
-          else {
-            window.withProgress({location: ProgressLocation.Notification, title: 'querydb is busy'}, (p) => {
-              p.report({increment: 100})
-              return new Promise((resolve, reject) => {
-                resolvePromise = resolve;
-              });
-            });
-          }
-        } else if (resolvePromise) {
-          timeout = setTimeout(() => {
-            resolvePromise();
-            resolvePromise = undefined;
-            timeout = undefined;
-          }, kGracePeriodMs);
-        }
+        skippedRanges.set(uri, ranges);
+        window.visibleTextEditors
+          .filter(editor => editor.document.uri.toString() == uri)
+          .forEach(editor => editor.setDecorations(decorationType, ranges));
       });
     });
+
+    window.onDidChangeActiveTextEditor(editor => {
+      const uri = editor.document.uri.toString();
+      if (skippedRanges.has(uri)) {
+        editor.setDecorations(decorationType, skippedRanges.get(uri));
+      }
+    });
+
+    // This only got called during dispose, which perfectly matches our goal.
+    workspace.onDidCloseTextDocument(document => {
+      skippedRanges.delete(document.uri.toString());
+    })
   })();
 
   // Inheritance hierarchy.
@@ -645,25 +576,27 @@ export function activate(context: ExtensionContext) {
           let position = editor.selection.active;
           let uri = editor.document.uri;
           languageClient
-              .sendRequest('$ccls/inheritanceHierarchy', {
+              .sendRequest('$ccls/inheritance', {
                 textDocument: {
                   uri: uri.toString(),
                 },
                 position: position,
                 derived: true,
-                detailedName: false,
-                levels: 1
+                qualified: false,
+                levels: 1,
+                hierarchy: true,
               })
               .then((entry: InheritanceHierarchyNode) => {
                 InheritanceHierarchyNode.setWantsDerived(entry, true);
 
                 languageClient
-                    .sendRequest('$ccls/inheritanceHierarchy', {
+                    .sendRequest('$ccls/inheritance', {
                       id: entry.id,
                       kind: entry.kind,
                       derived: false,
-                      detailedName: false,
-                      levels: 1
+                      qualified: false,
+                      levels: 1,
+                      hierarchy: true,
                     })
                     .then((parentEntry: InheritanceHierarchyNode) => {
                       if (parentEntry.numChildren > 0) {
@@ -708,15 +641,16 @@ export function activate(context: ExtensionContext) {
       let position = editor.selection.active;
       let uri = editor.document.uri;
       languageClient
-          .sendRequest('$ccls/callHierarchy', {
+          .sendRequest('$ccls/call', {
             textDocument: {
               uri: uri.toString(),
             },
             position: position,
             callee: false,
             callType: 0x1 | 0x2,
-            detailedName: false,
-            levels: 2
+            qualified: false,
+            levels: 2,
+            hierarchy: true,
           })
           .then((callNode: CallHierarchyNode) => {
             callHierarchyProvider.root = callNode;
@@ -915,7 +849,7 @@ export function activate(context: ExtensionContext) {
             updateConfigValues();
 
             for (let visibleEditor of window.visibleTextEditors) {
-              if (args.uri != visibleEditor.document.uri.toString())
+              if (normalizeUri(args.uri) != visibleEditor.document.uri.toString())
                 continue;
 
               let decorations =
@@ -941,11 +875,10 @@ export function activate(context: ExtensionContext) {
     });
   })();
 
-  // Semantaic navigate
-
+  // Semantic navigation
   (() => {
-    function makeNavigateHandler(methodName, direction) {
-      return () => {
+    function makeNavigateHandler(methodName) {
+      return (userParams) => {
         let position = window.activeTextEditor.selection.active;
         let uri = window.activeTextEditor.document.uri;
         languageClient
@@ -954,33 +887,18 @@ export function activate(context: ExtensionContext) {
                 uri: uri.toString(),
               },
               position: position,
-              direction: direction
+              ...userParams
             })
             .then((locations: Array<ls.Location>) => {
               if (locations.length == 1){
                 let location = p2c.asLocation(locations[0]);
-                commands.executeCommand(
-                    'ccls.goto', location.uri, location.range.start, []);
+                jumpToUriAtPosition(
+                    location.uri, location.range.start,
+                    false /*preserveFocus*/);
               }
             })
       }
     }
-    commands.registerCommand('ccls.navigatePrevious', makeNavigateHandler('$ccls/navigate', 'L'))
-    commands.registerCommand('ccls.navigateNext', makeNavigateHandler('$ccls/navigate', 'R'))
-    commands.registerCommand('ccls.navigateParent', makeNavigateHandler('$ccls/navigate', 'U'))
-    commands.registerCommand('ccls.navigateFirstChild', makeNavigateHandler('$ccls/navigate', 'D'))
-  })();
-  
-
-  // Send $ccls/textDocumentDidView. Always send a notification - this will
-  // result in some extra work, but it shouldn't be a problem in practice.
-  (() => {
-    window.onDidChangeVisibleTextEditors(visible => {
-      for (let editor of visible) {
-        languageClient.sendNotification(
-            '$ccls/textDocumentDidView',
-            {textDocumentUri: editor.document.uri.toString()});
-      }
-    });
+    commands.registerCommand('ccls.navigate', makeNavigateHandler('$ccls/navigate'))
   })();
 }

@@ -4,5 +4,6 @@
 	},
 	"search.exclude": {
 		"out": false
-	}
+	},
+	"typescript.tsc.autoDetect": "off"
 }

@@ -1,12 +1,13 @@
-import { Event, EventEmitter, Location, TreeDataProvider, TreeItem, TreeItemCollapsibleState, Uri } from 'vscode';
+import { Event, EventEmitter, TreeDataProvider, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { parseUri } from './extension';
 import { LanguageClient } from 'vscode-languageclient/lib/main';
+import * as ls from 'vscode-languageserver-types';
 
 export class InheritanceHierarchyNode {
   id: any
   kind: number
   name: string
-  location: Location
+  location: ls.Location
   numChildren: number
   children: InheritanceHierarchyNode[]
 
@@ -68,12 +69,13 @@ export class InheritanceHierarchyProvider implements
       return element.children;
 
     return this.languageClient
-      .sendRequest('$ccls/inheritanceHierarchy', {
+      .sendRequest('$ccls/inheritance', {
         id: element.id,
         kind: element.kind,
         derived: element._wantsDerived,
-        detailedName: false,
-        levels: 1
+        qualified: false,
+        levels: 1,
+        hierarchy: true,
       })
       .then((result: InheritanceHierarchyNode) => {
         element.children = result.children;
