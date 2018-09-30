@@ -18,8 +18,7 @@
     "onLanguage:objective-c",
     "onLanguage:objective-cpp",
     "workspaceContains:.ccls",
-    "workspaceContains:compile_commands.json",
-    "workspaceContains:build/compile_commands.json"
+    "workspaceContains:compile_commands.json"
   ],
   "main": "./out/extension",
   "contributes": {
@@ -657,15 +656,20 @@
           "type": "boolean",
           "default": false
         },
-        "ccls.index.extraArgs": {
+        "ccls.clang.extraArgs": {
           "type": "array",
           "default": [],
           "description": "An extra set of command line arguments to give clang when indexing. Each list entry is a separate argument."
         },
-        "ccls.index.excludeArgs": {
+        "ccls.clang.excludeArgs": {
           "type": "array",
           "default": [],
           "description": "An set of command line arguments to strip before passing to clang when indexing. Each list entry is a separate argument."
+        },
+        "ccls.clang.pathMappings": {
+          "type": "array",
+          "default": [],
+          "description": "Translate paths in compile_commands.json entries, .ccls options and cache files. This allows to reuse cache files built otherwhere if the source paths are different."
         },
         "ccls.index.whitelist": {
           "type": "array",
@@ -677,28 +681,10 @@
           "default": [],
           "description": "A translation unit (cc/cpp file) is not indexed if any of the ECMAScript regexes in this list matches translation unit's the absolute path.\n\nYou probably want to begin the regex using \".*\" because the passed paths are absolute."
         },
-        "ccls.misc.resourceDirectory": {
+        "ccls.clang.resourceDir": {
           "type": "string",
           "default": "",
           "description": "Default value to use for clang -resource-dir argument. This will be automatically supplied by ccls if not provided."
-        },
-        "ccls.misc.maxWorkspaceSearchResults": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "default": null,
-          "description": "The maximum number of global search (ie, Ctrl+P + #foo) search results to report. For small search strings on large projects there can be a massive number of results (ie, over 1,000,000) so this limit is important to avoid extremely long delays. null means use the default value provided by the ccls language server."
-        },
-        "ccls.misc.indexerCount": {
-          "type": "number",
-          "default": 0,
-          "description": "Forcibly set the number of indexing/working jobs. This value is automatically computed by the indexer and you should not need to set it manually.\n\nIdeally, this should be the number of CPU cores you have, minus one. ccls scales quite well so this number can go very high; ccls will use 5000%+ CPU usage on machines with over 50 cores. If you set the value higher than your number of hardware threads, ccls will slow down significantly due to thread contention.\n\nIf set to 0 or a negative value, the indexer will ignore this value.\n\nFor example, if you have a 4 core hyper-threaded processor, this should be set to 7. If you have dual 13 core hyper-threaded processors, this should be set to 2*13*2-1=51."
-        },
-        "ccls.misc.enableIndexing": {
-          "type": "boolean",
-          "default": true,
-          "description": "If set to false, updating the index will be disabled. You should not need to use this."
         },
         "ccls.misc.compilationDatabaseCommand": {
           "type": "string",
@@ -715,12 +701,12 @@
           "default": true,
           "description": "If true, ccls will highlight skipped ranges."
         },
-        "ccls.completion.include.maximumPathLength": {
+        "ccls.completion.include.maxPathSize": {
           "type": "integer",
           "default": 37,
           "description": "Maximum length for path in #include proposals. If the path length goes beyond this number it will be elided. Set to 0 to always display the full path."
         },
-        "ccls.completion.include.whitelistLiteralEnding": {
+        "ccls.completion.include.suffixWhitelist": {
           "type": "array",
           "default": [
             ".h",
@@ -799,27 +785,42 @@
           "default": null,
           "description": "Disable semantic highlighting for files larger than the size."
         },
+        "ccls.index.initialBlacklist": {
+          "type": "array",
+          "default": [],
+          "description": "Files matched by the regexes should not be indexed on initialization. Indexing is deferred to when they are opened."
+        },
+        "ccls.index.initialWhitelist": {
+          "type": "array",
+          "default": [],
+          "description": "Files matched by the regexes should be indexed on initialization."
+        },
         "ccls.index.multiVersion": {
-          "type": "boolean",
-          "default": false,
-          "description": "If enabled, a file will be indexed in each tranlation unit that includes it."
+          "type": "integer",
+          "default": 0,
+          "description": "If not 0, a file will be indexed in each tranlation unit that includes it."
         },
         "ccls.index.onChange": {
           "type": "boolean",
           "default": false,
           "description": "Allow indexing on textDocument/didChange. May be too slow for big projects, so it is off by default."
         },
-        "ccls.misc.workspaceSymbolCaseSensitive": {
+        "ccls.index.threads": {
+          "type": "number",
+          "default": 0,
+          "description": "Number of indexer threads. If 0, 80% of cores are used."
+        },
+        "ccls.index.trackDependency": {
           "type": "integer",
-          "default": 1,
-          "description": "Case sensitivity when searching workspace symbols. 0: case-insensitive, 1: case-folded, i.e. insensitive if no input character is uppercase, 2: case-sensitive"
+          "default": 2,
+          "description": "Whether to reparse a file if write times of its dependencies have changed. The file will always be reparsed if its own write time changes.\n\n0: no, 1: only during initial load of project, 2: yes"
         },
         "ccls.codeLens.renderInline": {
           "type": "boolean",
           "default": false,
           "description": "Enables a custom code lens renderer so code lens are displayed inline with code. This removes any vertical-space footprint at the cost of horizontal space."
         },
-        "ccls.codeLens.onLocalVariables": {
+        "ccls.codeLens.localVariables": {
           "type": "boolean",
           "default": false,
           "description": "Set to false to hide code lens on parameters and function local variables."
@@ -853,6 +854,16 @@
           "type": "boolean",
           "default": false,
           "description": "If true, parameter declarations are inserted as snippets in function/method call arguments when completing a function/method call"
+        },
+        "ccls.workspaceSymbol.caseSensitivity": {
+          "type": "integer",
+          "default": 1,
+          "description": "Case sensitivity when searching workspace symbols. 0: case-insensitive, 1: case-folded, i.e. insensitive if no input character is uppercase, 2: case-sensitive"
+        },
+        "ccls.workspaceSymbol.maxNum": {
+          "type": ["number", "null"],
+          "default": null,
+          "description": "The maximum number of global search (ie, Ctrl+P + #foo) search results to report. For small search strings on large projects there can be a massive number of results (ie, over 1,000,000) so this limit is important to avoid extremely long delays. null means use the default value provided by the ccls language server."
         }
       }
     }
