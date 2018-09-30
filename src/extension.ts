@@ -391,7 +391,11 @@ export function activate(context: ExtensionContext) {
     function makeRefHandler(
         methodName: string, extraParams: object = {},
         autoGotoIfSingle = false) {
-      return () => {
+      return (userParams) => {
+        /* 
+        userParams: a dict defined as `args` in keybindings.json (or passed by other extensions like VSCodeVIM)
+        Values defined by user have higher priority than `extraParams`
+        */
         let position = window.activeTextEditor.selection.active;
         let uri = window.activeTextEditor.document.uri;
         languageClient
@@ -401,6 +405,7 @@ export function activate(context: ExtensionContext) {
               },
               position: position,
               ...extraParams,
+              ...userParams
             })
             .then((locations: Array<ls.Location>) => {
               if (autoGotoIfSingle && locations.length == 1) {
@@ -416,7 +421,7 @@ export function activate(context: ExtensionContext) {
       }
     }
     commands.registerCommand('ccls.vars', makeRefHandler('$ccls/vars'));
-    commands.registerCommand('ccls.callers', makeRefHandler('$ccls/call'));
+    commands.registerCommand('ccls.call', makeRefHandler('$ccls/call'));
     commands.registerCommand(
       'ccls.base', makeRefHandler('$ccls/inheritance', {derived: false}, true));
   })();
@@ -431,7 +436,6 @@ export function activate(context: ExtensionContext) {
               'editor.action.showReferences', p2c.asUri(uri),
               p2c.asPosition(position), locations.map(p2c.asLocation));
         });
-
 
     commands.registerCommand(
         'ccls.goto',
