@@ -127,9 +127,9 @@
         "command": "ccls.vars"
       },
       {
-        "title": "Show Callers",
+        "title": "Show Cross References",
         "category": "ccls",
-        "command": "ccls.callers"
+        "command": "ccls.call"
       },
       {
         "title": "Show Base",
