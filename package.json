@@ -3,7 +3,7 @@
   "description": "C/C++/ObjC language server supporting cross references, hierarchies, completion and semantic highlighting",
   "author": "ccls-project",
   "license": "MIT",
-  "version": "0.1.10",
+  "version": "0.1.14",
   "publisher": "ccls-project",
   "preview": true,
   "engines": {
@@ -771,17 +771,26 @@
           "description": "Whether to do spell checking on undefined symbol names when computing diagnostics."
         },
         "ccls.highlight.blacklist": {
-          "type": ["array", "null"],
+          "type": [
+            "array",
+            "null"
+          ],
           "default": null,
           "description": "Files that match these patterns won't have semantic highlighting."
         },
         "ccls.highlight.whitelist": {
-          "type": ["array", "null"],
+          "type": [
+            "array",
+            "null"
+          ],
           "default": null,
           "description": "Files that match these patterns will have semantic highlighting."
         },
         "ccls.highlight.largeFileSize": {
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "default": null,
           "description": "Disable semantic highlighting for files larger than the size."
         },
@@ -861,7 +870,10 @@
           "description": "Case sensitivity when searching workspace symbols. 0: case-insensitive, 1: case-folded, i.e. insensitive if no input character is uppercase, 2: case-sensitive"
         },
         "ccls.workspaceSymbol.maxNum": {
-          "type": ["number", "null"],
+          "type": [
+            "number",
+            "null"
+          ],
           "default": null,
           "description": "The maximum number of global search (ie, Ctrl+P + #foo) search results to report. For small search strings on large projects there can be a massive number of results (ie, over 1,000,000) so this limit is important to avoid extremely long delays. null means use the default value provided by the ccls language server."
         }
