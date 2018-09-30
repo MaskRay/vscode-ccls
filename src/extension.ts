@@ -422,6 +422,7 @@ export function activate(context: ExtensionContext) {
     }
     commands.registerCommand('ccls.vars', makeRefHandler('$ccls/vars'));
     commands.registerCommand('ccls.call', makeRefHandler('$ccls/call'));
+    commands.registerCommand('ccls.member', makeRefHandler('$ccls/member'));
     commands.registerCommand(
       'ccls.base', makeRefHandler('$ccls/inheritance', {derived: false}, true));
   })();
