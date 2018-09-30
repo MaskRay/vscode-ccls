@@ -812,6 +812,38 @@ export function activate(context: ExtensionContext) {
       readonly uri: string;
       readonly symbols: SemanticSymbol[];
     }
+
+
+    let cachedDecorations = new Map<string, Map<TextEditorDecorationType, Array<Range>>>();
+
+    function updateDecoration(editor: TextEditor) {
+      let uri = editor.document.uri.toString();
+      if (cachedDecorations.has(uri)) {
+        let cachedDecoration = cachedDecorations.get(uri);
+        // Clear decorations and set new ones. We might not use all of the
+        // decorations so clear before setting.
+        for (let [_, decorations] of semanticDecorations) {
+          decorations.forEach((type) => {
+            editor.setDecorations(type, []);
+          });
+        }
+        // Set new decorations.
+        cachedDecoration.forEach((ranges, type) => {
+          editor.setDecorations(type, ranges);
+        });
+      }
+    }
+
+    window.onDidChangeActiveTextEditor(
+      editor => {
+        if (editor) {
+          updateDecoration(editor);
+        }
+      },
+      null,
+      context.subscriptions
+    );
+
     languageClient.onReady().then(() => {
       languageClient.onNotification(
           '$ccls/publishSemanticHighlighting',
@@ -838,17 +870,8 @@ export function activate(context: ExtensionContext) {
                 }
               }
 
-              // Clear decorations and set new ones. We might not use all of the
-              // decorations so clear before setting.
-              for (let [_, decorations] of semanticDecorations) {
-                decorations.forEach((type) => {
-                  visibleEditor.setDecorations(type, []);
-                });
-              }
-              // Set new decorations.
-              decorations.forEach((ranges, type) => {
-                visibleEditor.setDecorations(type, ranges);
-              });
+              cachedDecorations.set(args.uri, decorations);
+              updateDecoration(visibleEditor);
             }
           });
     });
