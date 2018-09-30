@@ -140,6 +140,26 @@
         "title": "Go to Tree View Entry",
         "category": "ccls",
         "command": "ccls.gotoForTreeView"
+      },
+      {
+        "title": "Navigate to first child declaration",
+        "category": "ccls",
+        "command": "ccls.navigateFirstChild"
+      },
+      {
+        "title": "Navigate to parent declaration",
+        "category": "ccls",
+        "command": "ccls.navigateParent"
+      },
+      {
+        "title": "Navigate to previous declaration",
+        "category": "ccls",
+        "command": "ccls.navigatePrevious"
+      },
+      {
+        "title": "Navigate to next declaration",
+        "category": "ccls",
+        "command": "ccls.navigateNext"
       }
     ],
     "configuration": {
