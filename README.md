@@ -1,5 +1,10 @@
 # vscode-ccls
 
-This is the Visual Studio Code extension for [ccls](https://github.com/MaskRay/ccls), which is a rewrite of [cquery](https://github.com/cquery-project/cquery).
+This is the Visual Studio Code extension for [ccls](https://github.com/MaskRay/ccls).
 
-See [Getting started](https://github.com/MaskRay/ccls/wiki/Getting-started)
+![](https://ptpb.pw/ScXs.jpg)
+
+See:
+
+* [Getting started](https://github.com/MaskRay/ccls/wiki/Getting-started)
+* [Visual Studio Code](https://github.com/MaskRay/ccls/wiki/Visual-Studio-Code)
