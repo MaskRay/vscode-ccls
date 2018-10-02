@@ -750,6 +750,11 @@
           "default": [],
           "description": "Files that match these patterns will be displayed in diagnostics view."
         },
+        "ccls.diagnostics.onChange": {
+          "type": "integer",
+          "default": 1000,
+          "description": "Time in milliseconds to wait before computing diagnostics on type. -1: disable diagnostics on type."
+        },
         "ccls.diagnostics.onOpen": {
           "type": "integer",
           "default": 0,
@@ -759,11 +764,6 @@
           "type": "integer",
           "default": 0,
           "description": "Time in milliseconds to wait before computing diagnostics when a file is saved."
-        },
-        "ccls.diagnostics.onType": {
-          "type": "integer",
-          "default": 1000,
-          "description": "Time in milliseconds to wait before computing diagnostics on type. -1: disable diagnostics on type."
         },
         "ccls.diagnostics.spellChecking": {
           "type": "boolean",
