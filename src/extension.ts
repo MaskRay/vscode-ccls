@@ -158,6 +158,8 @@ function getClientConfig(context: ExtensionContext) {
     ['largeFileSize', 'highlight.largeFileSize'],
     ['index.whitelist', 'index.whitelist'],
     ['index.blacklist', 'index.blacklist'],
+    ['index.initialWhitelist', 'index.initialWhitelist'],
+    ['index.initialBlacklist', 'index.initialBlacklist'],
     ['index.multiVersion', 'index.multiVersion'],
     ['index.onChange', 'index.onChange'],
     ['index.threads', 'index.threads'],
@@ -392,7 +394,7 @@ export function activate(context: ExtensionContext) {
         methodName: string, extraParams: object = {},
         autoGotoIfSingle = false) {
       return (userParams) => {
-        /* 
+        /*
         userParams: a dict defined as `args` in keybindings.json (or passed by other extensions like VSCodeVIM)
         Values defined by user have higher priority than `extraParams`
         */
