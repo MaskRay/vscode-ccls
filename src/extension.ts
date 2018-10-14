@@ -75,7 +75,7 @@ enum StorageClass {
 }
 class SemanticSymbol {
   constructor(
-      readonly stableId: number, readonly parentKind: SymbolKind,
+      readonly id: number, readonly parentKind: SymbolKind,
       readonly kind: SymbolKind, readonly isTypeMember: boolean,
       readonly storage: StorageClass, readonly lsRanges: Array<Range>) {}
 }
@@ -83,7 +83,7 @@ class SemanticSymbol {
 function getClientConfig(context: ExtensionContext) {
   const kCacheDirPrefName = 'cacheDirectory';
 
-  function hasAnySemanticHighlighting() {
+  function hasAnySemanticHighlight() {
     let options = [
       'ccls.highlighting.enabled.types',
       'ccls.highlighting.enabled.freeStandingFunctions',
@@ -172,7 +172,7 @@ function getClientConfig(context: ExtensionContext) {
     cacheDirectory: '.ccls-cache',
     highlight: {
       lsRanges: true,
-      enabled: hasAnySemanticHighlighting(),
+      enabled: hasAnySemanticHighlight(),
     },
     workspaceSymbol: {
       sort: false,
@@ -539,7 +539,7 @@ export function activate(context: ExtensionContext) {
     let skippedRanges = new Map<string, Range[]>();
 
     languageClient.onReady().then(() => {
-      languageClient.onNotification('$ccls/setSkippedRanges', (args) => {
+      languageClient.onNotification('$ccls/publishSkippedRanges', (args) => {
         let uri = normalizeUri(args.uri);
         let ranges: Range[] = args.skippedRanges.map(p2c.asRange);
         ranges = ranges.map((range) => {
@@ -768,7 +768,7 @@ export function activate(context: ExtensionContext) {
         if (!semanticEnabled.get(name))
           return undefined;
         let decorations = semanticDecorations.get(name);
-        return decorations[symbol.stableId % decorations.length];
+        return decorations[symbol.id % decorations.length];
       };
 
       if (symbol.kind == SymbolKind.Class || symbol.kind == SymbolKind.Struct) {
@@ -810,7 +810,7 @@ export function activate(context: ExtensionContext) {
       }
     };
 
-    class PublishSemanticHighlightingArgs {
+    class PublishSemanticHighlightArgs {
       readonly uri: string;
       readonly symbols: SemanticSymbol[];
     }
@@ -848,8 +848,8 @@ export function activate(context: ExtensionContext) {
 
     languageClient.onReady().then(() => {
       languageClient.onNotification(
-          '$ccls/publishSemanticHighlighting',
-          (args: PublishSemanticHighlightingArgs) => {
+          '$ccls/publishSemanticHighlight',
+          (args: PublishSemanticHighlightArgs) => {
             updateConfigValues();
 
             for (let visibleEditor of window.visibleTextEditors) {
