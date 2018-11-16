@@ -323,7 +323,15 @@ export function activate(context: ExtensionContext) {
           .then((lenses: Array<any>) => {
             return lenses.map(lense => {
               let command  = lense.command;
-              command.arguments = [ command.arguments.uri, command.arguments.position, command.arguments.locations ]
+              if (command.command == 'ccls.xref') {
+                // Change to a custom command which will fetch and then show the results
+                command.command = 'ccls.showXrefs';
+                command.arguments = [
+                  uri,
+                  lense.range.start,
+                  command.arguments,
+                ];
+              }
               return p2c.asCodeLens(lense);
             });
           });
@@ -422,11 +430,24 @@ export function activate(context: ExtensionContext) {
             })
       }
     }
+
+    function showXrefsHandler(...args) {
+      let [uri, position, xrefArgs] = args;
+      commands.executeCommand('ccls.xref', ...xrefArgs)
+        .then(
+          (locations: ls.Location[]) =>
+            commands.executeCommand(
+              'editor.action.showReferences',
+              uri, p2c.asPosition(position),
+              locations.map(p2c.asLocation)));
+    }
+
     commands.registerCommand('ccls.vars', makeRefHandler('$ccls/vars'));
     commands.registerCommand('ccls.call', makeRefHandler('$ccls/call'));
     commands.registerCommand('ccls.member', makeRefHandler('$ccls/member'));
     commands.registerCommand(
       'ccls.base', makeRefHandler('$ccls/inheritance', {derived: false}, true));
+    commands.registerCommand('ccls.showXrefs', showXrefsHandler);
   })();
 
   // The language client does not correctly deserialize arguments, so we have a
