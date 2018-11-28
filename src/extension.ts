@@ -1,13 +1,43 @@
-import * as path from 'path';
-import {CodeLens, commands, DecorationOptions, DecorationRangeBehavior, DecorationRenderOptions, ExtensionContext, OverviewRulerLane, Position, Progress, ProgressLocation, ProviderResult, QuickPickItem, Range, StatusBarAlignment, TextDocument, TextEditor, TextEditorDecorationType, ThemeColor, Uri, window, workspace} from 'vscode';
-import {Message} from 'vscode-jsonrpc';
-import {CancellationToken, LanguageClient, LanguageClientOptions, Middleware, ProvideCodeLensesSignature, RevealOutputChannelOn, ServerOptions} from 'vscode-languageclient/lib/main';
-import * as ls from 'vscode-languageserver-types';
+import * as path from "path";
+import {
+    CodeLens,
+    commands,
+    DecorationOptions,
+    DecorationRangeBehavior,
+    DecorationRenderOptions,
+    ExtensionContext,
+    OverviewRulerLane,
+    Position,
+    Progress,
+    ProgressLocation,
+    ProviderResult,
+    QuickPickItem,
+    Range,
+    StatusBarAlignment,
+    TextDocument,
+    TextEditor,
+    TextEditorDecorationType,
+    ThemeColor,
+    Uri,
+    window,
+    workspace
+} from "vscode";
+import { Message } from "vscode-jsonrpc";
+import {
+    CancellationToken,
+    LanguageClient,
+    LanguageClientOptions,
+    Middleware,
+    ProvideCodeLensesSignature,
+    RevealOutputChannelOn,
+    ServerOptions
+} from "vscode-languageclient/lib/main";
+import * as ls from "vscode-languageserver-types";
 
-import {CallHierarchyNode, CallHierarchyProvider} from './callHierarchy';
-import {cclsErrorHandler} from './cclsErrorHandler';
-import {InheritanceHierarchyNode, InheritanceHierarchyProvider} from './inheritanceHierarchy';
-import {jumpToUriAtPosition} from './vscodeUtils';
+import { CallHierarchyNode, CallHierarchyProvider } from "./callHierarchy";
+import { CclsErrorHandler } from "./cclsErrorHandler";
+import { InheritanceHierarchyNode, InheritanceHierarchyProvider } from "./inheritanceHierarchy";
+import { jumpToUriAtPosition } from "./vscodeUtils";
 
 type Nullable<T> = T|null;
 
@@ -19,8 +49,8 @@ function normalizeUri(u: string): string {
   return parseUri(u).toString();
 }
 
-function setContext(name, value) {
-  commands.executeCommand('setContext', name, value);
+function setContext(name: string, value: any): void {
+  commands.executeCommand("setContext", name, value);
 }
 
 enum SymbolKind {
@@ -84,7 +114,7 @@ function getClientConfig(context: ExtensionContext) {
   const kCacheDirPrefName = 'cacheDirectory';
 
   function hasAnySemanticHighlight() {
-    let options = [
+    const options = [
       'ccls.highlighting.enabled.types',
       'ccls.highlighting.enabled.freeStandingFunctions',
       'ccls.highlighting.enabled.memberFunctions',
@@ -100,9 +130,9 @@ function getClientConfig(context: ExtensionContext) {
       'ccls.highlighting.enabled.templateParameters',
       'ccls.highlighting.enabled.staticMemberVariables',
       'ccls.highlighting.enabled.globalVariables'];
-    let config = workspace.getConfiguration();
-    for (let name of options) {
-      if (config.get(name, false))
+    const wsconfig = workspace.getConfiguration();
+    for (const name of options) {
+      if (wsconfig.get(name, false))
         return true;
     }
     return false;
@@ -113,21 +143,21 @@ function getClientConfig(context: ExtensionContext) {
   }
 
   function resloveVariablesInArray(value: any[]) {
-    return value.map(v => resolveVariables(v));
+    return value.map((v) => resolveVariables(v));
   }
 
   function resolveVariables(value: any) {
-    if (typeof(value) == 'string') {
+    if (typeof(value) === 'string') {
       return resolveVariablesInString(value);
     }
     if (Array.isArray(value)) {
         return resloveVariablesInArray(value);
     }
-    return value
+    return value;
   }
 
   // Read prefs; this map goes from `ccls/js name` => `vscode prefs name`.
-  const configMapping = [
+  const configMapping: Array<[string, string]> = [
     ['launchCommand', 'launch.command'],
     ['launchArgs', 'launch.args'],
     ['cacheDirectory', kCacheDirPrefName],
@@ -167,24 +197,25 @@ function getClientConfig(context: ExtensionContext) {
     ['workspaceSymbol.caseSensitivity', 'workspaceSymbol.caseSensitivity'],
   ];
   const castBooleanToInteger = [];
-  let clientConfig = {
-    launchCommand: '',
+  const clientConfig = {
     cacheDirectory: '.ccls-cache',
     highlight: {
-      lsRanges: true,
       enabled: hasAnySemanticHighlight(),
+      lsRanges: true,
     },
+    launchArgs: [] as string[],
+    launchCommand: '',
     workspaceSymbol: {
       sort: false,
     },
   };
-  let config = workspace.getConfiguration('ccls');
-  for (let prop of configMapping) {
+  const config = workspace.getConfiguration('ccls');
+  for (const prop of configMapping) {
     let value = config.get(prop[1]);
     if (value != null) {
-      let subprops = prop[0].split('.');
+      const subprops = prop[0].split('.');
       let subconfig = clientConfig;
-      for (let subprop of subprops.slice(0, subprops.length - 1)) {
+      for (const subprop of subprops.slice(0, subprops.length - 1)) {
         if (!subconfig.hasOwnProperty(subprop)) {
           subconfig[subprop] = {};
         }
@@ -200,35 +231,33 @@ function getClientConfig(context: ExtensionContext) {
   return clientConfig;
 }
 
-
-
 export function activate(context: ExtensionContext) {
   /////////////////////////////////////
   // Setup configuration, start server.
   /////////////////////////////////////
 
   // Load configuration and start the client.
-  let getLanguageClient = (() => {
-    let clientConfig = getClientConfig(context);
+  const getLanguageClient = (() => {
+    const clientConfig = getClientConfig(context);
     if (!clientConfig)
       return;
     // Notify the user that if they change a ccls setting they need to restart
     // vscode.
     context.subscriptions.push(workspace.onDidChangeConfiguration(() => {
-      let newConfig = getClientConfig(context);
-      for (let key in newConfig) {
+      const newConfig = getClientConfig(context);
+      for (const key in newConfig) {
         if (!newConfig.hasOwnProperty(key))
           continue;
 
         if (!clientConfig ||
-            JSON.stringify(clientConfig[key]) !=
+            JSON.stringify(clientConfig[key]) !==
                 JSON.stringify(newConfig[key])) {
-          const kReload = 'Reload'
+          const kReload = 'Reload';
           const message = `Please reload to apply the "ccls.${
               key}" configuration change.`;
 
-          window.showInformationMessage(message, kReload).then(selected => {
-            if (selected == kReload)
+          window.showInformationMessage(message, kReload).then((selected) => {
+            if (selected === kReload)
               commands.executeCommand('workbench.action.reloadWindow');
           });
           break;
@@ -236,47 +265,46 @@ export function activate(context: ExtensionContext) {
       }
     }));
 
-    let args = clientConfig['launchArgs'];
+    const args = clientConfig.launchArgs;
 
-    let env: any = {};
-    let kToForward = [
+    const env: any = {};
+    const kToForward = [
       'ProgramData',
       'PATH',
       'CPATH',
       'LIBRARY_PATH',
     ];
-    for (let e of kToForward)
+    for (const e of kToForward)
       env[e] = process.env[e];
 
-    let serverOptions: ServerOptions = {
+    const serverOptions: ServerOptions = {
+      args,
       command: clientConfig.launchCommand,
-      args: args,
-      options: {env: env}
+      options: { env }
     };
     console.log(
         `Starting ${serverOptions.command} in ${serverOptions.options.cwd}`);
 
-
     // Inline code lens.
-    let decorationOpts: DecorationRenderOptions = {
+    const decorationOpts: DecorationRenderOptions = {
       after: {
-        fontStyle: 'italic',
         color: new ThemeColor('editorCodeLens.foreground'),
+        fontStyle: 'italic',
       },
       rangeBehavior: DecorationRangeBehavior.ClosedClosed,
     };
 
-    let codeLensDecoration = window.createTextEditorDecorationType(
+    const codeLensDecoration = window.createTextEditorDecorationType(
       decorationOpts);
 
     function displayCodeLens(document: TextDocument, allCodeLens: CodeLens[]) {
-      for (let editor of window.visibleTextEditors) {
-        if (editor.document != document)
+      for (const editor of window.visibleTextEditors) {
+        if (editor.document !== document)
           continue;
 
-        let opts: DecorationOptions[] = [];
+        const opts: DecorationOptions[] = [];
 
-        for (let codeLens of allCodeLens) {
+        for (const codeLens of allCodeLens) {
           // FIXME: show a real warning or disable on-the-side code lens.
           if (!codeLens.isResolved)
             console.error('Code lens is not resolved');
@@ -286,12 +314,12 @@ export function activate(context: ExtensionContext) {
 
           // If multiline push to the end of the first line - works better for
           // functions.
-          if (codeLens.range.start.line != codeLens.range.end.line)
+          if (codeLens.range.start.line !== codeLens.range.end.line)
             position = new Position(codeLens.range.start.line, 1000000);
 
-          let range = new Range(position, position);
-          let opt: DecorationOptions = {
-            range: range,
+          const range = new Range(position, position);
+          const opt: DecorationOptions = {
+            range,
             renderOptions:
                 {after: {contentText: ' ' + codeLens.command.title + ' '}}
           };
@@ -306,30 +334,30 @@ export function activate(context: ExtensionContext) {
     function provideCodeLens(
         document: TextDocument, token: CancellationToken,
         next: ProvideCodeLensesSignature): ProviderResult<CodeLens[]> {
-      let enableCodeLens = workspace.getConfiguration().get('editor.codeLens');
+      const enableCodeLens = workspace.getConfiguration().get('editor.codeLens');
       if (!enableCodeLens) return;
-      let config = workspace.getConfiguration('ccls');
-      let enableInlineCodeLens = config.get('codeLens.renderInline', false);
+      const config = workspace.getConfiguration('ccls');
+      const enableInlineCodeLens = config.get('codeLens.renderInline', false);
       if (!enableInlineCodeLens) {
-        let uri = document.uri;
-        let position = document.positionAt(0);
-        return languageClient
+        const uri = document.uri;
+        const position = document.positionAt(0);
+        return langClient
           .sendRequest<Array<any>>('textDocument/codeLens', {
+            position,
             textDocument: {
               uri: uri.toString(),
             },
-            position: position
           })
           .then((lenses: Array<any>) => {
-            return lenses.map(lense => {
-              let command  = lense.command;
-              if (command.command == 'ccls.xref') {
+            return lenses.map((lense) => {
+              const cmd  = lense.command;
+              if (cmd.command === 'ccls.xref') {
                 // Change to a custom command which will fetch and then show the results
-                command.command = 'ccls.showXrefs';
-                command.arguments = [
+                cmd.command = 'ccls.showXrefs';
+                cmd.arguments = [
                   uri,
                   lense.range.start,
-                  command.arguments,
+                  cmd.arguments,
                 ];
               }
               return p2c.asCodeLens(lense);
@@ -338,55 +366,54 @@ export function activate(context: ExtensionContext) {
       }
 
       // We run the codeLens request ourselves so we can intercept the response.
-      return languageClient
+      return langClient
           .sendRequest('textDocument/codeLens', {
             textDocument: {
               uri: document.uri.toString(),
             },
           })
           .then((a: ls.CodeLens[]): CodeLens[] => {
-            let result: CodeLens[] =
-                languageClient.protocol2CodeConverter.asCodeLenses(a);
+            const result: CodeLens[] =
+                langClient.protocol2CodeConverter.asCodeLenses(a);
             displayCodeLens(document, result);
             return [];
           });
-    };
+    }
 
     // Options to control the language client
-    let clientOptions: LanguageClientOptions = {
+    const clientOptions: LanguageClientOptions = {
+      diagnosticCollectionName: 'ccls',
       documentSelector: ['c', 'cpp', 'objective-c', 'objective-cpp'],
       // synchronize: {
       // 	configurationSection: 'ccls',
       // 	fileEvents: workspace.createFileSystemWatcher('**/.cc')
       // },
-      diagnosticCollectionName: 'ccls',
-      outputChannelName: 'ccls',
-      revealOutputChannelOn: RevealOutputChannelOn.Never,
-      initializationOptions: clientConfig,
-      middleware: {provideCodeLenses: provideCodeLens},
+      errorHandler: new CclsErrorHandler(workspace.getConfiguration('ccls')),
       initializationFailedHandler: (e) => {
         console.log(e);
         return false;
       },
-      errorHandler: new cclsErrorHandler(workspace.getConfiguration('ccls'))
-    }
+      initializationOptions: clientConfig,
+      middleware: {provideCodeLenses: provideCodeLens},
+      outputChannelName: 'ccls',
+      revealOutputChannelOn: RevealOutputChannelOn.Never,
+    };
 
     // Create the language client and start the client.
-    let languageClient =
+    const langClient =
         new LanguageClient('ccls', 'ccls', serverOptions, clientOptions);
-    let command = serverOptions.command;
-    languageClient.onReady().catch(e => {
-      window.showErrorMessage(
-          `Failed to start ccls with command "${command}".`);
+    const command = serverOptions.command;
+    langClient.onReady().catch((e) => {
+      window.showErrorMessage(`Failed to start ccls with command "${command}".`);
     });
-    context.subscriptions.push(languageClient.start());
+    context.subscriptions.push(langClient.start());
 
-    return languageClient;
+    return langClient;
   });
 
   let languageClient = getLanguageClient();
 
-  let p2c = languageClient.protocol2CodeConverter;
+  const p2c = languageClient.protocol2CodeConverter;
 
   // General commands.
   (() => {
@@ -406,20 +433,20 @@ export function activate(context: ExtensionContext) {
         userParams: a dict defined as `args` in keybindings.json (or passed by other extensions like VSCodeVIM)
         Values defined by user have higher priority than `extraParams`
         */
-        let position = window.activeTextEditor.selection.active;
-        let uri = window.activeTextEditor.document.uri;
+        const position = window.activeTextEditor.selection.active;
+        const uri = window.activeTextEditor.document.uri;
         languageClient
           .sendRequest<Array<ls.Location>>(methodName, {
+              position,
               textDocument: {
                 uri: uri.toString(),
               },
-              position: position,
               ...extraParams,
               ...userParams
             })
             .then((locations: Array<ls.Location>) => {
-              if (autoGotoIfSingle && locations.length == 1) {
-                let location = p2c.asLocation(locations[0]);
+              if (autoGotoIfSingle && locations.length === 1) {
+                const location = p2c.asLocation(locations[0]);
                 commands.executeCommand(
                     'ccls.goto', location.uri, location.range.start, []);
               } else {
@@ -427,12 +454,12 @@ export function activate(context: ExtensionContext) {
                     'editor.action.showReferences', uri, position,
                     locations.map(p2c.asLocation));
               }
-            })
-      }
+            });
+      };
     }
 
     function showXrefsHandler(...args) {
-      let [uri, position, xrefArgs] = args;
+      const [uri, position, xrefArgs] = args;
       commands.executeCommand('ccls.xref', ...xrefArgs)
         .then(
           (locations: ls.Location[]) =>
@@ -472,36 +499,39 @@ export function activate(context: ExtensionContext) {
 
   // FixIt support
   (() => {
-    commands.registerCommand('ccls._applyFixIt', (uri, pTextEdits) => {
+    commands.registerCommand("ccls._applyFixIt", (uri, pTextEdits) => {
       const textEdits = p2c.asTextEdits(pTextEdits);
 
       function applyEdits(e: TextEditor) {
-        e.edit(editBuilder => {
-           for (const edit of textEdits)
-             editBuilder.replace(edit.range, edit.newText);
-         }).then(success => {
-          if (!success)
-            window.showErrorMessage('Failed to apply FixIt');
+        e.edit((editBuilder) => {
+          for (const edit of textEdits) {
+            editBuilder.replace(edit.range, edit.newText);
+          }
+        }).then((success) => {
+          if (!success) {
+            window.showErrorMessage("Failed to apply FixIt");
+          }
         });
       }
 
       // Find existing open document.
       for (const textEditor of window.visibleTextEditors) {
-        if (textEditor.document.uri.toString() == normalizeUri(uri)) {
+        if (textEditor.document.uri.toString() === normalizeUri(uri)) {
           applyEdits(textEditor);
           return;
         }
       }
 
       // Failed, open new document.
-      workspace.openTextDocument(parseUri(uri))
-          .then(d => {window.showTextDocument(d).then(e => {
-                  if (!e)
-                    window.showErrorMessage(
-                        'Failed to to get editor for FixIt');
+      workspace.openTextDocument(parseUri(uri)).then((d) => {
+        window.showTextDocument(d).then((e?: TextEditor) => {
+          if (!e) {
+            window.showErrorMessage("Failed to to get editor for FixIt");
+          }
 
-                  applyEdits(e);
-                })});
+          applyEdits(e);
+        });
+      });
     });
   })();
 
@@ -519,16 +549,16 @@ export function activate(context: ExtensionContext) {
   // Insert include.
   (() => {
     commands.registerCommand('ccls._insertInclude', (uri, pTextEdits) => {
-      if (pTextEdits.length == 1)
+      if (pTextEdits.length === 1)
         commands.executeCommand('ccls._applyFixIt', uri, pTextEdits);
       else {
-        let items: Array<QuickPickItem> = [];
+        const items: Array<QuickPickItem> = [];
         class MyQuickPick implements QuickPickItem {
           constructor(
               public label: string, public description: string,
               public edit: any) {}
         }
-        for (let edit of pTextEdits) {
+        for (const edit of pTextEdits) {
           items.push(new MyQuickPick(edit.newText, '', edit));
         }
         window.showQuickPick(items).then((selected: MyQuickPick) => {
@@ -540,41 +570,39 @@ export function activate(context: ExtensionContext) {
 
   // Inactive regions.
   (() => {
-    let config = workspace.getConfiguration('ccls');
+    const config = workspace.getConfiguration('ccls');
     if (!config.get('misc.showInactiveRegions')) return;
     const decorationType = window.createTextEditorDecorationType({
+      dark: {
+        backgroundColor: config.get('theme.dark.skippedRange.backgroundColor'),
+        color: config.get('theme.dark.skippedRange.textColor'),
+      },
       isWholeLine: true,
       light: {
+        backgroundColor: config.get('theme.light.skippedRange.backgroundColor'),
         color: config.get('theme.light.skippedRange.textColor'),
-        backgroundColor:
-            config.get('theme.light.skippedRange.backgroundColor'),
-      },
-      dark: {
-        color: config.get('theme.dark.skippedRange.textColor'),
-        backgroundColor:
-            config.get('theme.dark.skippedRange.backgroundColor'),
       },
       rangeBehavior: DecorationRangeBehavior.ClosedClosed
     });
 
-    let skippedRanges = new Map<string, Range[]>();
+    const skippedRanges = new Map<string, Range[]>();
 
     languageClient.onReady().then(() => {
-      languageClient.onNotification('$ccls/publishSkippedRanges', (args) => {
-        let uri = normalizeUri(args.uri);
+      languageClient.onNotification("$ccls/publishSkippedRanges", (args) => {
+        const uri = normalizeUri(args.uri);
         let ranges: Range[] = args.skippedRanges.map(p2c.asRange);
         ranges = ranges.map((range) => {
           if (range.isEmpty || range.isSingleLine) return range;
-          return range.with({end: range.end.translate(-1, 23333)});
+          return range.with({ end: range.end.translate(-1, 23333) });
         });
         skippedRanges.set(uri, ranges);
         window.visibleTextEditors
-          .filter(editor => editor.document.uri.toString() == uri)
-          .forEach(editor => editor.setDecorations(decorationType, ranges));
+          .filter((editor) => editor.document.uri.toString() === uri)
+          .forEach((editor) => editor.setDecorations(decorationType, ranges));
       });
     });
 
-    window.onDidChangeActiveTextEditor(editor => {
+    window.onDidChangeActiveTextEditor((editor) => {
       const uri = editor.document.uri.toString();
       if (skippedRanges.has(uri)) {
         editor.setDecorations(decorationType, skippedRanges.get(uri));
@@ -582,9 +610,9 @@ export function activate(context: ExtensionContext) {
     });
 
     // This only got called during dispose, which perfectly matches our goal.
-    workspace.onDidCloseTextDocument(document => {
+    workspace.onDidCloseTextDocument((document) => {
       skippedRanges.delete(document.uri.toString());
-    })
+    });
   })();
 
   // Inheritance hierarchy.
@@ -597,34 +625,34 @@ export function activate(context: ExtensionContext) {
         'ccls.inheritanceHierarchy', (editor) => {
           setContext('extension.ccls.inheritanceHierarchyVisible', true);
 
-          let position = editor.selection.active;
-          let uri = editor.document.uri;
+          const position = editor.selection.active;
+          const uri = editor.document.uri;
           languageClient
               .sendRequest('$ccls/inheritance', {
+                derived: true,
+                hierarchy: true,
+                levels: 1,
+                position,
+                qualified: false,
                 textDocument: {
                   uri: uri.toString(),
                 },
-                position: position,
-                derived: true,
-                qualified: false,
-                levels: 1,
-                hierarchy: true,
               })
               .then((entry: InheritanceHierarchyNode) => {
                 InheritanceHierarchyNode.setWantsDerived(entry, true);
 
                 languageClient
                     .sendRequest('$ccls/inheritance', {
+                      derived: false,
+                      hierarchy: true,
                       id: entry.id,
                       kind: entry.kind,
-                      derived: false,
-                      qualified: false,
                       levels: 1,
-                      hierarchy: true,
+                      qualified: false,
                     })
                     .then((parentEntry: InheritanceHierarchyNode) => {
                       if (parentEntry.numChildren > 0) {
-                        let parentWrapper = new InheritanceHierarchyNode();
+                        const parentWrapper = new InheritanceHierarchyNode();
                         parentWrapper.children = parentEntry.children;
                         parentWrapper.numChildren = parentEntry.children.length;
                         parentWrapper.name = '[[Base]]';
@@ -637,7 +665,7 @@ export function activate(context: ExtensionContext) {
                       inheritanceHierarchyProvider.root = entry;
                       inheritanceHierarchyProvider.onDidChangeEmitter.fire();
                     });
-              })
+              });
         });
     commands.registerCommand('ccls.closeInheritanceHierarchy', () => {
       setContext('extension.ccls.inheritanceHierarchyVisible', false);
@@ -648,33 +676,28 @@ export function activate(context: ExtensionContext) {
 
   // Call Hierarchy
   (() => {
-    let derivedDark =
-        context.asAbsolutePath(path.join('resources', 'derived-dark.svg'));
-    let derivedLight =
-        context.asAbsolutePath(path.join('resources', 'derived-light.svg'));
-    let baseDark =
-        context.asAbsolutePath(path.join('resources', 'base-dark.svg'));
-    let baseLight =
-        context.asAbsolutePath(path.join('resources', 'base-light.svg'));
+    const derivedDark = context.asAbsolutePath(path.join('resources', 'derived-dark.svg'));
+    const derivedLight = context.asAbsolutePath(path.join('resources', 'derived-light.svg'));
+    const baseDark = context.asAbsolutePath(path.join('resources', 'base-dark.svg'));
+    const baseLight = context.asAbsolutePath(path.join('resources', 'base-light.svg'));
     const callHierarchyProvider = new CallHierarchyProvider(
         languageClient, derivedDark, derivedLight, baseDark, baseLight);
-    window.registerTreeDataProvider(
-        'ccls.callHierarchy', callHierarchyProvider);
+    window.registerTreeDataProvider('ccls.callHierarchy', callHierarchyProvider);
     commands.registerTextEditorCommand('ccls.callHierarchy', (editor) => {
       setContext('extension.ccls.callHierarchyVisible', true);
-      let position = editor.selection.active;
-      let uri = editor.document.uri;
+      const position = editor.selection.active;
+      const uri = editor.document.uri;
       languageClient
           .sendRequest('$ccls/call', {
+            callType: 0x1 | 0x2,
+            callee: false,
+            hierarchy: true,
+            levels: 2,
+            position,
+            qualified: false,
             textDocument: {
               uri: uri.toString(),
             },
-            position: position,
-            callee: false,
-            callType: 0x1 | 0x2,
-            qualified: false,
-            levels: 2,
-            hierarchy: true,
           })
           .then((callNode: CallHierarchyNode) => {
             callHierarchyProvider.root = callNode;
@@ -696,14 +719,14 @@ export function activate(context: ExtensionContext) {
           if (!node.location)
             return;
 
-          let parsedUri = parseUri(node.location.uri);
-          let parsedPosition = p2c.asPosition(node.location.range.start);
+          const parsedUri = parseUri(node.location.uri);
+          const parsedPosition = p2c.asPosition(node.location.range.start);
 
-          jumpToUriAtPosition(parsedUri, parsedPosition, true /*preserveFocus*/)
+          jumpToUriAtPosition(parsedUri, parsedPosition, true /*preserveFocus*/);
         });
 
-    let lastGotoNodeId: any
-    let lastGotoClickTime: number
+    let lastGotoNodeId: any;
+    let lastGotoClickTime: number;
     commands.registerCommand(
         'ccls.hackGotoForTreeView',
         (node: InheritanceHierarchyNode|CallHierarchyNode,
@@ -716,13 +739,13 @@ export function activate(context: ExtensionContext) {
             return;
           }
 
-          if (lastGotoNodeId != node.id) {
+          if (lastGotoNodeId !== node.id) {
             lastGotoNodeId = node.id;
             lastGotoClickTime = Date.now();
             return;
           }
 
-          let config = workspace.getConfiguration('ccls');
+          const config = workspace.getConfiguration('ccls');
           const kDoubleClickTimeMs =
               config.get('treeViews.doubleClickTimeoutMs');
           const elapsed = Date.now() - lastGotoClickTime;
@@ -740,30 +763,30 @@ export function activate(context: ExtensionContext) {
     function makeSemanticDecorationType(
         color: Nullable<string>, underline: boolean, italic: boolean,
         bold: boolean): TextEditorDecorationType {
-      let opts: any = {};
+      const opts: any = {};
       opts.rangeBehavior = DecorationRangeBehavior.ClosedClosed;
       opts.color = color;
-      if (underline == true)
+      if (underline === true)
         opts.textDecoration = 'underline';
-      if (italic == true)
+      if (italic === true)
         opts.fontStyle = 'italic';
-      if (bold == true)
+      if (bold === true)
         opts.fontWeight = 'bold';
       return window.createTextEditorDecorationType(
-          <DecorationRenderOptions>opts);
-    };
+          opts as DecorationRenderOptions);
+    }
 
     function makeDecorations(type: string) {
-      let config = workspace.getConfiguration('ccls');
-      let colors = config.get(`highlighting.colors.${type}`, []);
-      let u = config.get(`highlighting.underline.${type}`, false);
-      let i = config.get(`highlighting.italic.${type}`, false);
-      let b = config.get(`highlighting.bold.${type}`, false);
-      return colors.map(c => makeSemanticDecorationType(c, u, i, b));
-    };
-    let semanticDecorations = new Map<string, TextEditorDecorationType[]>();
-    let semanticEnabled = new Map<string, boolean>();
-    for (let type of
+      const config = workspace.getConfiguration('ccls');
+      const colors = config.get(`highlighting.colors.${type}`, []);
+      const u = config.get(`highlighting.underline.${type}`, false);
+      const i = config.get(`highlighting.italic.${type}`, false);
+      const b = config.get(`highlighting.bold.${type}`, false);
+      return colors.map((c) => makeSemanticDecorationType(c, u, i, b));
+    }
+    const semanticDecorations = new Map<string, TextEditorDecorationType[]>();
+    const semanticEnabled = new Map<string, boolean>();
+    for (const type of
              ['types', 'freeStandingFunctions', 'memberFunctions',
               'freeStandingVariables', 'memberVariables', 'namespaces',
               'macros', 'enums', 'typeAliases', 'enumConstants',
@@ -775,12 +798,12 @@ export function activate(context: ExtensionContext) {
 
     function updateConfigValues() {
       // Fetch new config instance, since vscode will cache the previous one.
-      let config = workspace.getConfiguration('ccls');
-      for (let [name, value] of semanticEnabled) {
+      const config = workspace.getConfiguration('ccls');
+      for (const [name, value] of semanticEnabled) {
         semanticEnabled.set(
             name, config.get(`highlighting.enabled.${name}`, false));
       }
-    };
+    }
     updateConfigValues();
 
     function tryFindDecoration(symbol: SemanticSymbol):
@@ -788,64 +811,63 @@ export function activate(context: ExtensionContext) {
       function get(name: string) {
         if (!semanticEnabled.get(name))
           return undefined;
-        let decorations = semanticDecorations.get(name);
+        const decorations = semanticDecorations.get(name);
         return decorations[symbol.id % decorations.length];
-      };
+      }
 
-      if (symbol.kind == SymbolKind.Class || symbol.kind == SymbolKind.Struct) {
+      if (symbol.kind === SymbolKind.Class || symbol.kind === SymbolKind.Struct) {
         return get('types');
-      } else if (symbol.kind == SymbolKind.Enum) {
+      } else if (symbol.kind === SymbolKind.Enum) {
         return get('enums');
-      } else if (symbol.kind == SymbolKind.TypeAlias) {
+      } else if (symbol.kind === SymbolKind.TypeAlias) {
         return get('typeAliases');
-      } else if (symbol.kind == SymbolKind.TypeParameter) {
+      } else if (symbol.kind === SymbolKind.TypeParameter) {
         return get('templateParameters');
-      } else if (symbol.kind == SymbolKind.Function) {
+      } else if (symbol.kind === SymbolKind.Function) {
         return get('freeStandingFunctions');
       } else if (
-          symbol.kind == SymbolKind.Method ||
-          symbol.kind == SymbolKind.Constructor) {
-        return get('memberFunctions')
-      } else if (symbol.kind == SymbolKind.StaticMethod) {
-        return get('staticMemberFunctions')
-      } else if (symbol.kind == SymbolKind.Variable) {
-        if (symbol.parentKind == SymbolKind.Function ||
-            symbol.parentKind == SymbolKind.Method ||
-            symbol.parentKind == SymbolKind.Constructor) {
+          symbol.kind === SymbolKind.Method ||
+          symbol.kind === SymbolKind.Constructor) {
+        return get('memberFunctions');
+      } else if (symbol.kind === SymbolKind.StaticMethod) {
+        return get('staticMemberFunctions');
+      } else if (symbol.kind === SymbolKind.Variable) {
+        if (symbol.parentKind === SymbolKind.Function ||
+            symbol.parentKind === SymbolKind.Method ||
+            symbol.parentKind === SymbolKind.Constructor) {
           return get('freeStandingVariables');
         }
         return get('globalVariables');
-      } else if (symbol.kind == SymbolKind.Field) {
-        if (symbol.storage == StorageClass.Static) {
+      } else if (symbol.kind === SymbolKind.Field) {
+        if (symbol.storage === StorageClass.Static) {
           return get('staticMemberVariables');
         }
         return get('memberVariables');
-      } else if (symbol.kind == SymbolKind.Parameter) {
+      } else if (symbol.kind === SymbolKind.Parameter) {
         return get('parameters');
-      } else if (symbol.kind == SymbolKind.EnumMember) {
+      } else if (symbol.kind === SymbolKind.EnumMember) {
         return get('enumConstants');
-      } else if (symbol.kind == SymbolKind.Namespace) {
+      } else if (symbol.kind === SymbolKind.Namespace) {
         return get('namespaces');
-      } else if (symbol.kind == SymbolKind.Macro) {
+      } else if (symbol.kind === SymbolKind.Macro) {
         return get('macros');
       }
-    };
+    }
 
     class PublishSemanticHighlightArgs {
       readonly uri: string;
       readonly symbols: SemanticSymbol[];
     }
 
-
-    let cachedDecorations = new Map<string, Map<TextEditorDecorationType, Array<Range>>>();
+    const cachedDecorations = new Map<string, Map<TextEditorDecorationType, Array<Range>>>();
 
     function updateDecoration(editor: TextEditor) {
-      let uri = editor.document.uri.toString();
+      const uri = editor.document.uri.toString();
       if (cachedDecorations.has(uri)) {
-        let cachedDecoration = cachedDecorations.get(uri);
+        const cachedDecoration = cachedDecorations.get(uri);
         // Clear decorations and set new ones. We might not use all of the
         // decorations so clear before setting.
-        for (let [_, decorations] of semanticDecorations) {
+        for (const [_, decorations] of semanticDecorations) {
           decorations.forEach((type) => {
             editor.setDecorations(type, []);
           });
@@ -858,7 +880,7 @@ export function activate(context: ExtensionContext) {
     }
 
     window.onDidChangeActiveTextEditor(
-      editor => {
+      (editor) => {
         if (editor) {
           updateDecoration(editor);
         }
@@ -873,20 +895,19 @@ export function activate(context: ExtensionContext) {
           (args: PublishSemanticHighlightArgs) => {
             updateConfigValues();
 
-            for (let visibleEditor of window.visibleTextEditors) {
-              if (normalizeUri(args.uri) != visibleEditor.document.uri.toString())
+            for (const visibleEditor of window.visibleTextEditors) {
+              if (normalizeUri(args.uri) !== visibleEditor.document.uri.toString())
                 continue;
 
-              let decorations =
-                  new Map<TextEditorDecorationType, Array<Range>>();
+              const decorations = new Map<TextEditorDecorationType, Array<Range>>();
 
-              for (let symbol of args.symbols) {
-                let type = tryFindDecoration(symbol);
+              for (const symbol of args.symbols) {
+                const type = tryFindDecoration(symbol);
                 if (!type)
                   continue;
                 if (decorations.has(type)) {
-                  let existing = decorations.get(type);
-                  for (let range of symbol.lsRanges)
+                  const existing = decorations.get(type);
+                  for (const range of symbol.lsRanges)
                     existing.push(range);
                 } else {
                   decorations.set(type, symbol.lsRanges);
@@ -904,26 +925,26 @@ export function activate(context: ExtensionContext) {
   (() => {
     function makeNavigateHandler(methodName) {
       return (userParams) => {
-        let position = window.activeTextEditor.selection.active;
-        let uri = window.activeTextEditor.document.uri;
+        const position = window.activeTextEditor.selection.active;
+        const uri = window.activeTextEditor.document.uri;
         languageClient
           .sendRequest<Array<ls.Location>>(methodName, {
+              position,
               textDocument: {
                 uri: uri.toString(),
               },
-              position: position,
               ...userParams
             })
             .then((locations: Array<ls.Location>) => {
-              if (locations.length == 1){
-                let location = p2c.asLocation(locations[0]);
+              if (locations.length === 1) {
+                const location = p2c.asLocation(locations[0]);
                 jumpToUriAtPosition(
                     location.uri, location.range.start,
                     false /*preserveFocus*/);
               }
-            })
-      }
+            });
+      };
     }
-    commands.registerCommand('ccls.navigate', makeNavigateHandler('$ccls/navigate'))
+    commands.registerCommand('ccls.navigate', makeNavigateHandler('$ccls/navigate'));
   })();
 }
