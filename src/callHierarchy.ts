@@ -1,7 +1,7 @@
 import { Event, EventEmitter, TreeDataProvider, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { LanguageClient } from 'vscode-languageclient/lib/main';
-import { parseUri } from './extension';
 import * as ls from 'vscode-languageserver-types';
+import { parseUri } from './extension';
 
 enum CallType {
   Normal = 0,
@@ -11,30 +11,29 @@ enum CallType {
 }
 export class CallHierarchyNode {
   // These properties come directly from the language server.
-  id: any
-  name: string
-  location: ls.Location
-  callType: CallType
+  id: any;
+  name: string;
+  location: ls.Location;
+  callType: CallType;
 
   // If |numChildren| != |children.length|, then the node has not been expanded
   // and is incomplete - we need to send a new request to expand it.
-  numChildren: number
-  children: CallHierarchyNode[]
+  numChildren: number;
+  children: CallHierarchyNode[];
 }
 
 export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode> {
   root: CallHierarchyNode;
+  readonly onDidChangeEmitter: EventEmitter<any> = new EventEmitter<any>();
+  readonly onDidChangeTreeData: Event<any> = this.onDidChangeEmitter.event;
 
   constructor(
     readonly languageClient: LanguageClient, readonly derivedDark: string,
     readonly derivedLight: string, readonly baseDark: string,
     readonly baseLight: string) { }
 
-  readonly onDidChangeEmitter: EventEmitter<any> = new EventEmitter<any>();
-  readonly onDidChangeTreeData: Event<any> = this.onDidChangeEmitter.event;
-
   getTreeItem(element: CallHierarchyNode): TreeItem {
-    let collapseState = TreeItemCollapsibleState.None
+    let collapseState = TreeItemCollapsibleState.None;
     if (element.numChildren > 0) {
       if (element.children.length > 0)
         collapseState = TreeItemCollapsibleState.Expanded;
@@ -44,31 +43,31 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
 
     let light = '';
     let dark = '';
-    if (element.callType == CallType.Base) {
+    if (element.callType === CallType.Base) {
       light = this.baseLight;
       dark = this.baseDark;
-    } else if (element.callType == CallType.Derived) {
+    } else if (element.callType === CallType.Derived) {
       light = this.derivedLight;
       dark = this.derivedDark;
     }
 
     let label = element.name;
     if (element.location) {
-      let path = parseUri(element.location.uri).path;
-      let name = path.substr(path.lastIndexOf('/') + 1);
+      const path = parseUri(element.location.uri).path;
+      const name = path.substr(path.lastIndexOf('/') + 1);
       label += ` (${name}:${element.location.range.start.line + 1})`;
     }
 
     return {
-      label: label,
       collapsibleState: collapseState,
-      contextValue: 'cclsGoto',
       command: {
+        arguments: [element, element.numChildren > 0],
         command: 'ccls.hackGotoForTreeView',
         title: 'Goto',
-        arguments: [element, element.numChildren > 0]
       },
-      iconPath: { light: light, dark: dark }
+      contextValue: 'cclsGoto',
+      iconPath: { light, dark },
+      label,
     };
   }
 
@@ -77,17 +76,17 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
       return [];
     if (!element)
       return [this.root];
-    if (element.numChildren == element.children.length)
+    if (element.numChildren === element.children.length)
       return element.children;
 
     return this.languageClient
       .sendRequest('$ccls/call', {
-        id: element.id,
-        callee: false,
         callType: CallType.All,
-        qualified: false,
-        levels: 1,
+        callee: false,
         hierarchy: true,
+        id: element.id,
+        levels: 1,
+        qualified: false,
       })
       .then((result: CallHierarchyNode) => {
         element.children = result.children;

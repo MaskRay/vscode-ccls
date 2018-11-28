@@ -1,0 +1,14 @@
+{
+	"extends": "tslint:recommended",
+	"rules": {
+		"quotemark": false,
+		"trailing-comma": false,
+		"array-type": false,
+		"curly": false,
+		"member-access": false,
+		"max-classes-per-file": false,
+		"no-bitwise": false,
+		"no-console": false,
+		"variable-name": false
+	}
+}
