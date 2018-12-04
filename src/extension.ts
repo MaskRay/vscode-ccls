@@ -36,6 +36,7 @@ import * as ls from "vscode-languageserver-types";
 
 import { CallHierarchyNode, CallHierarchyProvider } from "./callHierarchy";
 import { CclsErrorHandler } from "./cclsErrorHandler";
+import { DataFlowHierarchyNode, DataFlowHierarchyProvider } from "./dataFlowHierarchy";
 import { InheritanceHierarchyNode, InheritanceHierarchyProvider } from "./inheritanceHierarchy";
 import { jumpToUriAtPosition } from "./vscodeUtils";
 
@@ -711,6 +712,36 @@ export function activate(context: ExtensionContext) {
     });
   })();
 
+  // DataFlow Hierarchy
+  (() => {
+    const baseDark = context.asAbsolutePath(path.join('resources', 'base-dark.svg'));
+    const baseLight = context.asAbsolutePath(path.join('resources', 'base-light.svg'));
+    const dataFlowHierarchyProvider = new DataFlowHierarchyProvider(
+        languageClient, baseDark, baseLight);
+    window.registerTreeDataProvider('ccls.dataFlowInto', dataFlowHierarchyProvider);
+    commands.registerTextEditorCommand('ccls.dataFlowInto', (editor) => {
+      setContext('extension.ccls.dataFlowHierarchyVisible', true);
+      const position = editor.selection.active;
+      const uri = editor.document.uri;
+      languageClient
+          .sendRequest('$ccls/dataFlowInto', {
+            position,
+            textDocument: {
+              uri: uri.toString(),
+            },
+          })
+          .then((callNode: DataFlowHierarchyNode) => {
+            dataFlowHierarchyProvider.root = callNode;
+            dataFlowHierarchyProvider.onDidChangeEmitter.fire();
+          });
+    });
+    commands.registerCommand('ccls.closeDataFlowHierarchy', (e) => {
+      setContext('extension.ccls.dataFlowHierarchyVisible', false);
+      dataFlowHierarchyProvider.root = undefined;
+      dataFlowHierarchyProvider.onDidChangeEmitter.fire();
+    });
+  })();
+
   // Common between tree views.
   (() => {
     commands.registerCommand(
@@ -729,7 +760,7 @@ export function activate(context: ExtensionContext) {
     let lastGotoClickTime: number;
     commands.registerCommand(
         'ccls.hackGotoForTreeView',
-        (node: InheritanceHierarchyNode|CallHierarchyNode,
+        (node: InheritanceHierarchyNode|CallHierarchyNode|DataFlowHierarchyNode,
          hasChildren: boolean) => {
           if (!node.location)
             return;
