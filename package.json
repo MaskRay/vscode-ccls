@@ -3,7 +3,7 @@
   "description": "C/C++/ObjC language server supporting cross references, hierarchies, completion and semantic highlighting",
   "author": "ccls-project",
   "license": "MIT",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "publisher": "ccls-project",
   "preview": true,
   "engines": {
@@ -33,6 +33,11 @@
           "id": "ccls.callHierarchy",
           "name": "Call Hierarchy",
           "when": "extension.ccls.callHierarchyVisible"
+        },
+        {
+          "id": "ccls.dataFlowInto",
+          "name": "Data Flow Hierarchy",
+          "when": "extension.ccls.dataFlowHierarchyVisible"
         }
       ]
     },
@@ -49,14 +54,19 @@
           "group": "navigation@1.32"
         },
         {
-          "command": "ccls.vars",
+          "command": "ccls.dataFlowInto",
           "when": "resourceLangId == cpp",
           "group": "navigation@1.33"
         },
         {
-          "command": "ccls.base",
+          "command": "ccls.vars",
           "when": "resourceLangId == cpp",
           "group": "navigation@1.34"
+        },
+        {
+          "command": "ccls.base",
+          "when": "resourceLangId == cpp",
+          "group": "navigation@1.35"
         }
       ],
       "view/title": [
@@ -68,6 +78,11 @@
         {
           "command": "ccls.closeCallHierarchy",
           "when": "view == ccls.callHierarchy",
+          "group": "navigation"
+        },
+        {
+          "command": "ccls.closeDataFlowHierarchy",
+          "when": "view == ccls.dataFlowInto",
           "group": "navigation"
         }
       ],
@@ -84,6 +99,10 @@
         },
         {
           "command": "ccls.closeCallHierarchy",
+          "when": "false"
+        },
+        {
+          "command": "ccls.closeDataFlowHierarchy",
           "when": "false"
         },
         {
@@ -125,6 +144,15 @@
         "title": "Show Variables",
         "category": "ccls",
         "command": "ccls.vars"
+      },
+      {
+        "title": "Show Data Flow Into",
+        "category": "ccls",
+        "command": "ccls.dataFlowInto"
+      },
+      {
+        "title": "Close",
+        "command": "ccls.closeDataFlowHierarchy"
       },
       {
         "title": "Show Cross References",
