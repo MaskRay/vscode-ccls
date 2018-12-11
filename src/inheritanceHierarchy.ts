@@ -63,8 +63,8 @@ export class InheritanceHierarchyProvider implements
     };
   }
 
-  getChildren(element?: InheritanceHierarchyNode):
-    InheritanceHierarchyNode[] | Thenable<InheritanceHierarchyNode[]> {
+  async getChildren(element?: InheritanceHierarchyNode):
+    Promise<InheritanceHierarchyNode[]> {
     if (!this.root)
       return [];
     if (!element)
@@ -72,19 +72,17 @@ export class InheritanceHierarchyProvider implements
     if (element.numChildren === element.children.length)
       return element.children;
 
-    return this.languageClient
-      .sendRequest('$ccls/inheritance', {
+    const result = await this.languageClient.sendRequest<InheritanceHierarchyNode>(
+      '$ccls/inheritance', {
         derived: element.wantsDerived,
         hierarchy: true,
         id: element.id,
         kind: element.kind,
         levels: 1,
         qualified: false,
-      })
-      .then((result: InheritanceHierarchyNode) => {
-        element.children = result.children;
-        result.children.map((c) => InheritanceHierarchyNode.setWantsDerived(c, element.wantsDerived));
-        return result.children;
-      });
+    });
+    element.children = result.children;
+    result.children.map((c) => InheritanceHierarchyNode.setWantsDerived(c, element.wantsDerived));
+    return result.children;
   }
 }

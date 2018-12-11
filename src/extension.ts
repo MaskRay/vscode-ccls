@@ -243,7 +243,7 @@ export function activate(context: ExtensionContext) {
       return;
     // Notify the user that if they change a ccls setting they need to restart
     // vscode.
-    context.subscriptions.push(workspace.onDidChangeConfiguration(() => {
+    context.subscriptions.push(workspace.onDidChangeConfiguration(async () => {
       const newConfig = getClientConfig(context);
       for (const key in newConfig) {
         if (!newConfig.hasOwnProperty(key))
@@ -256,10 +256,9 @@ export function activate(context: ExtensionContext) {
           const message = `Please reload to apply the "ccls.${
               key}" configuration change.`;
 
-          window.showInformationMessage(message, kReload).then((selected) => {
-            if (selected === kReload)
-              commands.executeCommand('workbench.action.reloadWindow');
-          });
+          const selected = await window.showInformationMessage(message, kReload);
+          if (selected === kReload)
+            commands.executeCommand('workbench.action.reloadWindow');
           break;
         }
       }
@@ -331,9 +330,11 @@ export function activate(context: ExtensionContext) {
       }
     }
 
-    function provideCodeLens(
-        document: TextDocument, token: CancellationToken,
-        next: ProvideCodeLensesSignature): ProviderResult<CodeLens[]> {
+    async function provideCodeLens(
+        document: TextDocument,
+        token: CancellationToken,
+        next: ProvideCodeLensesSignature
+      ): Promise<CodeLens[]> {
       const enableCodeLens = workspace.getConfiguration().get('editor.codeLens');
       if (!enableCodeLens) return;
       const config = workspace.getConfiguration('ccls');
@@ -341,43 +342,40 @@ export function activate(context: ExtensionContext) {
       if (!enableInlineCodeLens) {
         const uri = document.uri;
         const position = document.positionAt(0);
-        return langClient
-          .sendRequest<Array<any>>('textDocument/codeLens', {
-            position,
-            textDocument: {
-              uri: uri.toString(),
-            },
-          })
-          .then((lenses: Array<any>) => {
-            return lenses.map((lense) => {
-              const cmd  = lense.command;
-              if (cmd.command === 'ccls.xref') {
-                // Change to a custom command which will fetch and then show the results
-                cmd.command = 'ccls.showXrefs';
-                cmd.arguments = [
-                  uri,
-                  lense.range.start,
-                  cmd.arguments,
-                ];
-              }
-              return p2c.asCodeLens(lense);
-            });
-          });
+        const lenses = await langClient.sendRequest<Array<any>>('textDocument/codeLens', {
+          position,
+          textDocument: {
+            uri: uri.toString(),
+          },
+        });
+        return lenses.map((lense) => {
+          const cmd  = lense.command;
+          if (cmd.command === 'ccls.xref') {
+            // Change to a custom command which will fetch and then show the results
+            cmd.command = 'ccls.showXrefs';
+            cmd.arguments = [
+              uri,
+              lense.range.start,
+              cmd.arguments,
+            ];
+          }
+          return p2c.asCodeLens(lense);
+        });
       }
 
       // We run the codeLens request ourselves so we can intercept the response.
-      return langClient
-          .sendRequest('textDocument/codeLens', {
-            textDocument: {
-              uri: document.uri.toString(),
-            },
-          })
-          .then((a: ls.CodeLens[]): CodeLens[] => {
-            const result: CodeLens[] =
-                langClient.protocol2CodeConverter.asCodeLenses(a);
-            displayCodeLens(document, result);
-            return [];
-          });
+      const a = await langClient.sendRequest<ls.CodeLens[]>(
+        'textDocument/codeLens',
+        {
+          textDocument: {
+            uri: document.uri.toString(),
+          },
+        }
+      );
+      const result: CodeLens[] =
+          langClient.protocol2CodeConverter.asCodeLenses(a);
+      displayCodeLens(document, result);
+      return [];
     }
 
     // Options to control the language client
@@ -428,45 +426,44 @@ export function activate(context: ExtensionContext) {
     function makeRefHandler(
         methodName: string, extraParams: object = {},
         autoGotoIfSingle = false) {
-      return (userParams) => {
+      return async (userParams) => {
         /*
         userParams: a dict defined as `args` in keybindings.json (or passed by other extensions like VSCodeVIM)
         Values defined by user have higher priority than `extraParams`
         */
         const position = window.activeTextEditor.selection.active;
         const uri = window.activeTextEditor.document.uri;
-        languageClient
-          .sendRequest<Array<ls.Location>>(methodName, {
-              position,
-              textDocument: {
-                uri: uri.toString(),
-              },
-              ...extraParams,
-              ...userParams
-            })
-            .then((locations: Array<ls.Location>) => {
-              if (autoGotoIfSingle && locations.length === 1) {
-                const location = p2c.asLocation(locations[0]);
-                commands.executeCommand(
-                    'ccls.goto', location.uri, location.range.start, []);
-              } else {
-                commands.executeCommand(
-                    'editor.action.showReferences', uri, position,
-                    locations.map(p2c.asLocation));
-              }
-            });
+        const locations = await languageClient.sendRequest<Array<ls.Location>>(
+          methodName,
+          {
+            position,
+            textDocument: {
+              uri: uri.toString(),
+            },
+            ...extraParams,
+            ...userParams
+          }
+        );
+        if (autoGotoIfSingle && locations.length === 1) {
+          const location = p2c.asLocation(locations[0]);
+          commands.executeCommand(
+              'ccls.goto', location.uri, location.range.start, []);
+        } else {
+          commands.executeCommand(
+              'editor.action.showReferences', uri, position,
+              locations.map(p2c.asLocation));
+        }
       };
     }
 
-    function showXrefsHandler(...args) {
+    async function showXrefsHandler(...args) {
       const [uri, position, xrefArgs] = args;
-      commands.executeCommand('ccls.xref', ...xrefArgs)
-        .then(
-          (locations: ls.Location[]) =>
-            commands.executeCommand(
-              'editor.action.showReferences',
-              uri, p2c.asPosition(position),
-              locations.map(p2c.asLocation)));
+      const locations = await commands.executeCommand<ls.Location[]>('ccls.xref', ...xrefArgs);
+      commands.executeCommand(
+        'editor.action.showReferences',
+        uri, p2c.asPosition(position),
+        locations.map(p2c.asLocation)
+      );
     }
 
     commands.registerCommand('ccls.vars', makeRefHandler('$ccls/vars'));
@@ -490,8 +487,8 @@ export function activate(context: ExtensionContext) {
 
     commands.registerCommand(
         'ccls.goto',
-        (uri: string, position: ls.Position, locations: ls.Location[]) => {
-          jumpToUriAtPosition(
+        async (uri: string, position: ls.Position, locations: ls.Location[]) => {
+          return jumpToUriAtPosition(
               p2c.asUri(uri), p2c.asPosition(position),
               false /*preserveFocus*/);
         });
@@ -499,19 +496,18 @@ export function activate(context: ExtensionContext) {
 
   // FixIt support
   (() => {
-    commands.registerCommand("ccls._applyFixIt", (uri, pTextEdits) => {
+    commands.registerCommand("ccls._applyFixIt", async (uri, pTextEdits) => {
       const textEdits = p2c.asTextEdits(pTextEdits);
 
-      function applyEdits(e: TextEditor) {
-        e.edit((editBuilder) => {
+      async function applyEdits(editor: TextEditor) {
+        const success = await editor.edit((editBuilder) => {
           for (const edit of textEdits) {
             editBuilder.replace(edit.range, edit.newText);
           }
-        }).then((success) => {
-          if (!success) {
-            window.showErrorMessage("Failed to apply FixIt");
-          }
         });
+        if (!success) {
+          window.showErrorMessage("Failed to apply FixIt");
+        }
       }
 
       // Find existing open document.
@@ -523,47 +519,41 @@ export function activate(context: ExtensionContext) {
       }
 
       // Failed, open new document.
-      workspace.openTextDocument(parseUri(uri)).then((d) => {
-        window.showTextDocument(d).then((e?: TextEditor) => {
-          if (!e) {
-            window.showErrorMessage("Failed to to get editor for FixIt");
-          }
+      const d = await workspace.openTextDocument(parseUri(uri));
+      const e = await window.showTextDocument(d);
+      if (!e) { // FIXME seems to be redundant
+        window.showErrorMessage("Failed to to get editor for FixIt");
+      }
 
-          applyEdits(e);
-        });
-      });
+      applyEdits(e);
     });
   })();
 
   // AutoImplement
   (() => {
-    commands.registerCommand('ccls._autoImplement', (uri, pTextEdits) => {
-      commands.executeCommand('ccls._applyFixIt', uri, pTextEdits)
-          .then(() => {
-            commands.executeCommand(
-                'ccls.goto', uri, pTextEdits[0].range.start);
-          });
+    commands.registerCommand('ccls._autoImplement', async (uri, pTextEdits) => {
+      await commands.executeCommand('ccls._applyFixIt', uri, pTextEdits);
+      commands.executeCommand('ccls.goto', uri, pTextEdits[0].range.start);
     });
   })();
 
   // Insert include.
   (() => {
-    commands.registerCommand('ccls._insertInclude', (uri, pTextEdits) => {
+    commands.registerCommand('ccls._insertInclude', async (uri, pTextEdits) => {
       if (pTextEdits.length === 1)
         commands.executeCommand('ccls._applyFixIt', uri, pTextEdits);
       else {
-        const items: Array<QuickPickItem> = [];
         class MyQuickPick implements QuickPickItem {
           constructor(
               public label: string, public description: string,
               public edit: any) {}
         }
+        const items: Array<MyQuickPick> = [];
         for (const edit of pTextEdits) {
           items.push(new MyQuickPick(edit.newText, '', edit));
         }
-        window.showQuickPick(items).then((selected: MyQuickPick) => {
-          commands.executeCommand('ccls._applyFixIt', uri, [selected.edit]);
-        });
+        const selected = await window.showQuickPick(items);
+        commands.executeCommand('ccls._applyFixIt', uri, [selected.edit]);
       }
     });
   })();
@@ -622,50 +612,47 @@ export function activate(context: ExtensionContext) {
     window.registerTreeDataProvider(
         'ccls.inheritanceHierarchy', inheritanceHierarchyProvider);
     commands.registerTextEditorCommand(
-        'ccls.inheritanceHierarchy', (editor) => {
+        'ccls.inheritanceHierarchy', async (editor) => {
           setContext('extension.ccls.inheritanceHierarchyVisible', true);
 
           const position = editor.selection.active;
           const uri = editor.document.uri;
-          languageClient
-              .sendRequest('$ccls/inheritance', {
-                derived: true,
-                hierarchy: true,
-                levels: 1,
-                position,
-                qualified: false,
-                textDocument: {
-                  uri: uri.toString(),
-                },
-              })
-              .then((entry: InheritanceHierarchyNode) => {
-                InheritanceHierarchyNode.setWantsDerived(entry, true);
+          const entry = await languageClient.sendRequest<InheritanceHierarchyNode>('$ccls/inheritance', {
+            derived: true,
+            hierarchy: true,
+            levels: 1,
+            position,
+            qualified: false,
+            textDocument: {
+              uri: uri.toString(),
+            },
+          });
+          InheritanceHierarchyNode.setWantsDerived(entry, true);
 
-                languageClient
-                    .sendRequest('$ccls/inheritance', {
-                      derived: false,
-                      hierarchy: true,
-                      id: entry.id,
-                      kind: entry.kind,
-                      levels: 1,
-                      qualified: false,
-                    })
-                    .then((parentEntry: InheritanceHierarchyNode) => {
-                      if (parentEntry.numChildren > 0) {
-                        const parentWrapper = new InheritanceHierarchyNode();
-                        parentWrapper.children = parentEntry.children;
-                        parentWrapper.numChildren = parentEntry.children.length;
-                        parentWrapper.name = '[[Base]]';
-                        InheritanceHierarchyNode.setWantsDerived(
-                            parentWrapper, false);
-                        entry.children.splice(0, 0, parentWrapper);
-                        entry.numChildren += 1;
-                      }
+          const parentEntry = await languageClient.sendRequest<InheritanceHierarchyNode>(
+            '$ccls/inheritance',
+            {
+              derived: false,
+              hierarchy: true,
+              id: entry.id,
+              kind: entry.kind,
+              levels: 1,
+              qualified: false,
+            }
+          );
+          if (parentEntry.numChildren > 0) {
+            const parentWrapper = new InheritanceHierarchyNode();
+            parentWrapper.children = parentEntry.children;
+            parentWrapper.numChildren = parentEntry.children.length;
+            parentWrapper.name = '[[Base]]';
+            InheritanceHierarchyNode.setWantsDerived(
+                parentWrapper, false);
+            entry.children.splice(0, 0, parentWrapper);
+            entry.numChildren += 1;
+          }
 
-                      inheritanceHierarchyProvider.root = entry;
-                      inheritanceHierarchyProvider.onDidChangeEmitter.fire();
-                    });
-              });
+          inheritanceHierarchyProvider.root = entry;
+          inheritanceHierarchyProvider.onDidChangeEmitter.fire();
         });
     commands.registerCommand('ccls.closeInheritanceHierarchy', () => {
       setContext('extension.ccls.inheritanceHierarchyVisible', false);
@@ -683,26 +670,26 @@ export function activate(context: ExtensionContext) {
     const callHierarchyProvider = new CallHierarchyProvider(
         languageClient, derivedDark, derivedLight, baseDark, baseLight);
     window.registerTreeDataProvider('ccls.callHierarchy', callHierarchyProvider);
-    commands.registerTextEditorCommand('ccls.callHierarchy', (editor) => {
+    commands.registerTextEditorCommand('ccls.callHierarchy', async (editor) => {
       setContext('extension.ccls.callHierarchyVisible', true);
       const position = editor.selection.active;
       const uri = editor.document.uri;
-      languageClient
-          .sendRequest('$ccls/call', {
-            callType: 0x1 | 0x2,
-            callee: false,
-            hierarchy: true,
-            levels: 2,
-            position,
-            qualified: false,
-            textDocument: {
-              uri: uri.toString(),
-            },
-          })
-          .then((callNode: CallHierarchyNode) => {
-            callHierarchyProvider.root = callNode;
-            callHierarchyProvider.onDidChangeEmitter.fire();
-          });
+      const callNode = await languageClient.sendRequest<CallHierarchyNode>(
+        '$ccls/call',
+        {
+          callType: 0x1 | 0x2,
+          callee: false,
+          hierarchy: true,
+          levels: 2,
+          position,
+          qualified: false,
+          textDocument: {
+            uri: uri.toString(),
+          },
+        }
+      );
+      callHierarchyProvider.root = callNode;
+      callHierarchyProvider.onDidChangeEmitter.fire();
     });
     commands.registerCommand('ccls.closeCallHierarchy', (e) => {
       setContext('extension.ccls.callHierarchyVisible', false);
@@ -715,14 +702,14 @@ export function activate(context: ExtensionContext) {
   (() => {
     commands.registerCommand(
         'ccls.gotoForTreeView',
-        (node: InheritanceHierarchyNode|CallHierarchyNode) => {
+        async (node: InheritanceHierarchyNode|CallHierarchyNode) => {
           if (!node.location)
             return;
 
           const parsedUri = parseUri(node.location.uri);
           const parsedPosition = p2c.asPosition(node.location.range.start);
 
-          jumpToUriAtPosition(parsedUri, parsedPosition, true /*preserveFocus*/);
+          return jumpToUriAtPosition(parsedUri, parsedPosition, true /*preserveFocus*/);
         });
 
     let lastGotoNodeId: any;
@@ -924,25 +911,25 @@ export function activate(context: ExtensionContext) {
   // Semantic navigation
   (() => {
     function makeNavigateHandler(methodName) {
-      return (userParams) => {
+      return async (userParams) => {
         const position = window.activeTextEditor.selection.active;
         const uri = window.activeTextEditor.document.uri;
-        languageClient
-          .sendRequest<Array<ls.Location>>(methodName, {
-              position,
-              textDocument: {
-                uri: uri.toString(),
-              },
-              ...userParams
-            })
-            .then((locations: Array<ls.Location>) => {
-              if (locations.length === 1) {
-                const location = p2c.asLocation(locations[0]);
-                jumpToUriAtPosition(
-                    location.uri, location.range.start,
-                    false /*preserveFocus*/);
-              }
-            });
+        const locations = await languageClient.sendRequest<Array<ls.Location>>(
+          methodName,
+          {
+            position,
+            textDocument: {
+              uri: uri.toString(),
+            },
+            ...userParams
+          }
+        );
+        if (locations.length === 1) {
+          const location = p2c.asLocation(locations[0]);
+          await jumpToUriAtPosition(
+            location.uri, location.range.start,
+            false /*preserveFocus*/);
+        }
       };
     }
     commands.registerCommand('ccls.navigate', makeNavigateHandler('$ccls/navigate'));
