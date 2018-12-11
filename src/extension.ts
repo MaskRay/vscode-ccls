@@ -231,7 +231,7 @@ function getClientConfig(context: ExtensionContext) {
   return clientConfig;
 }
 
-export function activate(context: ExtensionContext) {
+export async function activate(context: ExtensionContext) {
   /////////////////////////////////////
   // Setup configuration, start server.
   /////////////////////////////////////
@@ -414,7 +414,7 @@ export function activate(context: ExtensionContext) {
   const p2c = languageClient.protocol2CodeConverter;
 
   // General commands.
-  (() => {
+  {
     commands.registerCommand('ccls.reload', () => {
       languageClient.sendNotification('$ccls/reload');
     });
@@ -472,11 +472,11 @@ export function activate(context: ExtensionContext) {
     commands.registerCommand(
       'ccls.base', makeRefHandler('$ccls/inheritance', {derived: false}, true));
     commands.registerCommand('ccls.showXrefs', showXrefsHandler);
-  })();
+  }
 
   // The language client does not correctly deserialize arguments, so we have a
   // wrapper command that does it for us.
-  (() => {
+  {
     commands.registerCommand(
         'ccls.showReferences',
         (uri: string, position: ls.Position, locations: ls.Location[]) => {
@@ -492,10 +492,10 @@ export function activate(context: ExtensionContext) {
               p2c.asUri(uri), p2c.asPosition(position),
               false /*preserveFocus*/);
         });
-  })();
+  }
 
   // FixIt support
-  (() => {
+  {
     commands.registerCommand("ccls._applyFixIt", async (uri, pTextEdits) => {
       const textEdits = p2c.asTextEdits(pTextEdits);
 
@@ -527,18 +527,18 @@ export function activate(context: ExtensionContext) {
 
       applyEdits(e);
     });
-  })();
+  }
 
   // AutoImplement
-  (() => {
+  {
     commands.registerCommand('ccls._autoImplement', async (uri, pTextEdits) => {
       await commands.executeCommand('ccls._applyFixIt', uri, pTextEdits);
       commands.executeCommand('ccls.goto', uri, pTextEdits[0].range.start);
     });
-  })();
+  }
 
   // Insert include.
-  (() => {
+  {
     commands.registerCommand('ccls._insertInclude', async (uri, pTextEdits) => {
       if (pTextEdits.length === 1)
         commands.executeCommand('ccls._applyFixIt', uri, pTextEdits);
@@ -556,10 +556,10 @@ export function activate(context: ExtensionContext) {
         commands.executeCommand('ccls._applyFixIt', uri, [selected.edit]);
       }
     });
-  })();
+  }
 
   // Inactive regions.
-  (() => {
+  {
     const config = workspace.getConfiguration('ccls');
     if (!config.get('misc.showInactiveRegions')) return;
     const decorationType = window.createTextEditorDecorationType({
@@ -577,19 +577,18 @@ export function activate(context: ExtensionContext) {
 
     const skippedRanges = new Map<string, Range[]>();
 
-    languageClient.onReady().then(() => {
-      languageClient.onNotification("$ccls/publishSkippedRanges", (args) => {
-        const uri = normalizeUri(args.uri);
-        let ranges: Range[] = args.skippedRanges.map(p2c.asRange);
-        ranges = ranges.map((range) => {
-          if (range.isEmpty || range.isSingleLine) return range;
-          return range.with({ end: range.end.translate(-1, 23333) });
-        });
-        skippedRanges.set(uri, ranges);
-        window.visibleTextEditors
-          .filter((editor) => editor.document.uri.toString() === uri)
-          .forEach((editor) => editor.setDecorations(decorationType, ranges));
+    await languageClient.onReady();
+    languageClient.onNotification("$ccls/publishSkippedRanges", (args) => {
+      const uri = normalizeUri(args.uri);
+      let ranges: Range[] = args.skippedRanges.map(p2c.asRange);
+      ranges = ranges.map((range) => {
+        if (range.isEmpty || range.isSingleLine) return range;
+        return range.with({ end: range.end.translate(-1, 23333) });
       });
+      skippedRanges.set(uri, ranges);
+      window.visibleTextEditors
+        .filter((editor) => editor.document.uri.toString() === uri)
+        .forEach((editor) => editor.setDecorations(decorationType, ranges));
     });
 
     window.onDidChangeActiveTextEditor((editor) => {
@@ -603,10 +602,10 @@ export function activate(context: ExtensionContext) {
     workspace.onDidCloseTextDocument((document) => {
       skippedRanges.delete(document.uri.toString());
     });
-  })();
+  }
 
   // Inheritance hierarchy.
-  (() => {
+  {
     const inheritanceHierarchyProvider =
         new InheritanceHierarchyProvider(languageClient);
     window.registerTreeDataProvider(
@@ -659,10 +658,10 @@ export function activate(context: ExtensionContext) {
       inheritanceHierarchyProvider.root = undefined;
       inheritanceHierarchyProvider.onDidChangeEmitter.fire();
     });
-  })();
+  }
 
   // Call Hierarchy
-  (() => {
+  {
     const derivedDark = context.asAbsolutePath(path.join('resources', 'derived-dark.svg'));
     const derivedLight = context.asAbsolutePath(path.join('resources', 'derived-light.svg'));
     const baseDark = context.asAbsolutePath(path.join('resources', 'base-dark.svg'));
@@ -696,10 +695,10 @@ export function activate(context: ExtensionContext) {
       callHierarchyProvider.root = undefined;
       callHierarchyProvider.onDidChangeEmitter.fire();
     });
-  })();
+  }
 
   // Common between tree views.
-  (() => {
+  {
     commands.registerCommand(
         'ccls.gotoForTreeView',
         async (node: InheritanceHierarchyNode|CallHierarchyNode) => {
@@ -740,13 +739,13 @@ export function activate(context: ExtensionContext) {
           if (elapsed < kDoubleClickTimeMs)
             commands.executeCommand('ccls.gotoForTreeView', node);
         });
-  })();
+  }
 
   // Semantic highlighting
   // TODO:
   //   - enable bold/italic decorators, might need change in vscode
   //   - only function call icon if the call is implicit
-  (() => {
+  {
     function makeSemanticDecorationType(
         color: Nullable<string>, underline: boolean, italic: boolean,
         bold: boolean): TextEditorDecorationType {
@@ -876,40 +875,39 @@ export function activate(context: ExtensionContext) {
       context.subscriptions
     );
 
-    languageClient.onReady().then(() => {
-      languageClient.onNotification(
-          '$ccls/publishSemanticHighlight',
-          (args: PublishSemanticHighlightArgs) => {
-            updateConfigValues();
+    await languageClient.onReady();
+    languageClient.onNotification(
+        '$ccls/publishSemanticHighlight',
+        (args: PublishSemanticHighlightArgs) => {
+          updateConfigValues();
 
-            for (const visibleEditor of window.visibleTextEditors) {
-              if (normalizeUri(args.uri) !== visibleEditor.document.uri.toString())
+          for (const visibleEditor of window.visibleTextEditors) {
+            if (normalizeUri(args.uri) !== visibleEditor.document.uri.toString())
+              continue;
+
+            const decorations = new Map<TextEditorDecorationType, Array<Range>>();
+
+            for (const symbol of args.symbols) {
+              const type = tryFindDecoration(symbol);
+              if (!type)
                 continue;
-
-              const decorations = new Map<TextEditorDecorationType, Array<Range>>();
-
-              for (const symbol of args.symbols) {
-                const type = tryFindDecoration(symbol);
-                if (!type)
-                  continue;
-                if (decorations.has(type)) {
-                  const existing = decorations.get(type);
-                  for (const range of symbol.lsRanges)
-                    existing.push(range);
-                } else {
-                  decorations.set(type, symbol.lsRanges);
-                }
+              if (decorations.has(type)) {
+                const existing = decorations.get(type);
+                for (const range of symbol.lsRanges)
+                  existing.push(range);
+              } else {
+                decorations.set(type, symbol.lsRanges);
               }
-
-              cachedDecorations.set(args.uri, decorations);
-              updateDecoration(visibleEditor);
             }
-          });
-    });
-  })();
+
+            cachedDecorations.set(args.uri, decorations);
+            updateDecoration(visibleEditor);
+          }
+        });
+  }
 
   // Semantic navigation
-  (() => {
+  {
     function makeNavigateHandler(methodName) {
       return async (userParams) => {
         const position = window.activeTextEditor.selection.active;
@@ -933,5 +931,5 @@ export function activate(context: ExtensionContext) {
       };
     }
     commands.registerCommand('ccls.navigate', makeNavigateHandler('$ccls/navigate'));
-  })();
+  }
 }
