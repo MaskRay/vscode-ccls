@@ -71,7 +71,7 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
     };
   }
 
-  getChildren(element?: CallHierarchyNode): CallHierarchyNode[] | Thenable<CallHierarchyNode[]> {
+  async getChildren(element?: CallHierarchyNode): Promise<CallHierarchyNode[]> {
     if (!this.root)
       return [];
     if (!element)
@@ -79,18 +79,15 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
     if (element.numChildren === element.children.length)
       return element.children;
 
-    return this.languageClient
-      .sendRequest('$ccls/call', {
-        callType: CallType.All,
-        callee: false,
-        hierarchy: true,
-        id: element.id,
-        levels: 1,
-        qualified: false,
-      })
-      .then((result: CallHierarchyNode) => {
-        element.children = result.children;
-        return result.children;
-      });
+    const result = await this.languageClient.sendRequest<CallHierarchyNode>('$ccls/call', {
+      callType: CallType.All,
+      callee: false,
+      hierarchy: true,
+      id: element.id,
+      levels: 1,
+      qualified: false,
+    });
+    element.children = result.children;
+    return result.children;
   }
 }
