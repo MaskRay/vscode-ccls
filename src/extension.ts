@@ -1,4 +1,3 @@
-import * as path from "path";
 import {
     CodeLens,
     commands,
@@ -6,28 +5,21 @@ import {
     DecorationRangeBehavior,
     DecorationRenderOptions,
     ExtensionContext,
-    OverviewRulerLane,
     Position,
-    Progress,
-    ProgressLocation,
-    ProviderResult,
     QuickPickItem,
     Range,
-    StatusBarAlignment,
     TextDocument,
     TextEditor,
     TextEditorDecorationType,
     ThemeColor,
     Uri,
     window,
-    workspace
+    workspace,
 } from "vscode";
-import { Message } from "vscode-jsonrpc";
 import {
     CancellationToken,
     LanguageClient,
     LanguageClientOptions,
-    Middleware,
     ProvideCodeLensesSignature,
     RevealOutputChannelOn,
     ServerOptions
@@ -36,17 +28,17 @@ import * as ls from "vscode-languageserver-types";
 
 import { CallHierarchyNode, CallHierarchyProvider } from "./callHierarchy";
 import { CclsErrorHandler } from "./cclsErrorHandler";
-import { InheritanceHierarchyNode, InheritanceHierarchyProvider } from "./inheritanceHierarchy";
+import {
+  InheritanceHierarchyNode,
+  InheritanceHierarchyProvider,
+  InheritanceHierarchySetWantsDerived
+} from "./inheritanceHierarchy";
+import { ClientConfig } from "./types";
+import { unwrap } from "./utils";
 import { jumpToUriAtPosition } from "./vscodeUtils";
 
-type Nullable<T> = T|null;
-
-export function parseUri(u: string): Uri {
-  return Uri.parse(u);
-}
-
 function normalizeUri(u: string): string {
-  return parseUri(u).toString();
+  return Uri.parse(u).toString(true);
 }
 
 function setContext(name: string, value: any): void {
@@ -94,6 +86,7 @@ enum SymbolKind {
   StaticMethod = 254,
   Macro = 255
 }
+
 enum StorageClass {
   Invalid,
   None,
@@ -103,14 +96,17 @@ enum StorageClass {
   Auto,
   Register
 }
-class SemanticSymbol {
-  constructor(
-      readonly id: number, readonly parentKind: SymbolKind,
-      readonly kind: SymbolKind, readonly isTypeMember: boolean,
-      readonly storage: StorageClass, readonly lsRanges: Array<Range>) {}
+
+interface SemanticSymbol {
+  readonly id: number;
+  readonly parentKind: SymbolKind;
+  readonly kind: SymbolKind;
+  readonly isTypeMember: boolean;
+  readonly storage: StorageClass;
+  readonly lsRanges: Range[];
 }
 
-function getClientConfig(context: ExtensionContext) {
+function getClientConfig(context: ExtensionContext): ClientConfig {
   const kCacheDirPrefName = 'cacheDirectory';
 
   function hasAnySemanticHighlight() {
@@ -139,10 +135,10 @@ function getClientConfig(context: ExtensionContext) {
   }
 
   function resolveVariablesInString(value: string) {
-    return value.replace('${workspaceFolder}', workspace.rootPath);
+    return value.replace('${workspaceFolder}', workspace.rootPath ? workspace.rootPath : "");
   }
 
-  function resloveVariablesInArray(value: any[]) {
+  function resloveVariablesInArray(value: any[]): any[] {
     return value.map((v) => resolveVariables(v));
   }
 
@@ -196,8 +192,8 @@ function getClientConfig(context: ExtensionContext) {
     ['workspaceSymbol.maxNum', 'workspaceSymbol.maxNum'],
     ['workspaceSymbol.caseSensitivity', 'workspaceSymbol.caseSensitivity'],
   ];
-  const castBooleanToInteger = [];
-  const clientConfig = {
+  const castBooleanToInteger: string[] = [];
+  const clientConfig: ClientConfig = {
     cacheDirectory: '.ccls-cache',
     highlight: {
       enabled: hasAnySemanticHighlight(),
@@ -237,10 +233,8 @@ export async function activate(context: ExtensionContext) {
   /////////////////////////////////////
 
   // Load configuration and start the client.
-  const getLanguageClient = (() => {
+  const getLanguageClient = ((): LanguageClient => {
     const clientConfig = getClientConfig(context);
-    if (!clientConfig)
-      return;
     // Notify the user that if they change a ccls setting they need to restart
     // vscode.
     context.subscriptions.push(workspace.onDidChangeConfiguration(async () => {
@@ -281,8 +275,6 @@ export async function activate(context: ExtensionContext) {
       command: clientConfig.launchCommand,
       options: { env }
     };
-    console.log(
-        `Starting ${serverOptions.command} in ${serverOptions.options.cwd}`);
 
     // Inline code lens.
     const decorationOpts: DecorationRenderOptions = {
@@ -320,7 +312,7 @@ export async function activate(context: ExtensionContext) {
           const opt: DecorationOptions = {
             range,
             renderOptions:
-                {after: {contentText: ' ' + codeLens.command.title + ' '}}
+                {after: {contentText: ' ' + unwrap(codeLens.command, "lens").title + ' '}}
           };
 
           opts.push(opt);
@@ -335,8 +327,9 @@ export async function activate(context: ExtensionContext) {
         token: CancellationToken,
         next: ProvideCodeLensesSignature
       ): Promise<CodeLens[]> {
-      const enableCodeLens = workspace.getConfiguration().get('editor.codeLens');
-      if (!enableCodeLens) return;
+      const enableCodeLens = workspace.getConfiguration(undefined, null).get('editor.codeLens');
+      if (!enableCodeLens)
+        return [];
       const config = workspace.getConfiguration('ccls');
       const enableInlineCodeLens = config.get('codeLens.renderInline', false);
       if (!enableInlineCodeLens) {
@@ -426,13 +419,14 @@ export async function activate(context: ExtensionContext) {
     function makeRefHandler(
         methodName: string, extraParams: object = {},
         autoGotoIfSingle = false) {
-      return async (userParams) => {
+      return async (userParams: any) => {
         /*
         userParams: a dict defined as `args` in keybindings.json (or passed by other extensions like VSCodeVIM)
         Values defined by user have higher priority than `extraParams`
         */
-        const position = window.activeTextEditor.selection.active;
-        const uri = window.activeTextEditor.document.uri;
+        const editor = unwrap(window.activeTextEditor, "window.activeTextEditor");
+        const position = editor.selection.active;
+        const uri = editor.document.uri;
         const locations = await languageClient.sendRequest<Array<ls.Location>>(
           methodName,
           {
@@ -456,9 +450,11 @@ export async function activate(context: ExtensionContext) {
       };
     }
 
-    async function showXrefsHandler(...args) {
+    async function showXrefsHandler(...args: any[]) { // TODO fix any
       const [uri, position, xrefArgs] = args;
       const locations = await commands.executeCommand<ls.Location[]>('ccls.xref', ...xrefArgs);
+      if (!locations)
+        return;
       commands.executeCommand(
         'editor.action.showReferences',
         uri, p2c.asPosition(position),
@@ -519,7 +515,7 @@ export async function activate(context: ExtensionContext) {
       }
 
       // Failed, open new document.
-      const d = await workspace.openTextDocument(parseUri(uri));
+      const d = await workspace.openTextDocument(Uri.parse(uri));
       const e = await window.showTextDocument(d);
       if (!e) { // FIXME seems to be redundant
         window.showErrorMessage("Failed to to get editor for FixIt");
@@ -553,6 +549,8 @@ export async function activate(context: ExtensionContext) {
           items.push(new MyQuickPick(edit.newText, '', edit));
         }
         const selected = await window.showQuickPick(items);
+        if (!selected)
+          return;
         commands.executeCommand('ccls._applyFixIt', uri, [selected.edit]);
       }
     });
@@ -591,10 +589,13 @@ export async function activate(context: ExtensionContext) {
         .forEach((editor) => editor.setDecorations(decorationType, ranges));
     });
 
-    window.onDidChangeActiveTextEditor((editor) => {
+    window.onDidChangeActiveTextEditor((editor?: TextEditor) => {
+      if (!editor)
+        return;
       const uri = editor.document.uri.toString();
-      if (skippedRanges.has(uri)) {
-        editor.setDecorations(decorationType, skippedRanges.get(uri));
+      const range = skippedRanges.get(uri);
+      if (range) {
+        editor.setDecorations(decorationType, range);
       }
     });
 
@@ -626,7 +627,7 @@ export async function activate(context: ExtensionContext) {
               uri: uri.toString(),
             },
           });
-          InheritanceHierarchyNode.setWantsDerived(entry, true);
+          InheritanceHierarchySetWantsDerived(entry, true);
 
           const parentEntry = await languageClient.sendRequest<InheritanceHierarchyNode>(
             '$ccls/inheritance',
@@ -640,13 +641,18 @@ export async function activate(context: ExtensionContext) {
             }
           );
           if (parentEntry.numChildren > 0) {
-            const parentWrapper = new InheritanceHierarchyNode();
-            parentWrapper.children = parentEntry.children;
-            parentWrapper.numChildren = parentEntry.children.length;
-            parentWrapper.name = '[[Base]]';
-            InheritanceHierarchyNode.setWantsDerived(
+            const parentWrapper: InheritanceHierarchyNode = {
+              children: parentEntry.children,
+              id: undefined,
+              kind: -1,
+              location: undefined,
+              name: '[[Base]]',
+              numChildren: parentEntry.children.length,
+              wantsDerived: false
+            };
+            InheritanceHierarchySetWantsDerived(
                 parentWrapper, false);
-            entry.children.splice(0, 0, parentWrapper);
+            entry.children.unshift(parentWrapper);
             entry.numChildren += 1;
           }
 
@@ -662,12 +668,7 @@ export async function activate(context: ExtensionContext) {
 
   // Call Hierarchy
   {
-    const derivedDark = context.asAbsolutePath(path.join('resources', 'derived-dark.svg'));
-    const derivedLight = context.asAbsolutePath(path.join('resources', 'derived-light.svg'));
-    const baseDark = context.asAbsolutePath(path.join('resources', 'base-dark.svg'));
-    const baseLight = context.asAbsolutePath(path.join('resources', 'base-light.svg'));
-    const callHierarchyProvider = new CallHierarchyProvider(
-        languageClient, derivedDark, derivedLight, baseDark, baseLight);
+    const callHierarchyProvider = new CallHierarchyProvider(languageClient);
     window.registerTreeDataProvider('ccls.callHierarchy', callHierarchyProvider);
     commands.registerTextEditorCommand('ccls.callHierarchy', async (editor) => {
       setContext('extension.ccls.callHierarchyVisible', true);
@@ -705,7 +706,7 @@ export async function activate(context: ExtensionContext) {
           if (!node.location)
             return;
 
-          const parsedUri = parseUri(node.location.uri);
+          const parsedUri = Uri.parse(node.location.uri);
           const parsedPosition = p2c.asPosition(node.location.range.start);
 
           return jumpToUriAtPosition(parsedUri, parsedPosition, true /*preserveFocus*/);
@@ -733,7 +734,7 @@ export async function activate(context: ExtensionContext) {
 
           const config = workspace.getConfiguration('ccls');
           const kDoubleClickTimeMs =
-              config.get('treeViews.doubleClickTimeoutMs');
+              config.get('treeViews.doubleClickTimeoutMs', 500);
           const elapsed = Date.now() - lastGotoClickTime;
           lastGotoClickTime = Date.now();
           if (elapsed < kDoubleClickTimeMs)
@@ -747,7 +748,7 @@ export async function activate(context: ExtensionContext) {
   //   - only function call icon if the call is implicit
   {
     function makeSemanticDecorationType(
-        color: Nullable<string>, underline: boolean, italic: boolean,
+        color: string|null, underline: boolean, italic: boolean,
         bold: boolean): TextEditorDecorationType {
       const opts: any = {};
       opts.rangeBehavior = DecorationRangeBehavior.ClosedClosed;
@@ -793,11 +794,11 @@ export async function activate(context: ExtensionContext) {
     updateConfigValues();
 
     function tryFindDecoration(symbol: SemanticSymbol):
-        Nullable<TextEditorDecorationType> {
+        TextEditorDecorationType|undefined {
       function get(name: string) {
         if (!semanticEnabled.get(name))
           return undefined;
-        const decorations = semanticDecorations.get(name);
+        const decorations = unwrap(semanticDecorations.get(name), "semantic");
         return decorations[symbol.id % decorations.length];
       }
 
@@ -840,7 +841,7 @@ export async function activate(context: ExtensionContext) {
       }
     }
 
-    class PublishSemanticHighlightArgs {
+    interface PublishSemanticHighlightArgs {
       readonly uri: string;
       readonly symbols: SemanticSymbol[];
     }
@@ -849,8 +850,8 @@ export async function activate(context: ExtensionContext) {
 
     function updateDecoration(editor: TextEditor) {
       const uri = editor.document.uri.toString();
-      if (cachedDecorations.has(uri)) {
-        const cachedDecoration = cachedDecorations.get(uri);
+      const cachedDecoration = cachedDecorations.get(uri);
+      if (cachedDecoration) {
         // Clear decorations and set new ones. We might not use all of the
         // decorations so clear before setting.
         for (const [_, decorations] of semanticDecorations) {
@@ -891,10 +892,11 @@ export async function activate(context: ExtensionContext) {
               const type = tryFindDecoration(symbol);
               if (!type)
                 continue;
-              if (decorations.has(type)) {
-                const existing = decorations.get(type);
-                for (const range of symbol.lsRanges)
+              const existing = decorations.get(type);
+              if (existing) {
+                for (const range of symbol.lsRanges) {
                   existing.push(range);
+                }
               } else {
                 decorations.set(type, symbol.lsRanges);
               }
@@ -908,10 +910,11 @@ export async function activate(context: ExtensionContext) {
 
   // Semantic navigation
   {
-    function makeNavigateHandler(methodName) {
-      return async (userParams) => {
-        const position = window.activeTextEditor.selection.active;
-        const uri = window.activeTextEditor.document.uri;
+    function makeNavigateHandler(methodName: string) {
+      return async (userParams: any) => {
+        const editor = unwrap(window.activeTextEditor, "window.activeTextEditor");
+        const position = editor.selection.active;
+        const uri = editor.document.uri;
         const locations = await languageClient.sendRequest<Array<ls.Location>>(
           methodName,
           {

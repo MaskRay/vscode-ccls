@@ -5,10 +5,10 @@
 		"trailing-comma": false,
 		"array-type": false,
 		"curly": false,
-		"member-access": false,
 		"max-classes-per-file": false,
 		"no-bitwise": false,
 		"no-console": false,
-		"variable-name": false
+		"variable-name": false,
+		"interface-name": false
 	}
 }
