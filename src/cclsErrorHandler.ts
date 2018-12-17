@@ -5,11 +5,11 @@ import {CloseAction, ErrorAction, ErrorHandler} from 'vscode-languageclient';
 export class CclsErrorHandler implements ErrorHandler {
   constructor(readonly config: WorkspaceConfiguration) {}
 
-  error(error: Error, message: Message, count: number): ErrorAction {
+  public error(error: Error, message: Message, count: number): ErrorAction {
     return ErrorAction.Continue;
   }
 
-  closed(): CloseAction {
+  public closed(): CloseAction {
     const notifyOnCrash = this.config.get('launch.notifyOnCrash');
     const restart = this.config.get('launch.autoRestart');
 

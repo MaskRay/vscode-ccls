@@ -1,39 +1,34 @@
-import { Event, EventEmitter, TreeDataProvider, TreeItem, TreeItemCollapsibleState } from "vscode";
+import { Event, EventEmitter, TreeDataProvider, TreeItem, TreeItemCollapsibleState, Uri } from "vscode";
 import { LanguageClient } from "vscode-languageclient/lib/main";
 import * as ls from "vscode-languageserver-types";
-import { parseUri } from "./extension";
 
-export class InheritanceHierarchyNode {
-  public static setWantsDerived(node: InheritanceHierarchyNode, value: boolean) {
-    node._wantsDerived = value;
-    node.children.map((c) => InheritanceHierarchyNode.setWantsDerived(c, value));
-  }
+export function InheritanceHierarchySetWantsDerived(node: InheritanceHierarchyNode, value: boolean) {
+  node.wantsDerived = value;
+  node.children.map((c) => InheritanceHierarchySetWantsDerived(c, value));
+}
 
+export interface InheritanceHierarchyNode {
   id: any;
   kind: number;
   name: string;
-  location: ls.Location;
+  location?: ls.Location;
   numChildren: number;
   children: InheritanceHierarchyNode[];
 
-  // If true and children need to be expanded derived will be used, otherwise
-  // base will be used.
-  private _wantsDerived: boolean;
-  public get wantsDerived() {
-    return this._wantsDerived;
-  }
+  /** If true and children need to be expanded derived will be used, otherwise base will be used. */
+  wantsDerived: boolean;
 }
 
 export class InheritanceHierarchyProvider implements
   TreeDataProvider<InheritanceHierarchyNode> {
-  root: InheritanceHierarchyNode;
 
-  readonly onDidChangeEmitter: EventEmitter<any> = new EventEmitter<any>();
-  readonly onDidChangeTreeData: Event<any> = this.onDidChangeEmitter.event;
+  public readonly onDidChangeEmitter: EventEmitter<any> = new EventEmitter<any>();
+  public readonly onDidChangeTreeData: Event<any> = this.onDidChangeEmitter.event;
+  public root?: InheritanceHierarchyNode;
 
   constructor(readonly languageClient: LanguageClient) { }
 
-  getTreeItem(element: InheritanceHierarchyNode): TreeItem {
+  public getTreeItem(element: InheritanceHierarchyNode): TreeItem {
     const kBaseName = '[[Base]]';
 
     let collapseState = TreeItemCollapsibleState.None;
@@ -46,7 +41,7 @@ export class InheritanceHierarchyProvider implements
 
     let label = element.name;
     if (element.name !== kBaseName && element.location) {
-      const path = parseUri(element.location.uri).path;
+      const path = Uri.parse(element.location.uri).path;
       const name = path.substr(path.lastIndexOf('/') + 1);
       label += ` (${name}:${element.location.range.start.line + 1})`;
     }
@@ -63,7 +58,7 @@ export class InheritanceHierarchyProvider implements
     };
   }
 
-  async getChildren(element?: InheritanceHierarchyNode):
+  public async getChildren(element?: InheritanceHierarchyNode):
     Promise<InheritanceHierarchyNode[]> {
     if (!this.root)
       return [];
@@ -82,7 +77,7 @@ export class InheritanceHierarchyProvider implements
         qualified: false,
     });
     element.children = result.children;
-    result.children.map((c) => InheritanceHierarchyNode.setWantsDerived(c, element.wantsDerived));
+    result.children.map((c) => InheritanceHierarchySetWantsDerived(c, element.wantsDerived));
     return result.children;
   }
 }
