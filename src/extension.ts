@@ -658,6 +658,7 @@ export async function activate(context: ExtensionContext) {
 
           inheritanceHierarchyProvider.root = entry;
           inheritanceHierarchyProvider.onDidChangeEmitter.fire();
+          commands.executeCommand("workbench.view.explorer");
         });
     commands.registerCommand('ccls.closeInheritanceHierarchy', () => {
       setContext('extension.ccls.inheritanceHierarchyVisible', false);
@@ -690,6 +691,7 @@ export async function activate(context: ExtensionContext) {
       );
       callHierarchyProvider.root = callNode;
       callHierarchyProvider.onDidChangeEmitter.fire();
+      commands.executeCommand("workbench.view.explorer");
     });
     commands.registerCommand('ccls.closeCallHierarchy', (e) => {
       setContext('extension.ccls.callHierarchyVisible', false);
