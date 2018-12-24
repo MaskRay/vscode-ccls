@@ -7,7 +7,7 @@
   "publisher": "ccls-project",
   "preview": true,
   "engines": {
-    "vscode": "^1.25.0"
+    "vscode": "^1.27.0"
   },
   "categories": [
     "Programming Languages"
@@ -887,13 +887,13 @@
     "postinstall": "node ./node_modules/vscode/bin/install"
   },
   "devDependencies": {
-    "@types/node": "^9.6.39",
+    "@types/node": "^9.6.41",
     "typescript": "^2.9.2",
-    "vsce": "^1.53.2"
+    "vsce": "^1.54.0"
   },
   "dependencies": {
-    "vscode": "^1.1.22",
-    "vscode-languageclient": "^5.1.1"
+    "vscode": "^1.1.26",
+    "vscode-languageclient": "^5.2.1"
   },
   "repository": {
     "type": "git",
