@@ -5,7 +5,7 @@ import { disposeAll } from "./utils";
 export let ctx: GlobalContext;
 
 /** object instance */
-class GlobalContext implements Disposable {
+export class GlobalContext implements Disposable {
   private _dispose: Disposable[] = [];
   private _server: ServerContext;
   public constructor(

@@ -25,13 +25,19 @@ import {
 } from "vscode-languageclient";
 import { Converter } from "vscode-languageclient/lib/protocolConverter";
 import * as ls from "vscode-languageserver-types";
-import { CallHierarchyProvider } from "./callHierarchy";
+import { CallHierarchyNode, CallHierarchyProvider } from "./callHierarchy";
 import { CclsErrorHandler } from "./cclsErrorHandler";
 import { InactiveRegionsProvider } from "./inactiveRegions";
-import { InheritanceHierarchyProvider } from "./inheritanceHierarchy";
+import { InheritanceHierarchyNode, InheritanceHierarchyProvider } from "./inheritanceHierarchy";
+import { PublishSemanticHighlightArgs, SemanticContext } from "./semantic";
 import { ClientConfig } from "./types";
 import { disposeAll, normalizeUri, unwrap } from "./utils";
 import { jumpToUriAtPosition } from "./vscodeUtils";
+
+interface LastGoto {
+  id: any;
+  clockTime: number;
+}
 
 function getClientConfig(): ClientConfig {
   const kCacheDirPrefName = 'cacheDirectory';
@@ -160,6 +166,10 @@ export class ServerContext implements Disposable {
   public cliConfig: ClientConfig;
   private _dispose: Disposable[] = [];
   private p2c: Converter;
+  private lastGoto: LastGoto = {
+    clockTime: 0,
+    id: undefined,
+  };
 
   public constructor(
   ) {
@@ -211,6 +221,28 @@ export class ServerContext implements Disposable {
     this._dispose.push(callHierarchyProvider);
     this._dispose.push(window.registerTreeDataProvider(
         "ccls.callHierarchy", callHierarchyProvider
+    ));
+
+    // Common between tree views.
+    this._dispose.push(commands.registerCommand(
+        "ccls.gotoForTreeView", this.gotoForTreeView, this
+    ));
+    this._dispose.push(commands.registerCommand(
+        "ccls.hackGotoForTreeView", this.hackGotoForTreeView, this
+    ));
+
+    // Semantic highlighting
+    // TODO:
+    //   - enable bold/italic decorators, might need change in vscode
+    //   - only function call icon if the call is implicit
+    const semantic = new SemanticContext();
+    this._dispose.push(semantic);
+    // await languageClient.onReady();
+    this.client.onNotification('$ccls/publishSemanticHighlight',
+        (args: PublishSemanticHighlightArgs) => semantic.publishSemanticHighlight(args)
+    );
+    this._dispose.push(commands.registerCommand(
+        'ccls.navigate', this.makeNavigateHandler('$ccls/navigate')
     ));
   }
 
@@ -491,5 +523,66 @@ export class ServerContext implements Disposable {
         return;
       commands.executeCommand('ccls._applyFixIt', uri, [selected.edit]);
     }
+  }
+
+  private async gotoForTreeView(node: InheritanceHierarchyNode|CallHierarchyNode) {
+    if (!node.location)
+      return;
+
+    const parsedUri = Uri.parse(node.location.uri);
+    const parsedPosition = this.p2c.asPosition(node.location.range.start);
+
+    return jumpToUriAtPosition(parsedUri, parsedPosition, true /*preserveFocus*/);
+  }
+
+  private async hackGotoForTreeView(
+    node: InheritanceHierarchyNode|CallHierarchyNode,
+    hasChildren: boolean
+  ) {
+    if (!node.location)
+    return;
+
+    if (!hasChildren) {
+      commands.executeCommand('ccls.gotoForTreeView', node);
+      return;
+    }
+
+    if (this.lastGoto.id !== node.id) {
+      this.lastGoto.id = node.id;
+      this.lastGoto.clockTime = Date.now();
+      return;
+    }
+
+    const config = workspace.getConfiguration('ccls');
+    const kDoubleClickTimeMs =
+        config.get('treeViews.doubleClickTimeoutMs', 500);
+    const elapsed = Date.now() - this.lastGoto.clockTime;
+    this.lastGoto.clockTime = Date.now();
+    if (elapsed < kDoubleClickTimeMs)
+      commands.executeCommand('ccls.gotoForTreeView', node);
+  }
+
+  private makeNavigateHandler(methodName: string) {
+    return async (userParams: any) => {
+      const editor = unwrap(window.activeTextEditor, "window.activeTextEditor");
+      const position = editor.selection.active;
+      const uri = editor.document.uri;
+      const locations = await this.client.sendRequest<Array<ls.Location>>(
+        methodName,
+        {
+          position,
+          textDocument: {
+            uri: uri.toString(),
+          },
+          ...userParams
+        }
+      );
+      if (locations.length === 1) {
+        const location = this.p2c.asLocation(locations[0]);
+        await jumpToUriAtPosition(
+          location.uri, location.range.start,
+          false /*preserveFocus*/);
+      }
+    };
   }
 }
