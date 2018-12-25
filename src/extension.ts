@@ -559,50 +559,51 @@ export async function activate(context: ExtensionContext) {
   // Inactive regions.
   {
     const config = workspace.getConfiguration('ccls');
-    if (!config.get('misc.showInactiveRegions')) return;
-    const decorationType = window.createTextEditorDecorationType({
-      dark: {
-        backgroundColor: config.get('theme.dark.skippedRange.backgroundColor'),
-        color: config.get('theme.dark.skippedRange.textColor'),
-      },
-      isWholeLine: true,
-      light: {
-        backgroundColor: config.get('theme.light.skippedRange.backgroundColor'),
-        color: config.get('theme.light.skippedRange.textColor'),
-      },
-      rangeBehavior: DecorationRangeBehavior.ClosedClosed
-    });
-
-    const skippedRanges = new Map<string, Range[]>();
-
-    await languageClient.onReady();
-    languageClient.onNotification("$ccls/publishSkippedRanges", (args) => {
-      const uri = normalizeUri(args.uri);
-      let ranges: Range[] = args.skippedRanges.map(p2c.asRange);
-      ranges = ranges.map((range) => {
-        if (range.isEmpty || range.isSingleLine) return range;
-        return range.with({ end: range.end.translate(-1, 23333) });
+    if (config.get('misc.showInactiveRegions')) {
+      const decorationType = window.createTextEditorDecorationType({
+        dark: {
+          backgroundColor: config.get('theme.dark.skippedRange.backgroundColor'),
+          color: config.get('theme.dark.skippedRange.textColor'),
+        },
+        isWholeLine: true,
+        light: {
+          backgroundColor: config.get('theme.light.skippedRange.backgroundColor'),
+          color: config.get('theme.light.skippedRange.textColor'),
+        },
+        rangeBehavior: DecorationRangeBehavior.ClosedClosed
       });
-      skippedRanges.set(uri, ranges);
-      window.visibleTextEditors
-        .filter((editor) => editor.document.uri.toString() === uri)
-        .forEach((editor) => editor.setDecorations(decorationType, ranges));
-    });
 
-    window.onDidChangeActiveTextEditor((editor?: TextEditor) => {
-      if (!editor)
-        return;
-      const uri = editor.document.uri.toString();
-      const range = skippedRanges.get(uri);
-      if (range) {
-        editor.setDecorations(decorationType, range);
-      }
-    });
+      const skippedRanges = new Map<string, Range[]>();
 
-    // This only got called during dispose, which perfectly matches our goal.
-    workspace.onDidCloseTextDocument((document) => {
-      skippedRanges.delete(document.uri.toString());
-    });
+      await languageClient.onReady();
+      languageClient.onNotification("$ccls/publishSkippedRanges", (args) => {
+        const uri = normalizeUri(args.uri);
+        let ranges: Range[] = args.skippedRanges.map(p2c.asRange);
+        ranges = ranges.map((range) => {
+          if (range.isEmpty || range.isSingleLine) return range;
+          return range.with({ end: range.end.translate(-1, 23333) });
+        });
+        skippedRanges.set(uri, ranges);
+        window.visibleTextEditors
+          .filter((editor) => editor.document.uri.toString() === uri)
+          .forEach((editor) => editor.setDecorations(decorationType, ranges));
+      });
+
+      window.onDidChangeActiveTextEditor((editor?: TextEditor) => {
+        if (!editor)
+          return;
+        const uri = editor.document.uri.toString();
+        const range = skippedRanges.get(uri);
+        if (range) {
+          editor.setDecorations(decorationType, range);
+        }
+      });
+
+      // This only got called during dispose, which perfectly matches our goal.
+      workspace.onDidCloseTextDocument((document) => {
+        skippedRanges.delete(document.uri.toString());
+      });
+    }
   }
 
   // Inheritance hierarchy.
