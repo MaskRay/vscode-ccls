@@ -27,12 +27,9 @@ import { Converter } from "vscode-languageclient/lib/protocolConverter";
 import * as ls from "vscode-languageserver-types";
 import { CclsErrorHandler } from "./cclsErrorHandler";
 import { ClientConfig } from "./types";
-import { disposeAll, unwrap } from "./utils";
+import { disposeAll, normalizeUri, unwrap } from "./utils";
 import { jumpToUriAtPosition } from "./vscodeUtils";
-
-function normalizeUri(u: string): string {
-  return Uri.parse(u).toString(true);
-}
+import { InactiveRegionsProvider } from "./inactiveRegions";
 
 function getClientConfig(): ClientConfig {
   const kCacheDirPrefName = 'cacheDirectory';
@@ -180,22 +177,27 @@ export class ServerContext implements Disposable {
       }".`);
     }
     // General commands.
-    commands.registerCommand("ccls.vars", this.makeRefHandler("$ccls/vars"));
-    commands.registerCommand("ccls.call", this.makeRefHandler("$ccls/call"));
-    commands.registerCommand("ccls.member", this.makeRefHandler("$ccls/member"));
-    commands.registerCommand(
-      "ccls.base", this.makeRefHandler("$ccls/inheritance", { derived: false }, true));
-    commands.registerCommand("ccls.showXrefs", this.showXrefsHandlerCmd, this);
+    this._dispose.push(commands.registerCommand("ccls.vars", this.makeRefHandler("$ccls/vars")));
+    this._dispose.push(commands.registerCommand("ccls.call", this.makeRefHandler("$ccls/call")));
+    this._dispose.push(commands.registerCommand("ccls.member", this.makeRefHandler("$ccls/member")));
+    this._dispose.push(commands.registerCommand(
+      "ccls.base", this.makeRefHandler("$ccls/inheritance", { derived: false }, true)));
+    this._dispose.push(commands.registerCommand("ccls.showXrefs", this.showXrefsHandlerCmd, this));
 
     // The language client does not correctly deserialize arguments, so we have a
     // wrapper command that does it for us.
-    commands.registerCommand('ccls.showReferences', this.showReferencesCmd, this);
-    commands.registerCommand('ccls.goto', this.gotoCmd, this);
+    this._dispose.push(commands.registerCommand('ccls.showReferences', this.showReferencesCmd, this));
+    this._dispose.push(commands.registerCommand('ccls.goto', this.gotoCmd, this));
 
-    commands.registerCommand("ccls._applyFixIt", this.fixItCmd, this);
-    commands.registerCommand('ccls._autoImplement', this.autoImplementCmd, this);
-    commands.registerCommand('ccls._insertInclude', this.insertIncludeCmd, this);
+    this._dispose.push(commands.registerCommand("ccls._applyFixIt", this.fixItCmd, this));
+    this._dispose.push(commands.registerCommand('ccls._autoImplement', this.autoImplementCmd, this));
+    this._dispose.push(commands.registerCommand('ccls._insertInclude', this.insertIncludeCmd, this));
 
+    const config = workspace.getConfiguration('ccls');
+    if (config.get('misc.showInactiveRegions')) {
+      const inact = new InactiveRegionsProvider(this.client);
+      this._dispose.push(inact);
+    }
   }
 
   public async onDidChangeConfiguration() {
