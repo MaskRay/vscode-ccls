@@ -55,8 +55,12 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
       light: resourcePath("derived-light.svg")
     };
 
-    commands.registerTextEditorCommand('ccls.callHierarchy', this.cclsCallHierarchy, this);
-    commands.registerCommand('ccls.closeCallHierarchy', this.closeCallHierarchy, this);
+    this._dispose.push(commands.registerTextEditorCommand(
+      'ccls.callHierarchy', this.cclsCallHierarchy, this
+    ));
+    this._dispose.push(commands.registerCommand(
+      'ccls.closeCallHierarchy', this.closeCallHierarchy, this
+    ));
   }
 
   public dispose() {
