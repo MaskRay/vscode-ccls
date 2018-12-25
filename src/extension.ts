@@ -37,10 +37,6 @@ import { ClientConfig } from "./types";
 import { unwrap } from "./utils";
 import { jumpToUriAtPosition } from "./vscodeUtils";
 
-function setContext(name: string, value: any): void {
-  commands.executeCommand("setContext", name, value);
-}
-
 enum SymbolKind {
   // lsSymbolKind
   Unknown = 0,
@@ -103,101 +99,6 @@ interface SemanticSymbol {
 }
 
 export async function activate(context: ExtensionContext) {
-  // Inheritance hierarchy.
-  {
-    const inheritanceHierarchyProvider =
-        new InheritanceHierarchyProvider(languageClient);
-    window.registerTreeDataProvider(
-        'ccls.inheritanceHierarchy', inheritanceHierarchyProvider);
-    commands.registerTextEditorCommand(
-        'ccls.inheritanceHierarchy', async (editor) => {
-          setContext('extension.ccls.inheritanceHierarchyVisible', true);
-
-          const position = editor.selection.active;
-          const uri = editor.document.uri;
-          const entry = await languageClient.sendRequest<InheritanceHierarchyNode>('$ccls/inheritance', {
-            derived: true,
-            hierarchy: true,
-            levels: 1,
-            position,
-            qualified: false,
-            textDocument: {
-              uri: uri.toString(),
-            },
-          });
-          InheritanceHierarchySetWantsDerived(entry, true);
-
-          const parentEntry = await languageClient.sendRequest<InheritanceHierarchyNode>(
-            '$ccls/inheritance',
-            {
-              derived: false,
-              hierarchy: true,
-              id: entry.id,
-              kind: entry.kind,
-              levels: 1,
-              qualified: false,
-            }
-          );
-          if (parentEntry.numChildren > 0) {
-            const parentWrapper: InheritanceHierarchyNode = {
-              children: parentEntry.children,
-              id: undefined,
-              kind: -1,
-              location: undefined,
-              name: '[[Base]]',
-              numChildren: parentEntry.children.length,
-              wantsDerived: false
-            };
-            InheritanceHierarchySetWantsDerived(
-                parentWrapper, false);
-            entry.children.unshift(parentWrapper);
-            entry.numChildren += 1;
-          }
-
-          inheritanceHierarchyProvider.root = entry;
-          inheritanceHierarchyProvider.onDidChangeEmitter.fire();
-          commands.executeCommand("workbench.view.explorer");
-        });
-    commands.registerCommand('ccls.closeInheritanceHierarchy', () => {
-      setContext('extension.ccls.inheritanceHierarchyVisible', false);
-      inheritanceHierarchyProvider.root = undefined;
-      inheritanceHierarchyProvider.onDidChangeEmitter.fire();
-    });
-  }
-
-  // Call Hierarchy
-  {
-    const callHierarchyProvider = new CallHierarchyProvider(languageClient);
-    window.registerTreeDataProvider('ccls.callHierarchy', callHierarchyProvider);
-    commands.registerTextEditorCommand('ccls.callHierarchy', async (editor) => {
-      setContext('extension.ccls.callHierarchyVisible', true);
-      const position = editor.selection.active;
-      const uri = editor.document.uri;
-      const callNode = await languageClient.sendRequest<CallHierarchyNode>(
-        '$ccls/call',
-        {
-          callType: 0x1 | 0x2,
-          callee: false,
-          hierarchy: true,
-          levels: 2,
-          position,
-          qualified: false,
-          textDocument: {
-            uri: uri.toString(),
-          },
-        }
-      );
-      callHierarchyProvider.root = callNode;
-      callHierarchyProvider.onDidChangeEmitter.fire();
-      commands.executeCommand("workbench.view.explorer");
-    });
-    commands.registerCommand('ccls.closeCallHierarchy', (e) => {
-      setContext('extension.ccls.callHierarchyVisible', false);
-      callHierarchyProvider.root = undefined;
-      callHierarchyProvider.onDidChangeEmitter.fire();
-    });
-  }
-
   // Common between tree views.
   {
     commands.registerCommand(

@@ -25,11 +25,13 @@ import {
 } from "vscode-languageclient";
 import { Converter } from "vscode-languageclient/lib/protocolConverter";
 import * as ls from "vscode-languageserver-types";
+import { CallHierarchyProvider } from "./callHierarchy";
 import { CclsErrorHandler } from "./cclsErrorHandler";
+import { InactiveRegionsProvider } from "./inactiveRegions";
+import { InheritanceHierarchyProvider } from "./inheritanceHierarchy";
 import { ClientConfig } from "./types";
 import { disposeAll, normalizeUri, unwrap } from "./utils";
 import { jumpToUriAtPosition } from "./vscodeUtils";
-import { InactiveRegionsProvider } from "./inactiveRegions";
 
 function getClientConfig(): ClientConfig {
   const kCacheDirPrefName = 'cacheDirectory';
@@ -198,6 +200,18 @@ export class ServerContext implements Disposable {
       const inact = new InactiveRegionsProvider(this.client);
       this._dispose.push(inact);
     }
+
+    const inheritanceHierarchyProvider = new InheritanceHierarchyProvider(this.client);
+    this._dispose.push(inheritanceHierarchyProvider);
+    this._dispose.push(window.registerTreeDataProvider(
+        "ccls.inheritanceHierarchy", inheritanceHierarchyProvider
+    ));
+
+    const callHierarchyProvider = new CallHierarchyProvider(this.client);
+    this._dispose.push(callHierarchyProvider);
+    this._dispose.push(window.registerTreeDataProvider(
+        "ccls.callHierarchy", callHierarchyProvider
+    ));
   }
 
   public async onDidChangeConfiguration() {

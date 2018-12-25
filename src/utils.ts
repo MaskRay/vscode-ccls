@@ -1,5 +1,5 @@
 import * as path from "path";
-import { Disposable, Uri } from "vscode";
+import { commands, Disposable, Uri } from "vscode";
 
 export function resourcePath(...paths: string[]): string {
   return path.join(__dirname, "..", "resources", ...paths);
@@ -17,4 +17,8 @@ export function disposeAll(items: Disposable[]): any[] {
 
 export function normalizeUri(u: string): string {
   return Uri.parse(u).toString(true);
+}
+
+export function setContext(name: string, value: any): void {
+  commands.executeCommand("setContext", name, value);
 }

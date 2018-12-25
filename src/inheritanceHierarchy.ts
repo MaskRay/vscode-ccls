@@ -1,6 +1,16 @@
-import { Event, EventEmitter, TreeDataProvider, TreeItem, TreeItemCollapsibleState, Uri } from "vscode";
-import { LanguageClient } from "vscode-languageclient/lib/main";
+import {
+  commands,
+  Event,
+  EventEmitter,
+  TextEditor,
+  TreeDataProvider,
+  TreeItem,
+  TreeItemCollapsibleState,
+  Uri
+} from "vscode";
+import { Disposable, LanguageClient } from "vscode-languageclient/lib/main";
 import * as ls from "vscode-languageserver-types";
+import { disposeAll, setContext } from "./utils";
 
 export function InheritanceHierarchySetWantsDerived(node: InheritanceHierarchyNode, value: boolean) {
   node.wantsDerived = value;
@@ -20,13 +30,26 @@ export interface InheritanceHierarchyNode {
 }
 
 export class InheritanceHierarchyProvider implements
-  TreeDataProvider<InheritanceHierarchyNode> {
+    TreeDataProvider<InheritanceHierarchyNode>, Disposable {
 
-  public readonly onDidChangeEmitter: EventEmitter<any> = new EventEmitter<any>();
+  private readonly onDidChangeEmitter: EventEmitter<any> = new EventEmitter<any>();
+  // tslint:disable-next-line:member-ordering
   public readonly onDidChangeTreeData: Event<any> = this.onDidChangeEmitter.event;
-  public root?: InheritanceHierarchyNode;
+  private root?: InheritanceHierarchyNode;
+  private _dispose: Disposable[] = [];
 
-  constructor(readonly languageClient: LanguageClient) { }
+  constructor(readonly languageClient: LanguageClient) {
+    this._dispose.push(commands.registerTextEditorCommand(
+      "ccls.inheritanceHierarchy", this.cclsInheritanceHierarchy, this
+    ));
+    this._dispose.push(commands.registerCommand(
+      "ccls.closeInheritanceHierarchy", this.closeInheritanceHierarchy, this
+      ));
+  }
+
+  public dispose() {
+    disposeAll(this._dispose);
+  }
 
   public getTreeItem(element: InheritanceHierarchyNode): TreeItem {
     const kBaseName = '[[Base]]';
@@ -79,5 +102,60 @@ export class InheritanceHierarchyProvider implements
     element.children = result.children;
     result.children.map((c) => InheritanceHierarchySetWantsDerived(c, element.wantsDerived));
     return result.children;
+  }
+
+  private async cclsInheritanceHierarchy(editor: TextEditor) {
+    setContext('extension.ccls.inheritanceHierarchyVisible', true);
+
+    const position = editor.selection.active;
+    const uri = editor.document.uri;
+    const entry = await this.languageClient.sendRequest<InheritanceHierarchyNode>('$ccls/inheritance', {
+      derived: true,
+      hierarchy: true,
+      levels: 1,
+      position,
+      qualified: false,
+      textDocument: {
+        uri: uri.toString(),
+      },
+    });
+    InheritanceHierarchySetWantsDerived(entry, true);
+
+    const parentEntry = await this.languageClient.sendRequest<InheritanceHierarchyNode>(
+      '$ccls/inheritance',
+      {
+        derived: false,
+        hierarchy: true,
+        id: entry.id,
+        kind: entry.kind,
+        levels: 1,
+        qualified: false,
+      }
+    );
+    if (parentEntry.numChildren > 0) {
+      const parentWrapper: InheritanceHierarchyNode = {
+        children: parentEntry.children,
+        id: undefined,
+        kind: -1,
+        location: undefined,
+        name: '[[Base]]',
+        numChildren: parentEntry.children.length,
+        wantsDerived: false
+      };
+      InheritanceHierarchySetWantsDerived(
+          parentWrapper, false);
+      entry.children.unshift(parentWrapper);
+      entry.numChildren += 1;
+    }
+
+    this.root = entry;
+    this.onDidChangeEmitter.fire();
+    commands.executeCommand("workbench.view.explorer");
+  }
+
+  private async closeInheritanceHierarchy() {
+    setContext('extension.ccls.inheritanceHierarchyVisible', false);
+    this.root = undefined;
+    this.onDidChangeEmitter.fire();
   }
 }
