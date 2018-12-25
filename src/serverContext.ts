@@ -1,0 +1,479 @@
+import {
+  CancellationToken,
+  CodeLens,
+  commands,
+  DecorationOptions,
+  DecorationRangeBehavior,
+  DecorationRenderOptions,
+  Disposable,
+  Position,
+  QuickPickItem,
+  Range,
+  TextDocument,
+  TextEditor,
+  ThemeColor,
+  Uri,
+  window,
+  workspace,
+} from "vscode";
+import {
+  LanguageClient,
+  LanguageClientOptions,
+  ProvideCodeLensesSignature,
+  RevealOutputChannelOn,
+  ServerOptions,
+} from "vscode-languageclient";
+import { Converter } from "vscode-languageclient/lib/protocolConverter";
+import * as ls from "vscode-languageserver-types";
+import { CclsErrorHandler } from "./cclsErrorHandler";
+import { ClientConfig } from "./types";
+import { disposeAll, unwrap } from "./utils";
+import { jumpToUriAtPosition } from "./vscodeUtils";
+
+function normalizeUri(u: string): string {
+  return Uri.parse(u).toString(true);
+}
+
+function getClientConfig(): ClientConfig {
+  const kCacheDirPrefName = 'cacheDirectory';
+
+  function hasAnySemanticHighlight() {
+    const options = [
+      'ccls.highlighting.enabled.types',
+      'ccls.highlighting.enabled.freeStandingFunctions',
+      'ccls.highlighting.enabled.memberFunctions',
+      'ccls.highlighting.enabled.freeStandingVariables',
+      'ccls.highlighting.enabled.memberVariables',
+      'ccls.highlighting.enabled.namespaces',
+      'ccls.highlighting.enabled.macros',
+      'ccls.highlighting.enabled.enums',
+      'ccls.highlighting.enabled.typeAliases',
+      'ccls.highlighting.enabled.enumConstants',
+      'ccls.highlighting.enabled.staticMemberFunctions',
+      'ccls.highlighting.enabled.parameters',
+      'ccls.highlighting.enabled.templateParameters',
+      'ccls.highlighting.enabled.staticMemberVariables',
+      'ccls.highlighting.enabled.globalVariables'];
+    const wsconfig = workspace.getConfiguration();
+    for (const name of options) {
+      if (wsconfig.get(name, false))
+        return true;
+    }
+    return false;
+  }
+
+  function resolveVariablesInString(value: string) {
+    return value.replace('${workspaceFolder}', workspace.rootPath ? workspace.rootPath : "");
+  }
+
+  function resloveVariablesInArray(value: any[]): any[] {
+    return value.map((v) => resolveVariables(v));
+  }
+
+  function resolveVariables(value: any) {
+    if (typeof(value) === 'string') {
+      return resolveVariablesInString(value);
+    }
+    if (Array.isArray(value)) {
+        return resloveVariablesInArray(value);
+    }
+    return value;
+  }
+
+  // Read prefs; this map goes from `ccls/js name` => `vscode prefs name`.
+  const configMapping: Array<[string, string]> = [
+    ['launchCommand', 'launch.command'],
+    ['launchArgs', 'launch.args'],
+    ['cacheDirectory', kCacheDirPrefName],
+    ['compilationDatabaseCommand', 'misc.compilationDatabaseCommand'],
+    ['compilationDatabaseDirectory', 'misc.compilationDatabaseDirectory'],
+    ['clang.excludeArgs', 'clang.excludeArgs'],
+    ['clang.extraArgs', 'clang.extraArgs'],
+    ['clang.pathMappings', 'clang.pathMappings'],
+    ['clang.resourceDir', 'clang.resourceDir'],
+    ['codeLens.localVariables', 'codeLens.localVariables'],
+    ['completion.caseSensitivity', 'completion.caseSensitivity'],
+    ['completion.detailedLabel', 'completion.detailedLabel'],
+    ['completion.duplicateOptional', 'completion.duplicateOptional'],
+    ['completion.filterAndSort', 'completion.filterAndSort'],
+    ['completion.include.maxPathSize', 'completion.include.maxPathSize'],
+    ['completion.include.suffixWhitelist', 'completion.include.suffixWhitelist'],
+    ['completion.include.whitelist', 'completion.include.whitelist'],
+    ['completion.include.blacklist', 'completion.include.blacklist'],
+    ['client.snippetSupport', 'completion.enableSnippetInsertion'],
+    ['diagnostics.blacklist', 'diagnostics.blacklist'],
+    ['diagnostics.whitelist', 'diagnostics.whitelist'],
+    ['diagnostics.onChange', 'diagnostics.onChange'],
+    ['diagnostics.onOpen', 'diagnostics.onOpen'],
+    ['diagnostics.onSave', 'diagnostics.onSave'],
+    ['diagnostics.spellChecking', 'diagnostics.spellChecking'],
+    ['highlight.blacklist', 'highlight.blacklist'],
+    ['highlight.whitelist', 'highlight.whitelist'],
+    ['largeFileSize', 'highlight.largeFileSize'],
+    ['index.whitelist', 'index.whitelist'],
+    ['index.blacklist', 'index.blacklist'],
+    ['index.initialWhitelist', 'index.initialWhitelist'],
+    ['index.initialBlacklist', 'index.initialBlacklist'],
+    ['index.multiVersion', 'index.multiVersion'],
+    ['index.onChange', 'index.onChange'],
+    ['index.threads', 'index.threads'],
+    ['workspaceSymbol.maxNum', 'workspaceSymbol.maxNum'],
+    ['workspaceSymbol.caseSensitivity', 'workspaceSymbol.caseSensitivity'],
+  ];
+  const castBooleanToInteger: string[] = [];
+  const clientConfig: ClientConfig = {
+    cacheDirectory: '.ccls-cache',
+    highlight: {
+      enabled: hasAnySemanticHighlight(),
+      lsRanges: true,
+    },
+    launchArgs: [] as string[],
+    launchCommand: '',
+    workspaceSymbol: {
+      sort: false,
+    },
+  };
+  const config = workspace.getConfiguration('ccls');
+  for (const prop of configMapping) {
+    let value = config.get(prop[1]);
+    if (value != null) {
+      const subprops = prop[0].split('.');
+      let subconfig = clientConfig;
+      for (const subprop of subprops.slice(0, subprops.length - 1)) {
+        if (!subconfig.hasOwnProperty(subprop)) {
+          subconfig[subprop] = {};
+        }
+        subconfig = subconfig[subprop];
+      }
+      if (castBooleanToInteger.includes(prop[1])) {
+        value = +value;
+      }
+      subconfig[subprops[subprops.length - 1]] = resolveVariables(value);
+    }
+  }
+
+  return clientConfig;
+}
+
+/** instance represents running instance of ccls */
+export class ServerContext implements Disposable {
+  public client: LanguageClient;
+  public cliConfig: ClientConfig;
+  private _dispose: Disposable[] = [];
+  private p2c: Converter;
+
+  public constructor(
+  ) {
+    this.cliConfig = getClientConfig();
+    this._dispose.push(workspace.onDidChangeConfiguration(this.onDidChangeConfiguration, this));
+    this.client = this.initClient();
+    this.p2c = this.client.protocol2CodeConverter;
+  }
+
+  public async start() {
+    this._dispose.push(this.client.start());
+    try {
+      await this.client.onReady();
+    } catch (e) {
+      window.showErrorMessage(`Failed to start ccls with command "${
+        this.cliConfig.launchCommand
+      }".`);
+    }
+    // General commands.
+    commands.registerCommand("ccls.vars", this.makeRefHandler("$ccls/vars"));
+    commands.registerCommand("ccls.call", this.makeRefHandler("$ccls/call"));
+    commands.registerCommand("ccls.member", this.makeRefHandler("$ccls/member"));
+    commands.registerCommand(
+      "ccls.base", this.makeRefHandler("$ccls/inheritance", { derived: false }, true));
+    commands.registerCommand("ccls.showXrefs", this.showXrefsHandlerCmd, this);
+
+    // The language client does not correctly deserialize arguments, so we have a
+    // wrapper command that does it for us.
+    commands.registerCommand('ccls.showReferences', this.showReferencesCmd, this);
+    commands.registerCommand('ccls.goto', this.gotoCmd, this);
+
+    commands.registerCommand("ccls._applyFixIt", this.fixItCmd, this);
+    commands.registerCommand('ccls._autoImplement', this.autoImplementCmd, this);
+    commands.registerCommand('ccls._insertInclude', this.insertIncludeCmd, this);
+
+  }
+
+  public async onDidChangeConfiguration() {
+    const newConfig = getClientConfig();
+    for (const key in newConfig) {
+      if (!newConfig.hasOwnProperty(key))
+        continue;
+
+      if (!this.cliConfig ||
+          JSON.stringify(this.cliConfig[key]) !==
+              JSON.stringify(newConfig[key])) {
+        const kReload = 'Reload';
+        const message = `Please reload to apply the "ccls.${
+            key}" configuration change.`;
+
+        const selected = await window.showInformationMessage(message, kReload);
+        if (selected === kReload)
+          commands.executeCommand('workbench.action.reloadWindow');
+        break;
+      }
+    }
+  }
+
+  public async provideCodeLens(
+    document: TextDocument,
+    token: CancellationToken,
+    next: ProvideCodeLensesSignature
+  ): Promise<CodeLens[]> {
+    const enableCodeLens = workspace.getConfiguration(undefined, null).get('editor.codeLens');
+    if (!enableCodeLens)
+      return [];
+    const config = workspace.getConfiguration('ccls');
+    const enableInlineCodeLens = config.get('codeLens.renderInline', false);
+    if (!enableInlineCodeLens) {
+      const uri = document.uri;
+      const position = document.positionAt(0);
+      const lenses = await this.client.sendRequest<Array<any>>('textDocument/codeLens', {
+        position,
+        textDocument: {
+          uri: uri.toString(),
+        },
+      });
+      return lenses.map((lense) => {
+        const cmd  = lense.command;
+        if (cmd.command === 'ccls.xref') {
+          // Change to a custom command which will fetch and then show the results
+          cmd.command = 'ccls.showXrefs';
+          cmd.arguments = [
+            uri,
+            lense.range.start,
+            cmd.arguments,
+          ];
+        }
+        return this.p2c.asCodeLens(lense);
+      });
+    }
+
+    // We run the codeLens request ourselves so we can intercept the response.
+    const a = await this.client.sendRequest<ls.CodeLens[]>(
+      'textDocument/codeLens',
+      {
+        textDocument: {
+          uri: document.uri.toString(),
+        },
+      }
+    );
+    const result: CodeLens[] = this.client.protocol2CodeConverter.asCodeLenses(a);
+    this.displayCodeLens(document, result);
+    return [];
+  }
+
+  public dispose() {
+    return disposeAll(this._dispose);
+  }
+
+  private displayCodeLens(document: TextDocument, allCodeLens: CodeLens[]) {
+    const decorationOpts: DecorationRenderOptions = {
+      after: {
+        color: new ThemeColor('editorCodeLens.foreground'),
+        fontStyle: 'italic',
+      },
+      rangeBehavior: DecorationRangeBehavior.ClosedClosed,
+    };
+
+    const codeLensDecoration = window.createTextEditorDecorationType(decorationOpts);
+    for (const editor of window.visibleTextEditors) {
+      if (editor.document !== document)
+        continue;
+
+      const opts: DecorationOptions[] = [];
+
+      for (const codeLens of allCodeLens) {
+        // FIXME: show a real warning or disable on-the-side code lens.
+        if (!codeLens.isResolved)
+          console.error('Code lens is not resolved');
+
+        // Default to after the content.
+        let position = codeLens.range.end;
+
+        // If multiline push to the end of the first line - works better for
+        // functions.
+        if (codeLens.range.start.line !== codeLens.range.end.line)
+          position = new Position(codeLens.range.start.line, 1000000);
+
+        const range = new Range(position, position);
+        const opt: DecorationOptions = {
+          range,
+          renderOptions:
+              {after: {contentText: ' ' + unwrap(codeLens.command, "lens").title + ' '}}
+        };
+
+        opts.push(opt);
+      }
+
+      editor.setDecorations(codeLensDecoration, opts);
+    }
+  }
+
+  private initClient(): LanguageClient {
+    const clientConfig = getClientConfig();
+    const args = clientConfig.launchArgs;
+
+    const env: any = {};
+    const kToForward = [
+      'ProgramData',
+      'PATH',
+      'CPATH',
+      'LIBRARY_PATH',
+    ];
+    for (const e of kToForward)
+      env[e] = process.env[e];
+
+    const serverOptions: ServerOptions = {
+      args,
+      command: clientConfig.launchCommand,
+      options: { env }
+    };
+
+    // Options to control the language client
+    const clientOptions: LanguageClientOptions = {
+      diagnosticCollectionName: 'ccls',
+      documentSelector: ['c', 'cpp', 'objective-c', 'objective-cpp'],
+      // synchronize: {
+      // 	configurationSection: 'ccls',
+      // 	fileEvents: workspace.createFileSystemWatcher('**/.cc')
+      // },
+      errorHandler: new CclsErrorHandler(workspace.getConfiguration('ccls')),
+      initializationFailedHandler: (e) => {
+        console.log(e);
+        return false;
+      },
+      initializationOptions: clientConfig,
+      middleware: {provideCodeLenses: (doc, next, token) => this.provideCodeLens(doc, next, token)},
+      outputChannelName: 'ccls',
+      revealOutputChannelOn: RevealOutputChannelOn.Never,
+    };
+
+    // Create the language client and start the client.
+    return new LanguageClient('ccls', 'ccls', serverOptions, clientOptions);
+  }
+
+  private makeRefHandler(
+    methodName: string, extraParams: object = {},
+    autoGotoIfSingle = false) {
+      return async (userParams: any) => {
+        /*
+        userParams: a dict defined as `args` in keybindings.json (or passed by other extensions like VSCodeVIM)
+        Values defined by user have higher priority than `extraParams`
+        */
+        const editor = unwrap(window.activeTextEditor, "window.activeTextEditor");
+        const position = editor.selection.active;
+        const uri = editor.document.uri;
+        const locations = await this.client.sendRequest<Array<ls.Location>>(
+          methodName,
+          {
+            position,
+            textDocument: {
+              uri: uri.toString(),
+            },
+            ...extraParams,
+            ...userParams
+          }
+        );
+        if (autoGotoIfSingle && locations.length === 1) {
+          const location = this.p2c.asLocation(locations[0]);
+          commands.executeCommand(
+              'ccls.goto', location.uri, location.range.start, []);
+        } else {
+          commands.executeCommand(
+              'editor.action.showReferences', uri, position,
+              locations.map(this.p2c.asLocation));
+        }
+    };
+  }
+
+  private async showXrefsHandlerCmd(...args: any[]) { // TODO fix any
+    const [uri, position, xrefArgs] = args;
+    const locations = await commands.executeCommand<ls.Location[]>('ccls.xref', ...xrefArgs);
+    if (!locations)
+      return;
+    commands.executeCommand(
+      'editor.action.showReferences',
+      uri, this.p2c.asPosition(position),
+      locations.map(this.p2c.asLocation)
+    );
+  }
+
+  private showReferencesCmd(uri: string, position: ls.Position, locations: ls.Location[]) {
+    commands.executeCommand(
+      'editor.action.showReferences',
+      this.p2c.asUri(uri),
+      this.p2c.asPosition(position),
+      locations.map(this.p2c.asLocation)
+    );
+  }
+
+  private async gotoCmd(uri: string, position: ls.Position, locations: ls.Location[]) {
+    return jumpToUriAtPosition(
+      this.p2c.asUri(uri),
+      this.p2c.asPosition(position),
+      false /*preserveFocus*/
+    );
+  }
+
+  private async fixItCmd(uri: string, pTextEdits: ls.TextEdit[]) {
+    const textEdits = this.p2c.asTextEdits(pTextEdits);
+
+    async function applyEdits(editor: TextEditor) {
+      const success = await editor.edit((editBuilder) => {
+        for (const edit of textEdits) {
+          editBuilder.replace(edit.range, edit.newText);
+        }
+      });
+      if (!success) {
+        window.showErrorMessage("Failed to apply FixIt");
+      }
+    }
+
+    // Find existing open document.
+    for (const textEditor of window.visibleTextEditors) {
+      if (textEditor.document.uri.toString() === normalizeUri(uri)) {
+        applyEdits(textEditor);
+        return;
+      }
+    }
+
+    // Failed, open new document.
+    const d = await workspace.openTextDocument(Uri.parse(uri));
+    const e = await window.showTextDocument(d);
+    if (!e) { // FIXME seems to be redundant
+      window.showErrorMessage("Failed to to get editor for FixIt");
+    }
+
+    applyEdits(e);
+  }
+
+  private async autoImplementCmd(uri: string, pTextEdits: ls.TextEdit[]) {
+    await commands.executeCommand('ccls._applyFixIt', uri, pTextEdits);
+    commands.executeCommand('ccls.goto', uri, pTextEdits[0].range.start);
+  }
+
+  private async insertIncludeCmd(uri: string, pTextEdits: ls.TextEdit[]) {
+    if (pTextEdits.length === 1)
+      commands.executeCommand('ccls._applyFixIt', uri, pTextEdits);
+    else {
+      class MyQuickPick implements QuickPickItem {
+        constructor(
+            public label: string, public description: string,
+            public edit: any) {}
+      }
+      const items: Array<MyQuickPick> = [];
+      for (const edit of pTextEdits) {
+        items.push(new MyQuickPick(edit.newText, '', edit));
+      }
+      const selected = await window.showQuickPick(items);
+      if (!selected)
+        return;
+      commands.executeCommand('ccls._applyFixIt', uri, [selected.edit]);
+    }
+  }
+}
