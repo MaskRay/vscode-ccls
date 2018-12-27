@@ -1,8 +1,18 @@
-import { Event, EventEmitter, TreeDataProvider, TreeItem, TreeItemCollapsibleState, Uri } from 'vscode';
+import {
+  commands,
+  Disposable,
+  Event,
+  EventEmitter,
+  TextEditor,
+  TreeDataProvider,
+  TreeItem,
+  TreeItemCollapsibleState,
+  Uri
+} from "vscode";
 import { LanguageClient } from 'vscode-languageclient/lib/main';
 import * as ls from 'vscode-languageserver-types';
 import { Icon } from './types';
-import { resourcePath } from "./utils";
+import { disposeAll, resourcePath, setContext } from "./utils";
 
 enum CallType {
   Normal = 0,
@@ -23,13 +33,15 @@ export interface CallHierarchyNode {
   children: CallHierarchyNode[];
 }
 
-export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode> {
-  public readonly onDidChangeEmitter: EventEmitter<any> = new EventEmitter<any>();
+export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode>, Disposable {
+  private readonly onDidChangeEmitter: EventEmitter<any> = new EventEmitter<any>();
+  // tslint:disable-next-line:member-ordering
   public readonly onDidChangeTreeData: Event<any> = this.onDidChangeEmitter.event;
 
-  public root?: CallHierarchyNode;
+  private root?: CallHierarchyNode;
   private baseIcon: Icon;
   private derivedIcon: Icon;
+  private _dispose: Disposable[] = [];
 
   constructor(
     readonly languageClient: LanguageClient
@@ -42,6 +54,17 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
       dark: resourcePath("derived-dark.svg"),
       light: resourcePath("derived-light.svg")
     };
+
+    this._dispose.push(commands.registerTextEditorCommand(
+      'ccls.callHierarchy', this.cclsCallHierarchy, this
+    ));
+    this._dispose.push(commands.registerCommand(
+      'ccls.closeCallHierarchy', this.closeCallHierarchy, this
+    ));
+  }
+
+  public dispose() {
+    disposeAll(this._dispose);
   }
 
   public getTreeItem(element: CallHierarchyNode): TreeItem {
@@ -101,5 +124,34 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
     });
     element.children = result.children;
     return result.children;
+  }
+
+  private async cclsCallHierarchy(editor: TextEditor) {
+    setContext('extension.ccls.callHierarchyVisible', true);
+    const position = editor.selection.active;
+    const uri = editor.document.uri;
+    const callNode = await this.languageClient.sendRequest<CallHierarchyNode>(
+      '$ccls/call',
+      {
+        callType: 0x1 | 0x2,
+        callee: false,
+        hierarchy: true,
+        levels: 2,
+        position,
+        qualified: false,
+        textDocument: {
+          uri: uri.toString(),
+        },
+      }
+    );
+    this.root = callNode;
+    this.onDidChangeEmitter.fire();
+    commands.executeCommand("workbench.view.explorer");
+  }
+
+  private async closeCallHierarchy() {
+    setContext('extension.ccls.callHierarchyVisible', false);
+    this.root = undefined;
+    this.onDidChangeEmitter.fire();
   }
 }
