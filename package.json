@@ -674,12 +674,12 @@
         "ccls.index.whitelist": {
           "type": "array",
           "default": [],
-          "description": "If a translation unit's absolute path matches any ECMAScript regex in this list, it will be indexed. The whitelist takes priority over the blacklist. To only index files in the whitelist, make \"ccls.index.blacklist\" match everything, ie, set it to \".*\".\n\nYou probably want to begin the regex using \".*\" because the passed paths are absolute."
+          "description": "If a translation unit's absolute path partially matches any ECMAScript regex in this list, it will be indexed. The whitelist takes priority over the blacklist. To only index files in the whitelist, make \"ccls.index.blacklist\" match everything, ie, set it to \".*\"."
         },
         "ccls.index.blacklist": {
           "type": "array",
           "default": [],
-          "description": "A translation unit (cc/cpp file) is not indexed if any of the ECMAScript regexes in this list matches translation unit's the absolute path.\n\nYou probably want to begin the regex using \".*\" because the passed paths are absolute."
+          "description": "A translation unit (cc/cpp file) is not indexed if any of the ECMAScript regexes in this list partially matches translation unit's the absolute path."
         },
         "ccls.clang.resourceDir": {
           "type": "string",
@@ -718,12 +718,12 @@
         "ccls.completion.include.whitelist": {
           "type": "array",
           "default": [],
-          "description": "ECMAScript regex that checks absolute file path. If it does not match, the file is not added to include path auto-complete. An example is \".*/src/.*\""
+          "description": "ECMAScript regex that checks absolute file path. If it does not partially match, the file is not added to include path auto-complete. An example is \"/src/\""
         },
         "ccls.completion.include.blacklist": {
           "type": "array",
           "default": [],
-          "description": "ECMAScript regex that checks absolute path. If it matches, the file is not added to include path auto-complete. An example is \".*/CACHE/.*\""
+          "description": "ECMAScript regex that checks absolute path. If it partially matches, the file is not added to include path auto-complete. An example is \"/CACHE/\""
         },
         "ccls.completion.caseSensitivity": {
           "type": "integer",
