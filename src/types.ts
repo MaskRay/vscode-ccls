@@ -16,5 +16,6 @@ export interface ClientConfig {
   workspaceSymbol: {
     sort: boolean,
   };
+  statusUpdateInterval: number;
   [key: string]: any;
 }

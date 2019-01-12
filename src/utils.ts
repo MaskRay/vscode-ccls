@@ -22,3 +22,12 @@ export function normalizeUri(u: string): string {
 export function setContext(name: string, value: any): void {
   commands.executeCommand("setContext", name, value);
 }
+
+export function dedent(templateStrings: TemplateStringsArray, ...args: any[]) {
+  const strings = templateStrings.map((value) => value.replace(/\r?\n[ ]*$/, '\n'));
+  let result = strings[0];
+  for (let i = 0; i < args.length; i++) {
+    result += args[i] + strings[i + 1];
+  }
+  return result;
+}
