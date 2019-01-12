@@ -985,6 +985,11 @@
           "default": null,
           "description": "The maximum number of global search (ie, Ctrl+P + #foo) search results to report. For small search strings on large projects there can be a massive number of results (ie, over 1,000,000) so this limit is important to avoid extremely long delays. null means use the default value provided by the ccls language server."
         },
+        "ccls.codeLens.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Specifies whether the references CodeLens should be shown."
+        },
         "ccls.statusUpdateInterval": {
           "type": "integer",
           "default": 2000,

@@ -338,10 +338,10 @@ export class ServerContext implements Disposable {
     token: CancellationToken,
     next: ProvideCodeLensesSignature
   ): Promise<CodeLens[]> {
-    const enableCodeLens = workspace.getConfiguration(undefined, null).get('editor.codeLens');
+    const config = workspace.getConfiguration('ccls');
+    const enableCodeLens = config.get('codeLens.enabled');
     if (!enableCodeLens)
       return [];
-    const config = workspace.getConfiguration('ccls');
     const enableInlineCodeLens = config.get('codeLens.renderInline', false);
     if (!enableInlineCodeLens) {
       const uri = document.uri;
