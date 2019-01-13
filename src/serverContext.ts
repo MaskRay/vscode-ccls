@@ -33,6 +33,7 @@ import { PublishSemanticHighlightArgs, SemanticContext } from "./semantic";
 import { ClientConfig } from "./types";
 import { disposeAll, normalizeUri, unwrap } from "./utils";
 import { jumpToUriAtPosition } from "./vscodeUtils";
+import { StatusBarIconProvider } from "./statusBarIcon";
 
 interface LastGoto {
   id: any;
@@ -124,6 +125,7 @@ function getClientConfig(): ClientConfig {
     ['index.threads', 'index.threads'],
     ['workspaceSymbol.maxNum', 'workspaceSymbol.maxNum'],
     ['workspaceSymbol.caseSensitivity', 'workspaceSymbol.caseSensitivity'],
+    ['statusUpdateInterval', 'statusUpdateInterval'],
   ];
   const castBooleanToInteger: string[] = [];
   const clientConfig: ClientConfig = {
@@ -137,6 +139,7 @@ function getClientConfig(): ClientConfig {
     workspaceSymbol: {
       sort: false,
     },
+    statusUpdateInterval: 0,
   };
   const config = workspace.getConfiguration('ccls');
   for (const prop of configMapping) {
@@ -244,6 +247,12 @@ export class ServerContext implements Disposable {
     this._dispose.push(commands.registerCommand(
         'ccls.navigate', this.makeNavigateHandler('$ccls/navigate')
     ));
+
+    const interval = this.cliConfig.statusUpdateInterval;
+    if (interval) {
+      const statusBarIconProvider = new StatusBarIconProvider(this.client, interval);
+      this._dispose.push(statusBarIconProvider);
+    }
   }
 
   public async onDidChangeConfiguration() {
