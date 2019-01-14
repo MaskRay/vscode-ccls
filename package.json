@@ -3,11 +3,11 @@
   "description": "C/C++/ObjC language server supporting cross references, hierarchies, completion and semantic highlighting",
   "author": "ccls-project",
   "license": "MIT",
-  "version": "0.1.17",
+  "version": "0.1.19",
   "publisher": "ccls-project",
   "preview": true,
   "engines": {
-    "vscode": "^1.27.0"
+    "vscode": "^1.30.0"
   },
   "categories": [
     "Programming Languages"
@@ -102,6 +102,11 @@
         "title": "Restart language server",
         "category": "ccls",
         "command": "ccls.restart"
+      },
+      {
+        "title": "Restart language server in lazy mode",
+        "category": "ccls",
+        "command": "ccls.restartLazy"
       },
       {
         "title": "Inheritance Hierarchy",
@@ -886,8 +891,8 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "tsc -p ./",
-    "compile": "tsc -watch -p ./",
+    "vscode:prepublish": "npx tsc -p ./",
+    "compile": "npx tsc -p ./",
     "update-vscode": "node ./node_modules/vscode/bin/install",
     "postinstall": "node ./node_modules/vscode/bin/install"
   },

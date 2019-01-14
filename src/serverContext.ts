@@ -175,8 +175,12 @@ export class ServerContext implements Disposable {
   };
 
   public constructor(
+    lazyMode: boolean = false
   ) {
     this.cliConfig = getClientConfig();
+    if (lazyMode) {
+      this.cliConfig.index.initialBlacklist = [".*"];
+    }
     this._dispose.push(workspace.onDidChangeConfiguration(this.onDidChangeConfiguration, this));
     this.client = this.initClient();
     this.p2c = this.client.protocol2CodeConverter;
