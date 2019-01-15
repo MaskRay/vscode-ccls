@@ -14,7 +14,8 @@ export class GlobalContext implements Disposable {
     this._dispose.push(commands.registerCommand("ccls.reload", () => {
       this._server.client.sendNotification("$ccls/reload");
     }));
-    this._dispose.push(commands.registerCommand("ccls.restart", this.restartCmd, this));
+    this._dispose.push(commands.registerCommand("ccls.restart", async () => this.restartCmd()));
+    this._dispose.push(commands.registerCommand("ccls.restartLazy", async () => this.restartCmd(true)));
   }
 
   public dispose() {
@@ -26,10 +27,10 @@ export class GlobalContext implements Disposable {
     await this._server.start();
   }
 
-  private async restartCmd() {
-    this._server.client.stop();
+  private async restartCmd(lazy: boolean = false) {
+    await this._server.client.stop();
     this._server.dispose();
-    this._server = new ServerContext();
+    this._server = new ServerContext(lazy);
     return this._server.start();
   }
 }
