@@ -896,7 +896,7 @@
     "update-vscode": "node ./node_modules/vscode/bin/install",
     "postinstall": "node ./node_modules/vscode/bin/install",
     "test": "node ./node_modules/vscode/bin/test",
-    "lint": "tslint -p ./"
+    "lint": "npx tslint -p ./"
   },
   "devDependencies": {
     "@types/node": "^9.6.41",
