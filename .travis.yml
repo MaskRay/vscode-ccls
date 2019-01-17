@@ -2,7 +2,7 @@ language: node_js
 
 node_js:
   - "node"
-  - "11.6"
+  - "lts/*"
 
 os:
   - linux
@@ -19,12 +19,10 @@ cache:
 install:
   - npm install
   - npm run vscode:prepublish
-  # For coverage, disable automatic start of extension
-  - sed -i.bak 's/"\*"//g' package.json
 
 script:
-  - npm run style-check
-  - npm test --silent
+  - echo "nothing to do"
+  # - npm test --silent
 
 stages:
   - test
@@ -35,7 +33,6 @@ jobs:
   include:
     - stage: release
       language: node_js
-      node_js: "11.6"
       install:
         - npm install
       script:
