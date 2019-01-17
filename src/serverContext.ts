@@ -266,8 +266,8 @@ export class ServerContext implements Disposable {
         continue;
 
       if (!this.cliConfig ||
-          JSON.stringify(this.cliConfig[key]) !==
-              JSON.stringify(newConfig[key])) {
+          JSON.stringify(this.cliConfig[key]) !== JSON.stringify(newConfig[key])) {
+        // XXX may be falsly triggered by lazymode override
         const kReload = 'Reload';
         const message = `Please reload to apply the "ccls.${
             key}" configuration change.`;
@@ -376,8 +376,7 @@ export class ServerContext implements Disposable {
   }
 
   private initClient(): LanguageClient {
-    const clientConfig = getClientConfig();
-    const args = clientConfig.launchArgs;
+    const args = this.cliConfig.launchArgs;
 
     const env: any = {};
     const kToForward = [
@@ -391,7 +390,7 @@ export class ServerContext implements Disposable {
 
     const serverOptions: ServerOptions = {
       args,
-      command: clientConfig.launchCommand,
+      command: this.cliConfig.launchCommand,
       options: { env }
     };
 
@@ -408,7 +407,7 @@ export class ServerContext implements Disposable {
         console.log(e);
         return false;
       },
-      initializationOptions: clientConfig,
+      initializationOptions: this.cliConfig,
       middleware: {provideCodeLenses: (doc, next, token) => this.provideCodeLens(doc, next, token)},
       outputChannelName: 'ccls',
       revealOutputChannelOn: RevealOutputChannelOn.Never,
