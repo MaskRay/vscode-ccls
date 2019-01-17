@@ -1,6 +1,6 @@
+import { StatusBarAlignment, StatusBarItem, window } from "vscode";
 import { Disposable } from "vscode-jsonrpc";
 import { LanguageClient } from "vscode-languageclient";
-import { window, StatusBarItem, StatusBarAlignment } from "vscode";
 import { dedent } from "./utils";
 
 interface CclsInfoResponse {
@@ -31,8 +31,22 @@ export class StatusBarIconProvider implements Disposable {
     this.timer = setInterval(this.updateStatus.bind(this), updateInterval);
   }
 
+  public dispose() {
+    clearInterval(this.timer);
+    this.icon.dispose();
+  }
+
   private async updateStatus() {
-    const info = await this.client.sendRequest<CclsInfoResponse>("$ccls/info");
+    let info: CclsInfoResponse;
+    try {
+      info = await this.client.sendRequest<CclsInfoResponse>("$ccls/info");
+    } catch (e) {
+      this.icon.text = "ccls: error";
+      this.icon.color = "red";
+      this.icon.tooltip = "Failed to perform info request: " + (e as Error).message;
+      return;
+    }
+    this.icon.color = "";
     this.icon.text = `ccls: ${info.pipeline.pendingIndexRequests || 0} jobs`;
     this.icon.tooltip = dedent`${info.db.files} files,
       ${info.db.funcs} functions,
@@ -41,10 +55,5 @@ export class StatusBarIconProvider implements Disposable {
       ${info.project.entries} entries in project.
 
       ${info.pipeline.pendingIndexRequests} pending index requests`;
-  }
-
-  public dispose() {
-    clearInterval(this.timer);
-    this.icon.dispose();
   }
 }

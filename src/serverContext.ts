@@ -30,10 +30,10 @@ import { CclsErrorHandler } from "./cclsErrorHandler";
 import { InactiveRegionsProvider } from "./inactiveRegions";
 import { InheritanceHierarchyNode, InheritanceHierarchyProvider } from "./inheritanceHierarchy";
 import { PublishSemanticHighlightArgs, SemanticContext } from "./semantic";
+import { StatusBarIconProvider } from "./statusBarIcon";
 import { ClientConfig } from "./types";
 import { disposeAll, normalizeUri, unwrap } from "./utils";
 import { jumpToUriAtPosition } from "./vscodeUtils";
-import { StatusBarIconProvider } from "./statusBarIcon";
 
 interface LastGoto {
   id: any;
@@ -136,10 +136,10 @@ function getClientConfig(): ClientConfig {
     },
     launchArgs: [] as string[],
     launchCommand: '',
+    statusUpdateInterval: 0,
     workspaceSymbol: {
       sort: false,
     },
-    statusUpdateInterval: 0,
   };
   const config = workspace.getConfiguration('ccls');
   for (const prop of configMapping) {
