@@ -200,7 +200,7 @@ export class ServerContext implements Disposable {
   private client: LanguageClient;
   private clientPid?: number;
   private cliConfig: ClientConfig;
-  private ignoredConf = new Set<string>();
+  private ignoredConf = new Array<string>();
   private _dispose: Disposable[] = [];
   private p2c: Converter;
   private lastGoto: LastGoto = {
@@ -213,7 +213,7 @@ export class ServerContext implements Disposable {
   ) {
     this.cliConfig = getClientConfig();
     if (lazyMode) {
-      this.ignoredConf.add(".index.initialBlacklist.0");
+      this.ignoredConf.push(".index.initialBlacklist");
       this.cliConfig.index.initialBlacklist = [".*"];
     }
     this._dispose.push(workspace.onDidChangeConfiguration(this.onDidChangeConfiguration, this));
@@ -323,7 +323,7 @@ export class ServerContext implements Disposable {
     const oldflat = flatObject(this.cliConfig);
     for (const [key, newVal] of newflat) {
       const oldVal = oldflat.get(key);
-      if (newVal === undefined || this.ignoredConf.has(key)) {
+      if (newVal === undefined || this.ignoredConf.some((e) => key.startsWith(e))) {
         continue;
       }
 
