@@ -1,0 +1,41 @@
+language: node_js
+
+node_js:
+  - "node"
+  - "lts/*"
+
+os:
+  - linux
+
+env:
+  - CODE_VERSION=1.30.0 # Minimal Version
+  # - CODE_VERSION=* # Last Stable Version
+  # - CODE_VERSION=insiders # Insider Version
+
+cache:
+  directories:
+    - "node_modules"
+
+install:
+  - npm install
+  - npm run vscode:prepublish
+
+script:
+  - echo "nothing to do"
+  # - npm test --silent
+
+stages:
+  - test
+  - name: release
+    if: branch = master AND type = push AND fork = false
+
+jobs:
+  include:
+    - stage: release
+      language: node_js
+      install:
+        - npm install
+      script:
+        - npm run compile
+  allow_failures:
+    - env: CODE_VERSION=insiders

@@ -1,3 +1,4 @@
-out
-node_modules
-.vscode/settings.json
+/out
+/node_modules
+/.vscode/settings.json
+/.vscode-test
