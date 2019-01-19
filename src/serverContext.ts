@@ -1,3 +1,4 @@
+import * as cp from "child_process";
 import {
   CancellationToken,
   CodeLens,
@@ -32,12 +33,43 @@ import { InheritanceHierarchyNode, InheritanceHierarchyProvider } from "./inheri
 import { PublishSemanticHighlightArgs, SemanticContext } from "./semantic";
 import { StatusBarIconProvider } from "./statusBarIcon";
 import { ClientConfig } from "./types";
-import { disposeAll, normalizeUri, unwrap } from "./utils";
+import { disposeAll, normalizeUri, unwrap, wait } from "./utils";
 import { jumpToUriAtPosition } from "./vscodeUtils";
 
 interface LastGoto {
   id: any;
   clockTime: number;
+}
+
+function flatObjectImpl(obj: any, pref: string, result: Map<string, string>) {
+  if (typeof obj === "object") {
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      const newpref = `${pref}.${key}`;
+      if (typeof val === "object" || val instanceof Array) {
+        flatObjectImpl(val, newpref, result);
+      } else {
+        result.set(newpref, `${val}`);
+      }
+    }
+  } else if (obj instanceof Array) {
+    let idx = 0;
+    for (const val of obj) {
+      const newpref = `${pref}.${idx}`;
+      if (typeof val === "object" || val instanceof Array) {
+        flatObjectImpl(val, newpref, result);
+      } else {
+        result.set(newpref, `${val}`);
+      }
+      idx++;
+    }
+  }
+}
+
+function flatObject(obj: any, pref = ""): Map<string, string> {
+  const result = new Map<string, string>();
+  flatObjectImpl(obj, pref, result);
+  return result;
 }
 
 function getClientConfig(): ClientConfig {
@@ -165,8 +197,10 @@ function getClientConfig(): ClientConfig {
 
 /** instance represents running instance of ccls */
 export class ServerContext implements Disposable {
-  public client: LanguageClient;
-  public cliConfig: ClientConfig;
+  private client: LanguageClient;
+  private clientPid?: number;
+  private cliConfig: ClientConfig;
+  private ignoredConf = new Array<string>();
   private _dispose: Disposable[] = [];
   private p2c: Converter;
   private lastGoto: LastGoto = {
@@ -179,11 +213,16 @@ export class ServerContext implements Disposable {
   ) {
     this.cliConfig = getClientConfig();
     if (lazyMode) {
+      this.ignoredConf.push(".index.initialBlacklist");
       this.cliConfig.index.initialBlacklist = [".*"];
     }
     this._dispose.push(workspace.onDidChangeConfiguration(this.onDidChangeConfiguration, this));
     this.client = this.initClient();
     this.p2c = this.client.protocol2CodeConverter;
+  }
+
+  public dispose() {
+    return disposeAll(this._dispose);
   }
 
   public async start() {
@@ -257,20 +296,40 @@ export class ServerContext implements Disposable {
       const statusBarIconProvider = new StatusBarIconProvider(this.client, interval);
       this._dispose.push(statusBarIconProvider);
     }
+
+    this._dispose.push(commands.registerCommand("ccls.reload", this.reloadIndex, this));
   }
 
-  public async onDidChangeConfiguration() {
-    const newConfig = getClientConfig();
-    for (const key in newConfig) {
-      if (!newConfig.hasOwnProperty(key))
-        continue;
+  public async stop() {
+    await this.client.stop();
+    // waitpid was called in client.stop
+    if (this.clientPid) {
+      await wait(200);
+      try {
+        process.kill(this.clientPid, "SIGTERM");
+      } catch (e) {
+        // no such process
+      }
+    }
+  }
 
-      if (!this.cliConfig ||
-          JSON.stringify(this.cliConfig[key]) !== JSON.stringify(newConfig[key])) {
-        // XXX may be falsly triggered by lazymode override
+  private reloadIndex() {
+    this.client.sendNotification("$ccls/reload");
+  }
+
+  private async onDidChangeConfiguration() {
+    const newConfig = getClientConfig();
+    const newflat = flatObject(newConfig);
+    const oldflat = flatObject(this.cliConfig);
+    for (const [key, newVal] of newflat) {
+      const oldVal = oldflat.get(key);
+      if (newVal === undefined || this.ignoredConf.some((e) => key.startsWith(e))) {
+        continue;
+      }
+
+      if (oldVal !== newVal) {
         const kReload = 'Reload';
-        const message = `Please reload to apply the "ccls.${
-            key}" configuration change.`;
+        const message = `Please reload to apply the "ccls${key}" configuration change.`;
 
         const selected = await window.showInformationMessage(message, kReload);
         if (selected === kReload)
@@ -280,7 +339,7 @@ export class ServerContext implements Disposable {
     }
   }
 
-  public async provideCodeLens(
+  private async provideCodeLens(
     document: TextDocument,
     token: CancellationToken,
     next: ProvideCodeLensesSignature
@@ -326,10 +385,6 @@ export class ServerContext implements Disposable {
     const result: CodeLens[] = this.client.protocol2CodeConverter.asCodeLenses(a);
     this.displayCodeLens(document, result);
     return [];
-  }
-
-  public dispose() {
-    return disposeAll(this._dispose);
   }
 
   private displayCodeLens(document: TextDocument, allCodeLens: CodeLens[]) {
@@ -388,10 +443,14 @@ export class ServerContext implements Disposable {
     for (const e of kToForward)
       env[e] = process.env[e];
 
-    const serverOptions: ServerOptions = {
-      args,
-      command: this.cliConfig.launchCommand,
-      options: { env }
+    const serverOptions: ServerOptions = async (): Promise<cp.ChildProcess> => {
+      const child = cp.spawn(
+        this.cliConfig.launchCommand,
+        args,
+        { env }
+      );
+      this.clientPid = child.pid;
+      return child;
     };
 
     // Options to control the language client

@@ -1,4 +1,5 @@
 import * as path from "path";
+import * as util from "util";
 import { commands, Disposable, Uri } from "vscode";
 
 export function resourcePath(...paths: string[]): string {
@@ -30,4 +31,10 @@ export function dedent(templateStrings: TemplateStringsArray, ...args: any[]) {
     result += args[i] + strings[i + 1];
   }
   return result;
+}
+
+const setTimeoutPromised = util.promisify(setTimeout);
+
+export async function wait(millisecs: number) {
+  return setTimeoutPromised(millisecs);
 }
