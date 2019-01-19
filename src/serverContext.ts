@@ -73,7 +73,7 @@ function flatObject(obj: any, pref = ""): Map<string, string> {
   return result;
 }
 
-function getClientConfig(): ClientConfig {
+function getClientConfig(wsRoot: string): ClientConfig {
   const kCacheDirPrefName = 'cacheDirectory';
 
   function hasAnySemanticHighlight() {
@@ -102,7 +102,7 @@ function getClientConfig(): ClientConfig {
   }
 
   function resolveVariablesInString(value: string) {
-    return value.replace('${workspaceFolder}', workspace.rootPath ? workspace.rootPath : "");
+    return value.replace('${workspaceFolder}', wsRoot);
   }
 
   function resloveVariablesInArray(value: any[]): any[] {
@@ -210,9 +210,10 @@ export class ServerContext implements Disposable {
   };
 
   public constructor(
+    public readonly cwd: string,
     lazyMode: boolean = false
   ) {
-    this.cliConfig = getClientConfig();
+    this.cliConfig = getClientConfig(cwd);
     if (lazyMode) {
       this.ignoredConf.push(".index.initialBlacklist");
       this.cliConfig.index.initialBlacklist = [".*"];
@@ -319,7 +320,7 @@ export class ServerContext implements Disposable {
   }
 
   private async onDidChangeConfiguration() {
-    const newConfig = getClientConfig();
+    const newConfig = getClientConfig(this.cwd);
     const newflat = flatObject(newConfig);
     const oldflat = flatObject(this.cliConfig);
     for (const [key, newVal] of newflat) {
@@ -329,12 +330,12 @@ export class ServerContext implements Disposable {
       }
 
       if (oldVal !== newVal) {
-        const kReload = 'Reload';
-        const message = `Please reload to apply the "ccls${key}" configuration change.`;
+        const kRestart = "Restart";
+        const message = `Please restart server to apply the "ccls${key}" configuration change.`;
 
-        const selected = await window.showInformationMessage(message, kReload);
-        if (selected === kReload)
-          commands.executeCommand('workbench.action.reloadWindow');
+        const selected = await window.showInformationMessage(message, kRestart);
+        if (selected === kRestart)
+          commands.executeCommand("ccls.restart");
         break;
       }
     }
@@ -445,10 +446,14 @@ export class ServerContext implements Disposable {
       env[e] = process.env[e];
 
     const serverOptions: ServerOptions = async (): Promise<cp.ChildProcess> => {
+      const opts: cp.SpawnOptions = {
+        cwd: this.cwd,
+        env
+      };
       const child = cp.spawn(
         this.cliConfig.launchCommand,
         args,
-        { env }
+        opts
       );
       this.clientPid = child.pid;
       return child;
