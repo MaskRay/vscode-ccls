@@ -28,6 +28,7 @@ import { Converter } from "vscode-languageclient/lib/protocolConverter";
 import * as ls from "vscode-languageserver-types";
 import { CallHierarchyNode, CallHierarchyProvider } from "./callHierarchy";
 import { CclsErrorHandler } from "./cclsErrorHandler";
+import { cclsChan } from "./globalContext";
 import { InactiveRegionsProvider } from "./inactiveRegions";
 import { InheritanceHierarchyNode, InheritanceHierarchyProvider } from "./inheritanceHierarchy";
 import { PublishSemanticHighlightArgs, SemanticContext } from "./semantic";
@@ -468,12 +469,12 @@ export class ServerContext implements Disposable {
       },
       initializationOptions: this.cliConfig,
       middleware: {provideCodeLenses: (doc, next, token) => this.provideCodeLens(doc, next, token)},
-      outputChannelName: 'ccls',
+      outputChannel: cclsChan,
       revealOutputChannelOn: RevealOutputChannelOn.Never,
     };
 
     // Create the language client and start the client.
-    return new LanguageClient('ccls', 'ccls', serverOptions, clientOptions);
+    return new LanguageClient("ccls", "ccls", serverOptions, clientOptions);
   }
 
   private makeRefHandler(
