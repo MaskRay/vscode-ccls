@@ -1,7 +1,8 @@
 import { StatusBarAlignment, StatusBarItem, window } from "vscode";
 import { Disposable } from "vscode-jsonrpc";
 import { LanguageClient } from "vscode-languageclient";
-import { dedent } from "./utils";
+import { cclsChan } from './globalContext';
+import { dedent, unwrap } from './utils';
 
 interface CclsInfoResponse {
   db: {
@@ -21,6 +22,7 @@ interface CclsInfoResponse {
 export class StatusBarIconProvider implements Disposable {
   private icon: StatusBarItem;
   private timer: NodeJS.Timer;
+  private wasError = false;
 
   public constructor(private client: LanguageClient, private updateInterval: number) {
     this.icon = window.createStatusBarItem(StatusBarAlignment.Right);
@@ -40,10 +42,15 @@ export class StatusBarIconProvider implements Disposable {
     let info: CclsInfoResponse;
     try {
       info = await this.client.sendRequest<CclsInfoResponse>("$ccls/info");
+      this.wasError = false;
     } catch (e) {
+      if (this.wasError)
+        return;
+      this.wasError = true;
       this.icon.text = "ccls: error";
       this.icon.color = "red";
       this.icon.tooltip = "Failed to perform info request: " + (e as Error).message;
+      unwrap(cclsChan).show();
       return;
     }
     this.icon.color = "";
