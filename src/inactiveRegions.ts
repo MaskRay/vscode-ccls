@@ -58,9 +58,11 @@ export class InactiveRegionsProvider implements Disposable {
     }
   }
 
-  private onSkippedRanges(args: any) { // TODO any to type
-    const uri = normalizeUri(args.uri);
-    let ranges: Range[] = args.skippedRanges.map(this.client.code2ProtocolConverter.asRange);
+  private onSkippedRanges({uri, skippedRanges}: {uri: string, skippedRanges: any[]}) {
+    uri = normalizeUri(uri);
+    let ranges = skippedRanges
+      .map(this.client.protocol2CodeConverter.asRange)
+      .filter((e: Range | undefined) => e !== undefined) as Range[];
     ranges = ranges.map((range) => {
       if (range.isEmpty || range.isSingleLine) return range;
       return range.with({ end: range.end.translate(-1, 23333) });
