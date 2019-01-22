@@ -44,9 +44,9 @@ export interface PublishSemanticHighlightArgs {
 }
 
 function makeSemanticDecorationType(
-  color: string|null, underline: boolean, italic: boolean,
+  color: string|undefined, underline: boolean, italic: boolean,
   bold: boolean): TextEditorDecorationType {
-  const opts: any = {};
+  const opts: DecorationRenderOptions = {};
   opts.rangeBehavior = DecorationRangeBehavior.ClosedClosed;
   opts.color = color;
   if (underline === true)
@@ -61,7 +61,9 @@ function makeSemanticDecorationType(
 
 function makeDecorations(type: string) {
   const config = workspace.getConfiguration('ccls');
-  const colors = config.get(`highlighting.colors.${type}`, []);
+  let colors = config.get(`highlighting.colors.${type}`, [undefined]);
+  if (colors.length === 0)
+    colors = [undefined];
   const u = config.get(`highlighting.underline.${type}`, false);
   const i = config.get(`highlighting.italic.${type}`, false);
   const b = config.get(`highlighting.bold.${type}`, false);
@@ -128,6 +130,7 @@ export class SemanticContext implements Disposable {
         }
       }
 
+      // TODO limit cache size
       this.cachedDecorations.set(normUri, decorations);
       this.updateDecoration(visibleEditor);
     }
