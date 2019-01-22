@@ -5,6 +5,28 @@
   "license": "MIT",
   "version": "0.1.20",
   "publisher": "ccls-project",
+  "scripts": {
+    "vscode:prepublish": "npm run lint && npm run compile",
+    "compile": "npx tsc -p ./",
+    "update-vscode": "node ./node_modules/vscode/bin/install",
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "test": "node ./node_modules/vscode/bin/test",
+    "lint": "npx tslint -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^9.6.41",
+    "typescript": "^2.9.2",
+    "tslint": "^5.11.0",
+    "vsce": "^1.54.0",
+    "vscode": "^1.1.26"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^5.2.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MaskRay/vscode-ccls.git"
+  },
   "preview": true,
   "engines": {
     "vscode": "^1.30.0"
@@ -889,27 +911,5 @@
         }
       }
     }
-  },
-  "scripts": {
-    "vscode:prepublish": "npm run lint && npm run compile",
-    "compile": "npx tsc -p ./",
-    "update-vscode": "node ./node_modules/vscode/bin/install",
-    "postinstall": "node ./node_modules/vscode/bin/install",
-    "test": "node ./node_modules/vscode/bin/test",
-    "lint": "npx tslint -p ./"
-  },
-  "devDependencies": {
-    "@types/node": "^9.6.41",
-    "typescript": "^2.9.2",
-    "tslint": "^5.11.0",
-    "vsce": "^1.54.0",
-    "vscode": "^1.1.26"
-  },
-  "dependencies": {
-    "vscode-languageclient": "^5.2.1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/MaskRay/vscode-ccls.git"
   }
 }
