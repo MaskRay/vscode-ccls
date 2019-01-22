@@ -266,240 +266,90 @@
         "ccls.highlighting.colors.types": {
           "type": "array",
           "default": [
-            "#e1afc3",
-            "#d533bb",
-            "#9b677f",
-            "#e350b6",
-            "#a04360",
-            "#dd82bc",
-            "#de3864",
-            "#ad3f87",
-            "#dd7a90",
-            "#e0438a"
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
         "ccls.highlighting.colors.freeStandingFunctions": {
           "type": "array",
           "default": [
-            "#e5b124",
-            "#927754",
-            "#eb992c",
-            "#e2bf8f",
-            "#d67c17",
-            "#88651e",
-            "#e4b953",
-            "#a36526",
-            "#b28927",
-            "#d69855"
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
         "ccls.highlighting.colors.memberFunctions": {
           "type": "array",
           "default": [
-            "#e5b124",
-            "#927754",
-            "#eb992c",
-            "#e2bf8f",
-            "#d67c17",
-            "#88651e",
-            "#e4b953",
-            "#a36526",
-            "#b28927",
-            "#d69855"
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
         "ccls.highlighting.colors.freeStandingVariables": {
           "type": "array",
           "default": [
-            "#587d87",
-            "#26cdca",
-            "#397797",
-            "#57c2cc",
-            "#306b72",
-            "#6cbcdf",
-            "#368896",
-            "#3ea0d2",
-            "#48a5af",
-            "#7ca6b7"
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
         "ccls.highlighting.colors.memberVariables": {
           "type": "array",
           "default": [
-            "#587d87",
-            "#26cdca",
-            "#397797",
-            "#57c2cc",
-            "#306b72",
-            "#6cbcdf",
-            "#368896",
-            "#3ea0d2",
-            "#48a5af",
-            "#7ca6b7"
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
         "ccls.highlighting.colors.namespaces": {
           "type": "array",
           "default": [
-            "#429921",
-            "#58c1a4",
-            "#5ec648",
-            "#36815b",
-            "#83c65d",
-            "#417b2f",
-            "#43cc71",
-            "#7eb769",
-            "#58bf89",
-            "#3e9f4a"
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
         "ccls.highlighting.colors.macros": {
           "type": "array",
           "default": [
-            "#e79528",
-            "#c5373d",
-            "#e8a272",
-            "#d84f2b",
-            "#a67245",
-            "#e27a33",
-            "#9b4a31",
-            "#b66a1e",
-            "#e27a71",
-            "#cf6d49"
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
         "ccls.highlighting.colors.enums": {
           "type": "array",
           "default": [
-            "#e1afc3",
-            "#d533bb",
-            "#9b677f",
-            "#e350b6",
-            "#a04360",
-            "#dd82bc",
-            "#de3864",
-            "#ad3f87",
-            "#dd7a90",
-            "#e0438a"
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
         "ccls.highlighting.colors.typeAliases": {
           "type": "array",
           "default": [
-            "#e1afc3",
-            "#d533bb",
-            "#9b677f",
-            "#e350b6",
-            "#a04360",
-            "#dd82bc",
-            "#de3864",
-            "#ad3f87",
-            "#dd7a90",
-            "#e0438a"
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
         "ccls.highlighting.colors.staticMemberFunctions": {
           "type": "array",
           "default": [
-            "#e5b124",
-            "#927754",
-            "#eb992c",
-            "#e2bf8f",
-            "#d67c17",
-            "#88651e",
-            "#e4b953",
-            "#a36526",
-            "#b28927",
-            "#d69855"
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
         "ccls.highlighting.colors.enumConstants": {
           "type": "array",
           "default": [
-            "#587d87",
-            "#26cdca",
-            "#397797",
-            "#57c2cc",
-            "#306b72",
-            "#6cbcdf",
-            "#368896",
-            "#3ea0d2",
-            "#48a5af",
-            "#7ca6b7"
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
         "ccls.highlighting.colors.parameters": {
           "type": "array",
           "default": [
-            "#587d87",
-            "#26cdca",
-            "#397797",
-            "#57c2cc",
-            "#306b72",
-            "#6cbcdf",
-            "#368896",
-            "#3ea0d2",
-            "#48a5af",
-            "#7ca6b7"
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
         "ccls.highlighting.colors.templateParameters": {
           "type": "array",
           "default": [
-            "#e1afc3",
-            "#d533bb",
-            "#9b677f",
-            "#e350b6",
-            "#a04360",
-            "#dd82bc",
-            "#de3864",
-            "#ad3f87",
-            "#dd7a90",
-            "#e0438a"
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
         "ccls.highlighting.colors.staticMemberVariables": {
           "type": "array",
           "default": [
-            "#587d87",
-            "#26cdca",
-            "#397797",
-            "#57c2cc",
-            "#306b72",
-            "#6cbcdf",
-            "#368896",
-            "#3ea0d2",
-            "#48a5af",
-            "#7ca6b7"
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
         "ccls.highlighting.colors.globalVariables": {
           "type": "array",
           "default": [
-            "#587d87",
-            "#26cdca",
-            "#397797",
-            "#57c2cc",
-            "#306b72",
-            "#6cbcdf",
-            "#368896",
-            "#3ea0d2",
-            "#48a5af",
-            "#7ca6b7"
           ],
           "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
         },
