@@ -28,10 +28,10 @@ import { Converter } from "vscode-languageclient/lib/protocolConverter";
 import * as ls from "vscode-languageserver-types";
 import { CallHierarchyNode, CallHierarchyProvider } from "./callHierarchy";
 import { CclsErrorHandler } from "./cclsErrorHandler";
-import { cclsChan } from './globalContext';
+import { cclsChan, logChan } from './globalContext';
 import { InactiveRegionsProvider } from "./inactiveRegions";
 import { InheritanceHierarchyNode, InheritanceHierarchyProvider } from "./inheritanceHierarchy";
-import { PublishSemanticHighlightArgs, SemanticContext } from "./semantic";
+import { PublishSemanticHighlightArgs, SemanticContext, semanticTypes } from "./semantic";
 import { StatusBarIconProvider } from "./statusBarIcon";
 import { ClientConfig } from "./types";
 import { disposeAll, normalizeUri, unwrap, wait } from "./utils";
@@ -77,25 +77,9 @@ function getClientConfig(wsRoot: string): ClientConfig {
   const kCacheDirPrefName = 'cacheDirectory';
 
   function hasAnySemanticHighlight() {
-    const options = [
-      'ccls.highlighting.enabled.types',
-      'ccls.highlighting.enabled.freeStandingFunctions',
-      'ccls.highlighting.enabled.memberFunctions',
-      'ccls.highlighting.enabled.freeStandingVariables',
-      'ccls.highlighting.enabled.memberVariables',
-      'ccls.highlighting.enabled.namespaces',
-      'ccls.highlighting.enabled.macros',
-      'ccls.highlighting.enabled.enums',
-      'ccls.highlighting.enabled.typeAliases',
-      'ccls.highlighting.enabled.enumConstants',
-      'ccls.highlighting.enabled.staticMemberFunctions',
-      'ccls.highlighting.enabled.parameters',
-      'ccls.highlighting.enabled.templateParameters',
-      'ccls.highlighting.enabled.staticMemberVariables',
-      'ccls.highlighting.enabled.globalVariables'];
-    const wsconfig = workspace.getConfiguration();
-    for (const name of options) {
-      if (wsconfig.get(name, false))
+    const hlconfig = workspace.getConfiguration('ccls.highlighting.enabled');
+    for (const name of Object.keys(semanticTypes)) {
+      if (hlconfig.get(name, false))
         return true;
     }
     return false;
@@ -218,7 +202,7 @@ export class ServerContext implements Disposable {
       this.ignoredConf.push(".index.initialBlacklist");
       this.cliConfig.index.initialBlacklist = [".*"];
     }
-    this._dispose.push(workspace.onDidChangeConfiguration(this.onDidChangeConfiguration, this));
+    workspace.onDidChangeConfiguration(this.onDidChangeConfiguration, this, this._dispose);
     this.client = this.initClient();
     this.p2c = this.client.protocol2CodeConverter;
   }
@@ -303,16 +287,21 @@ export class ServerContext implements Disposable {
   }
 
   public async stop() {
-    await this.client.stop();
+    const pid = unwrap(this.clientPid);
+    const serverResponds = await Promise.race([
+      (async () => { await wait(300); return false; })(),
+      (async () => { await this.client.stop(); return true; })()
+    ]);
     // waitpid was called in client.stop
-    if (this.clientPid) {
-      await wait(200);
+    if (!serverResponds) {
+      console.info('Server does not repsond, killing');
       try {
-        process.kill(this.clientPid, "SIGTERM");
+        process.kill(pid, 'SIGTERM');
       } catch (e) {
-        // no such process
+        console.info('Kill failed: ' + (e as Error).message);
       }
     }
+    this.clientPid = undefined;
   }
 
   private reloadIndex() {
@@ -357,7 +346,7 @@ export class ServerContext implements Disposable {
       const lenses = await this.client.sendRequest<Array<any>>('textDocument/codeLens', {
         position,
         textDocument: {
-          uri: uri.toString(),
+          uri: uri.toString(true),
         },
       });
       return lenses.map((lense) => {
@@ -380,7 +369,7 @@ export class ServerContext implements Disposable {
       'textDocument/codeLens',
       {
         textDocument: {
-          uri: document.uri.toString(),
+          uri: document.uri.toString(true),
         },
       }
     );
@@ -498,7 +487,7 @@ export class ServerContext implements Disposable {
           {
             position,
             textDocument: {
-              uri: uri.toString(),
+              uri: uri.toString(true),
             },
             ...extraParams,
             ...userParams
@@ -561,7 +550,7 @@ export class ServerContext implements Disposable {
 
     // Find existing open document.
     for (const textEditor of window.visibleTextEditors) {
-      if (textEditor.document.uri.toString() === normalizeUri(uri)) {
+      if (textEditor.document.uri.toString(true) === normalizeUri(uri)) {
         applyEdits(textEditor);
         return;
       }
@@ -649,7 +638,7 @@ export class ServerContext implements Disposable {
         {
           position,
           textDocument: {
-            uri: uri.toString(),
+            uri: uri.toString(true),
           },
           ...userParams
         }

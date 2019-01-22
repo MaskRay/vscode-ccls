@@ -40,7 +40,7 @@ export class InactiveRegionsProvider implements Disposable {
 
     // This only got called during dispose, which perfectly matches our goal.
     this._dispose.push(workspace.onDidCloseTextDocument(
-      (document) => this.skippedRanges.delete(document.uri.toString())
+      (document) => this.skippedRanges.delete(document.uri.toString(true))
     ));
   }
 
@@ -51,23 +51,25 @@ export class InactiveRegionsProvider implements Disposable {
   private onChangeTextEditor(editor?: TextEditor) {
     if (!editor)
       return;
-    const uri = editor.document.uri.toString();
+    const uri = editor.document.uri.toString(true);
     const range = this.skippedRanges.get(uri);
     if (range) {
       editor.setDecorations(this.decorationType, range);
     }
   }
 
-  private onSkippedRanges(args: any) { // TODO any to type
-    const uri = normalizeUri(args.uri);
-    let ranges: Range[] = args.skippedRanges.map(this.client.code2ProtocolConverter.asRange);
+  private onSkippedRanges({uri, skippedRanges}: {uri: string, skippedRanges: any[]}) {
+    uri = normalizeUri(uri);
+    let ranges = skippedRanges
+      .map(this.client.protocol2CodeConverter.asRange)
+      .filter((e: Range | undefined) => e !== undefined) as Range[];
     ranges = ranges.map((range) => {
       if (range.isEmpty || range.isSingleLine) return range;
       return range.with({ end: range.end.translate(-1, 23333) });
     });
     this.skippedRanges.set(uri, ranges);
     window.visibleTextEditors
-      .filter((editor) => editor.document.uri.toString() === uri)
+      .filter((editor) => editor.document.uri.toString(true) === uri)
       .forEach((editor) => editor.setDecorations(this.decorationType, ranges));
   }
 }
