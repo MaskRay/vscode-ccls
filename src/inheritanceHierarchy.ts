@@ -116,7 +116,7 @@ export class InheritanceHierarchyProvider implements
       position,
       qualified: false,
       textDocument: {
-        uri: uri.toString(),
+        uri: uri.toString(true),
       },
     });
     InheritanceHierarchySetWantsDerived(entry, true);

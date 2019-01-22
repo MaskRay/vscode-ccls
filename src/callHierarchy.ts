@@ -140,7 +140,7 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
         position,
         qualified: false,
         textDocument: {
-          uri: uri.toString(),
+          uri: uri.toString(true),
         },
       }
     );

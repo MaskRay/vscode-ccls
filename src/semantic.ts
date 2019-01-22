@@ -106,8 +106,10 @@ export class SemanticContext implements Disposable {
   public publishSemanticHighlight(args: PublishSemanticHighlightArgs) {
     this.updateConfigValues();
 
+    const normUri = normalizeUri(args.uri);
+
     for (const visibleEditor of window.visibleTextEditors) {
-      if (normalizeUri(args.uri) !== visibleEditor.document.uri.toString())
+      if (normUri !== visibleEditor.document.uri.toString(true))
         continue;
 
       const decorations = new Map<TextEditorDecorationType, Array<Range>>();
@@ -126,7 +128,7 @@ export class SemanticContext implements Disposable {
         }
       }
 
-      this.cachedDecorations.set(args.uri, decorations);
+      this.cachedDecorations.set(normUri, decorations);
       this.updateDecoration(visibleEditor);
     }
   }
@@ -134,9 +136,11 @@ export class SemanticContext implements Disposable {
   private updateConfigValues() {
     // Fetch new config instance, since vscode will cache the previous one.
     const config = workspace.getConfiguration('ccls');
-    for (const [name, value] of this.semanticEnabled) {
-      this.semanticEnabled.set(
-          name, config.get(`highlighting.enabled.${name}`, false));
+    for (const [name, _value] of this.semanticEnabled) {
+      const enabled = ['bold', 'italic', 'underline']
+          .map((k) => config.get(`highlighting.${k}.${name}`))
+          .some((e) => !!e);
+      this.semanticEnabled.set(name, enabled);
     }
   }
 
@@ -190,7 +194,7 @@ export class SemanticContext implements Disposable {
   }
 
   private updateDecoration(editor: TextEditor) {
-    const uri = editor.document.uri.toString();
+    const uri = editor.document.uri.toString(true);
     const cachedDecoration = this.cachedDecorations.get(uri);
     if (cachedDecoration) {
       // Clear decorations and set new ones. We might not use all of the

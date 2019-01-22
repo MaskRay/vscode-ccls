@@ -362,7 +362,7 @@ export class ServerContext implements Disposable {
       const lenses = await this.client.sendRequest<Array<any>>('textDocument/codeLens', {
         position,
         textDocument: {
-          uri: uri.toString(),
+          uri: uri.toString(true),
         },
       });
       return lenses.map((lense) => {
@@ -385,7 +385,7 @@ export class ServerContext implements Disposable {
       'textDocument/codeLens',
       {
         textDocument: {
-          uri: document.uri.toString(),
+          uri: document.uri.toString(true),
         },
       }
     );
@@ -503,7 +503,7 @@ export class ServerContext implements Disposable {
           {
             position,
             textDocument: {
-              uri: uri.toString(),
+              uri: uri.toString(true),
             },
             ...extraParams,
             ...userParams
@@ -566,7 +566,7 @@ export class ServerContext implements Disposable {
 
     // Find existing open document.
     for (const textEditor of window.visibleTextEditors) {
-      if (textEditor.document.uri.toString() === normalizeUri(uri)) {
+      if (textEditor.document.uri.toString(true) === normalizeUri(uri)) {
         applyEdits(textEditor);
         return;
       }
@@ -654,7 +654,7 @@ export class ServerContext implements Disposable {
         {
           position,
           textDocument: {
-            uri: uri.toString(),
+            uri: uri.toString(true),
           },
           ...userParams
         }
