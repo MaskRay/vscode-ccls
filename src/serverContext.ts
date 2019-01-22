@@ -28,7 +28,7 @@ import { Converter } from "vscode-languageclient/lib/protocolConverter";
 import * as ls from "vscode-languageserver-types";
 import { CallHierarchyNode, CallHierarchyProvider } from "./callHierarchy";
 import { CclsErrorHandler } from "./cclsErrorHandler";
-import { cclsChan } from './globalContext';
+import { cclsChan, logChan } from './globalContext';
 import { InactiveRegionsProvider } from "./inactiveRegions";
 import { InheritanceHierarchyNode, InheritanceHierarchyProvider } from "./inheritanceHierarchy";
 import { PublishSemanticHighlightArgs, SemanticContext } from "./semantic";
@@ -303,16 +303,21 @@ export class ServerContext implements Disposable {
   }
 
   public async stop() {
-    await this.client.stop();
+    const pid = unwrap(this.clientPid);
+    const serverResponds = await Promise.race([
+      (async () => { await wait(300); return false; })(),
+      (async () => { await this.client.stop(); return true; })()
+    ]);
     // waitpid was called in client.stop
-    if (this.clientPid) {
-      await wait(200);
+    if (!serverResponds) {
+      console.info('Server does not repsond, killing');
       try {
-        process.kill(this.clientPid, "SIGTERM");
+        process.kill(pid, 'SIGTERM');
       } catch (e) {
-        // no such process
+        console.info('Kill failed: ' + (e as Error).message);
       }
     }
+    this.clientPid = undefined;
   }
 
   private reloadIndex() {
