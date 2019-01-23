@@ -113,5 +113,6 @@ export class DataFlowHierarchyProvider implements TreeDataProvider<DataFlowHiera
     );
     this.root = callNode;
     this.onDidChangeEmitter.fire();
+    commands.executeCommand("workbench.view.explorer");
   }
 }
