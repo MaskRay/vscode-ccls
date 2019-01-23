@@ -28,6 +28,7 @@ import { Converter } from "vscode-languageclient/lib/protocolConverter";
 import * as ls from "vscode-languageserver-types";
 import { CallHierarchyNode, CallHierarchyProvider } from "./callHierarchy";
 import { CclsErrorHandler } from "./cclsErrorHandler";
+import { DataFlowHierarchyNode, DataFlowHierarchyProvider } from "./dataFlowHierarchy";
 import { cclsChan } from './globalContext';
 import { InactiveRegionsProvider } from "./inactiveRegions";
 import { InheritanceHierarchyNode, InheritanceHierarchyProvider } from "./inheritanceHierarchy";
@@ -269,6 +270,12 @@ export class ServerContext implements Disposable {
     this._dispose.push(callHierarchyProvider);
     this._dispose.push(window.registerTreeDataProvider(
         "ccls.callHierarchy", callHierarchyProvider
+    ));
+
+    const dfProvier = new DataFlowHierarchyProvider(this.client);
+    this._dispose.push(dfProvier);
+    this._dispose.push(window.registerTreeDataProvider(
+        'ccls.dataFlowInto', dfProvier
     ));
 
     // Common between tree views.
@@ -613,7 +620,7 @@ export class ServerContext implements Disposable {
   }
 
   private async hackGotoForTreeView(
-    node: InheritanceHierarchyNode|CallHierarchyNode,
+    node: InheritanceHierarchyNode|CallHierarchyNode|DataFlowHierarchyNode,
     hasChildren: boolean
   ) {
     if (!node.location)
