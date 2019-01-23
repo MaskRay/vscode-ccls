@@ -59,6 +59,24 @@ function makeSemanticDecorationType(
       opts as DecorationRenderOptions);
 }
 
+export const semanticTypes: {[name: string]: Array<SymbolKind|CclsSymbolKind>} = {
+  enumConstants: [SymbolKind.EnumMember],
+  enums: [SymbolKind.Enum],
+  freeStandingFunctions: [SymbolKind.Function],
+  freeStandingVariables: [],
+  globalVariables: [],
+  macros: [CclsSymbolKind.Macro],
+  memberFunctions: [SymbolKind.Method, SymbolKind.Constructor],
+  memberVariables: [SymbolKind.Field],
+  namespaces: [SymbolKind.Namespace],
+  parameters: [CclsSymbolKind.Parameter],
+  staticMemberFunctions: [CclsSymbolKind.StaticMethod],
+  staticMemberVariables: [],
+  templateParameters: [SymbolKind.TypeParameter],
+  typeAliases: [CclsSymbolKind.TypeAlias],
+  types: [SymbolKind.Class, SymbolKind.Struct],
+};
+
 function makeDecorations(type: string) {
   const config = workspace.getConfiguration('ccls');
   let colors = config.get(`highlighting.colors.${type}`, [undefined]);
@@ -77,13 +95,7 @@ export class SemanticContext implements Disposable {
   private _dispose: Disposable[] = [];
 
   public constructor() {
-    for (const type of
-      ['types', 'freeStandingFunctions', 'memberFunctions',
-       'freeStandingVariables', 'memberVariables', 'namespaces',
-       'macros', 'enums', 'typeAliases', 'enumConstants',
-       'staticMemberFunctions', 'parameters', 'templateParameters',
-       'staticMemberVariables', 'globalVariables']
-      ) {
+    for (const type of Object.keys(semanticTypes)) {
       this.semanticDecorations.set(type, makeDecorations(type));
       this.semanticEnabled.set(type, false);
     }
@@ -140,10 +152,7 @@ export class SemanticContext implements Disposable {
     // Fetch new config instance, since vscode will cache the previous one.
     const config = workspace.getConfiguration('ccls');
     for (const [name, _value] of this.semanticEnabled) {
-      const enabled = ['bold', 'italic', 'underline']
-          .map((k) => config.get(`highlighting.${k}.${name}`))
-          .some((e) => !!e);
-      this.semanticEnabled.set(name, enabled);
+      this.semanticEnabled.set(name, config.get(`highlighting.enabled.${name}`, false));
     }
   }
 
@@ -157,23 +166,7 @@ export class SemanticContext implements Disposable {
       return decorations[symbol.id % decorations.length];
     };
 
-    if (symbol.kind === SymbolKind.Class || symbol.kind === SymbolKind.Struct) {
-      return get('types');
-    } else if (symbol.kind === SymbolKind.Enum) {
-      return get('enums');
-    } else if (symbol.kind === CclsSymbolKind.TypeAlias) {
-      return get('typeAliases');
-    } else if (symbol.kind === SymbolKind.TypeParameter) {
-      return get('templateParameters');
-    } else if (symbol.kind === SymbolKind.Function) {
-      return get('freeStandingFunctions');
-    } else if (
-        symbol.kind === SymbolKind.Method ||
-        symbol.kind === SymbolKind.Constructor) {
-      return get('memberFunctions');
-    } else if (symbol.kind === CclsSymbolKind.StaticMethod) {
-      return get('staticMemberFunctions');
-    } else if (symbol.kind === SymbolKind.Variable) {
+    if (symbol.kind === SymbolKind.Variable) {
       if (symbol.parentKind === SymbolKind.Function ||
           symbol.parentKind === SymbolKind.Method ||
           symbol.parentKind === SymbolKind.Constructor) {
@@ -185,14 +178,13 @@ export class SemanticContext implements Disposable {
         return get('staticMemberVariables');
       }
       return get('memberVariables');
-    } else if (symbol.kind === CclsSymbolKind.Parameter) {
-      return get('parameters');
-    } else if (symbol.kind === SymbolKind.EnumMember) {
-      return get('enumConstants');
-    } else if (symbol.kind === SymbolKind.Namespace) {
-      return get('namespaces');
-    } else if (symbol.kind === CclsSymbolKind.Macro) {
-      return get('macros');
+    } else {
+      for (const name of Object.keys(semanticTypes)) {
+        const kinds = semanticTypes[name];
+        if (kinds.some((e) => e === symbol.kind)) {
+          return get(name);
+        }
+      }
     }
   }
 
