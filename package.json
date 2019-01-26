@@ -47,14 +47,19 @@
     "views": {
       "explorer": [
         {
+          "id": "ccls.callHierarchy",
+          "name": "Call Hierarchy",
+          "when": "extension.ccls.callHierarchyVisible"
+        },
+        {
           "id": "ccls.inheritanceHierarchy",
           "name": "Inheritance Hierarchy",
           "when": "extension.ccls.inheritanceHierarchyVisible"
         },
         {
-          "id": "ccls.callHierarchy",
-          "name": "Call Hierarchy",
-          "when": "extension.ccls.callHierarchyVisible"
+          "id": "ccls.memberHierarchy",
+          "name": "Member Hierarchy",
+          "when": "extension.ccls.memberHierarchyVisible"
         }
       ]
     },
@@ -71,6 +76,11 @@
           "group": "navigation@1.32"
         },
         {
+          "command": "ccls.memberHierarchy",
+          "when": "resourceLangId == cpp",
+          "group": "navigation@1.32"
+        },
+        {
           "command": "ccls.vars",
           "when": "resourceLangId == cpp",
           "group": "navigation@1.33"
@@ -83,13 +93,28 @@
       ],
       "view/title": [
         {
-          "command": "ccls.closeInheritanceHierarchy",
-          "when": "view == ccls.inheritanceHierarchy",
+          "command": "ccls.call.useCallers",
+          "when": "view == ccls.callHierarchy",
+          "group": "navigation"
+        },
+        {
+          "command": "ccls.call.useCallees",
+          "when": "view == ccls.callHierarchy",
           "group": "navigation"
         },
         {
           "command": "ccls.closeCallHierarchy",
           "when": "view == ccls.callHierarchy",
+          "group": "navigation"
+        },
+        {
+          "command": "ccls.closeInheritanceHierarchy",
+          "when": "view == ccls.inheritanceHierarchy",
+          "group": "navigation"
+        },
+        {
+          "command": "ccls.closeMemberHierarchy",
+          "when": "view == ccls.memberHierarchy",
           "group": "navigation"
         }
       ],
@@ -101,15 +126,27 @@
       ],
       "commandPalette": [
         {
-          "command": "ccls.closeInheritanceHierarchy",
-          "when": "false"
-        },
-        {
           "command": "ccls.closeCallHierarchy",
           "when": "false"
         },
         {
+          "command": "ccls.closeInheritanceHierarchy",
+          "when": "false"
+        },
+        {
+          "command": "ccls.closeMemberHierarchy",
+          "when": "false"
+        },
+        {
           "command": "ccls.gotoForTreeView",
+          "when": "false"
+        },
+        {
+          "command": "ccls.call.useCallers",
+          "when": "false"
+        },
+        {
+          "command": "ccls.call.useCallees",
           "when": "false"
         }
       ]
@@ -131,22 +168,61 @@
         "command": "ccls.restartLazy"
       },
       {
+        "title": "Call Hierarchy",
+        "category": "ccls",
+        "command": "ccls.callHierarchy"
+      },
+      {
+        "title": "Callers",
+        "category": "ccls",
+        "command": "ccls.call.useCallers",
+        "icon": {
+          "light": "resources/base-light.svg",
+          "dark": "resources/base-dark.svg"
+        }
+      },
+      {
+        "title": "Callees",
+        "category": "ccls",
+        "command": "ccls.call.useCallees",
+        "icon": {
+          "light": "resources/derived-light.svg",
+          "dark": "resources/derived-dark.svg"
+        }
+      },
+      {
+        "title": "Close",
+        "command": "ccls.closeCallHierarchy",
+        "icon": {
+          "light": "resources/close-light.svg",
+          "dark": "resources/close-dark.svg"
+        }
+      },
+      {
         "title": "Inheritance Hierarchy",
         "category": "ccls",
         "command": "ccls.inheritanceHierarchy"
       },
       {
         "title": "Close",
-        "command": "ccls.closeInheritanceHierarchy"
+        "command": "ccls.closeInheritanceHierarchy",
+        "icon": {
+          "light": "resources/close-light.svg",
+          "dark": "resources/close-dark.svg"
+        }
       },
       {
-        "title": "Call Hierarchy",
+        "title": "Member Hierarchy",
         "category": "ccls",
-        "command": "ccls.callHierarchy"
+        "command": "ccls.memberHierarchy"
       },
       {
         "title": "Close",
-        "command": "ccls.closeCallHierarchy"
+        "command": "ccls.closeMemberHierarchy",
+        "icon": {
+          "light": "resources/close-light.svg",
+          "dark": "resources/close-dark.svg"
+        }
       },
       {
         "title": "Show Variables",

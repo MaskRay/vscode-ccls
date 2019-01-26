@@ -26,14 +26,15 @@ import {
 } from "vscode-languageclient";
 import { Converter } from "vscode-languageclient/lib/protocolConverter";
 import * as ls from "vscode-languageserver-types";
-import { CallHierarchyNode, CallHierarchyProvider } from "./callHierarchy";
 import { CclsErrorHandler } from "./cclsErrorHandler";
 import { cclsChan, logChan } from './globalContext';
+import { CallHierarchyProvider } from "./hierarchies/callHierarchy";
+import { InheritanceHierarchyProvider } from "./hierarchies/inheritanceHierarchy";
+import { MemberHierarchyProvider } from "./hierarchies/memberHierarchy";
 import { InactiveRegionsProvider } from "./inactiveRegions";
-import { InheritanceHierarchyNode, InheritanceHierarchyProvider } from "./inheritanceHierarchy";
 import { PublishSemanticHighlightArgs, SemanticContext, semanticTypes } from "./semantic";
 import { StatusBarIconProvider } from "./statusBarIcon";
-import { ClientConfig } from "./types";
+import { ClientConfig, IHierarchyNode } from './types';
 import { disposeAll, normalizeUri, unwrap, wait } from "./utils";
 import { jumpToUriAtPosition } from "./vscodeUtils";
 
@@ -252,7 +253,13 @@ export class ServerContext implements Disposable {
     const callHierarchyProvider = new CallHierarchyProvider(this.client);
     this._dispose.push(callHierarchyProvider);
     this._dispose.push(window.registerTreeDataProvider(
-        "ccls.callHierarchy", callHierarchyProvider
+        'ccls.callHierarchy', callHierarchyProvider
+    ));
+
+    const memberHierarchyProvider = new MemberHierarchyProvider(this.client);
+    this._dispose.push(memberHierarchyProvider);
+    this._dispose.push(window.registerTreeDataProvider(
+        'ccls.memberHierarchy', memberHierarchyProvider
     ));
 
     // Common between tree views.
@@ -264,12 +271,8 @@ export class ServerContext implements Disposable {
     ));
 
     // Semantic highlighting
-    // TODO:
-    //   - enable bold/italic decorators, might need change in vscode
-    //   - only function call icon if the call is implicit
     const semantic = new SemanticContext();
     this._dispose.push(semantic);
-    // await languageClient.onReady();
     this.client.onNotification('$ccls/publishSemanticHighlight',
         (args: PublishSemanticHighlightArgs) => semantic.publishSemanticHighlight(args)
     );
@@ -343,15 +346,16 @@ export class ServerContext implements Disposable {
     if (!enableInlineCodeLens) {
       const uri = document.uri;
       const position = document.positionAt(0);
-      const lenses = await this.client.sendRequest<Array<any>>('textDocument/codeLens', {
+      const lensesObjs = await this.client.sendRequest<Array<any>>('textDocument/codeLens', {
         position,
         textDocument: {
           uri: uri.toString(true),
         },
       });
-      return lenses.map((lense) => {
+      const lenses = this.p2c.asCodeLenses(lensesObjs);
+      return lenses.map((lense: CodeLens) => {
         const cmd  = lense.command;
-        if (cmd.command === 'ccls.xref') {
+        if (cmd && cmd.command === 'ccls.xref') {
           // Change to a custom command which will fetch and then show the results
           cmd.command = 'ccls.showXrefs';
           cmd.arguments = [
@@ -373,7 +377,7 @@ export class ServerContext implements Disposable {
         },
       }
     );
-    const result: CodeLens[] = this.client.protocol2CodeConverter.asCodeLenses(a);
+    const result: CodeLens[] = this.p2c.asCodeLenses(a);
     this.displayCodeLens(document, result);
     return [];
   }
@@ -505,8 +509,7 @@ export class ServerContext implements Disposable {
     };
   }
 
-  private async showXrefsHandlerCmd(...args: any[]) { // TODO fix any
-    const [uri, position, xrefArgs] = args;
+  private async showXrefsHandlerCmd(uri: Uri, position: Position, xrefArgs: any[]) {
     const locations = await commands.executeCommand<ls.Location[]>('ccls.xref', ...xrefArgs);
     if (!locations)
       return;
@@ -591,7 +594,7 @@ export class ServerContext implements Disposable {
     }
   }
 
-  private async gotoForTreeView(node: InheritanceHierarchyNode|CallHierarchyNode) {
+  private async gotoForTreeView(node: IHierarchyNode) {
     if (!node.location)
       return;
 
@@ -602,7 +605,7 @@ export class ServerContext implements Disposable {
   }
 
   private async hackGotoForTreeView(
-    node: InheritanceHierarchyNode|CallHierarchyNode,
+    node: IHierarchyNode,
     hasChildren: boolean
   ) {
     if (!node.location)
