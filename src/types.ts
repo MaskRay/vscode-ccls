@@ -1,4 +1,5 @@
-import { Uri } from "vscode";
+import { Uri } from 'vscode';
+import * as ls from 'vscode-languageserver-types';
 
 export interface Icon {
   light: string | Uri;
@@ -18,4 +19,10 @@ export interface ClientConfig {
   };
   statusUpdateInterval: number;
   [key: string]: any;
+}
+
+export interface IHierarchyNode {
+  id: any;
+  name: string;
+  location: ls.Location;
 }

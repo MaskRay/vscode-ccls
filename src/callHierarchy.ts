@@ -10,8 +10,7 @@ import {
   Uri
 } from "vscode";
 import { LanguageClient } from 'vscode-languageclient/lib/main';
-import * as ls from 'vscode-languageserver-types';
-import { Icon } from './types';
+import { Icon, IHierarchyNode } from './types';
 import { disposeAll, resourcePath, setContext } from "./utils";
 
 enum CallType {
@@ -20,11 +19,8 @@ enum CallType {
   Derived = 2,
   All = 3 // Normal & Base & Derived
 }
-export interface CallHierarchyNode {
-  // These properties come directly from the language server.
-  id: any;
-  name: string;
-  location: ls.Location;
+
+interface CallHierarchyNode extends IHierarchyNode {
   callType: CallType;
 
   // If |numChildren| != |children.length|, then the node has not been expanded

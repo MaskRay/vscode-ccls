@@ -26,14 +26,14 @@ import {
 } from "vscode-languageclient";
 import { Converter } from "vscode-languageclient/lib/protocolConverter";
 import * as ls from "vscode-languageserver-types";
-import { CallHierarchyNode, CallHierarchyProvider } from "./callHierarchy";
+import { CallHierarchyProvider } from "./callHierarchy";
 import { CclsErrorHandler } from "./cclsErrorHandler";
 import { cclsChan, logChan } from './globalContext';
 import { InactiveRegionsProvider } from "./inactiveRegions";
-import { InheritanceHierarchyNode, InheritanceHierarchyProvider } from "./inheritanceHierarchy";
+import { InheritanceHierarchyProvider } from "./inheritanceHierarchy";
 import { PublishSemanticHighlightArgs, SemanticContext, semanticTypes } from "./semantic";
 import { StatusBarIconProvider } from "./statusBarIcon";
-import { ClientConfig } from "./types";
+import { ClientConfig, IHierarchyNode } from "./types";
 import { disposeAll, normalizeUri, unwrap, wait } from "./utils";
 import { jumpToUriAtPosition } from "./vscodeUtils";
 
@@ -587,7 +587,7 @@ export class ServerContext implements Disposable {
     }
   }
 
-  private async gotoForTreeView(node: InheritanceHierarchyNode|CallHierarchyNode) {
+  private async gotoForTreeView(node: IHierarchyNode) {
     if (!node.location)
       return;
 
@@ -598,7 +598,7 @@ export class ServerContext implements Disposable {
   }
 
   private async hackGotoForTreeView(
-    node: InheritanceHierarchyNode|CallHierarchyNode,
+    node: IHierarchyNode,
     hasChildren: boolean
   ) {
     if (!node.location)

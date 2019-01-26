@@ -1,3 +1,4 @@
+import * as path from "path";
 import {
   commands,
   Event,
@@ -9,24 +10,22 @@ import {
   Uri
 } from "vscode";
 import { Disposable, LanguageClient } from "vscode-languageclient/lib/main";
-import * as ls from "vscode-languageserver-types";
+import { IHierarchyNode } from "./types";
 import { disposeAll, setContext } from "./utils";
 
-export function InheritanceHierarchySetWantsDerived(node: InheritanceHierarchyNode, value: boolean) {
+function InheritanceHierarchySetWantsDerived(node: InheritanceHierarchyNode, value: boolean) {
   node.wantsDerived = value;
   node.children.map((c) => InheritanceHierarchySetWantsDerived(c, value));
 }
 
-export interface InheritanceHierarchyNode {
-  id: any;
+interface InheritanceHierarchyNode extends IHierarchyNode {
   kind: number;
-  name: string;
-  location?: ls.Location;
   numChildren: number;
   children: InheritanceHierarchyNode[];
 
   /** If true and children need to be expanded derived will be used, otherwise base will be used. */
   wantsDerived: boolean;
+  isBaseLabel?: boolean;
 }
 
 export class InheritanceHierarchyProvider implements
@@ -52,33 +51,26 @@ export class InheritanceHierarchyProvider implements
   }
 
   public getTreeItem(element: InheritanceHierarchyNode): TreeItem {
-    const kBaseName = '[[Base]]';
-
-    let collapseState = TreeItemCollapsibleState.None;
-    if (element.numChildren > 0) {
-      if (element.children.length > 0 && element.name !== kBaseName)
-        collapseState = TreeItemCollapsibleState.Expanded;
-      else
-        collapseState = TreeItemCollapsibleState.Collapsed;
-    }
-
-    let label = element.name;
-    if (element.name !== kBaseName && element.location) {
-      const path = Uri.parse(element.location.uri).path;
-      const name = path.substr(path.lastIndexOf('/') + 1);
-      label += ` (${name}:${element.location.range.start.line + 1})`;
-    }
-
-    return {
-      collapsibleState: collapseState,
-      command: {
-        arguments: [element, element.numChildren > 0],
-        command: 'ccls.hackGotoForTreeView',
-        title: 'Goto',
-      },
-      contextValue: 'cclsGoto',
-      label,
+    const ti = new TreeItem(element.name);
+    ti.contextValue = 'cclsGoto';
+    ti.command = {
+      arguments: [element, element.numChildren > 0],
+      command: 'ccls.hackGotoForTreeView',
+      title: 'Goto',
     };
+    if (element.numChildren > 0) {
+      if (element.children.length > 0 && element.isBaseLabel)
+        ti.collapsibleState = TreeItemCollapsibleState.Expanded;
+      else
+        ti.collapsibleState = TreeItemCollapsibleState.Collapsed;
+    }
+
+    if (!element.isBaseLabel) {
+      const elpath = Uri.parse(element.location.uri).path;
+      ti.description = `${path.basename(elpath)}:${element.location.range.start.line + 1}`;
+    }
+
+    return ti;
   }
 
   public async getChildren(element?: InheritanceHierarchyNode):
@@ -136,11 +128,12 @@ export class InheritanceHierarchyProvider implements
       const parentWrapper: InheritanceHierarchyNode = {
         children: parentEntry.children,
         id: undefined,
+        isBaseLabel: true,
         kind: -1,
-        location: undefined,
+        location: parentEntry.location,
         name: '[[Base]]',
         numChildren: parentEntry.children.length,
-        wantsDerived: false
+        wantsDerived: false,
       };
       InheritanceHierarchySetWantsDerived(
           parentWrapper, false);
