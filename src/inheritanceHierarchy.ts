@@ -19,9 +19,8 @@ function InheritanceHierarchySetWantsDerived(node: InheritanceHierarchyNode, val
 }
 
 interface InheritanceHierarchyNode extends IHierarchyNode {
-  kind: number;
-  numChildren: number;
   children: InheritanceHierarchyNode[];
+  kind: number;
 
   /** If true and children need to be expanded derived will be used, otherwise base will be used. */
   wantsDerived: boolean;

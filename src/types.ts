@@ -25,4 +25,6 @@ export interface IHierarchyNode {
   id: any;
   name: string;
   location: ls.Location;
+  numChildren: number;
+  children: IHierarchyNode[];
 }

@@ -26,9 +26,8 @@ function nodeIsIncomplete(node: CallHierarchyNode) {
 }
 
 interface CallHierarchyNode extends IHierarchyNode {
-  callType: CallType;
-  numChildren: number;
   children: CallHierarchyNode[];
+  callType: CallType;
 }
 
 export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode>, Disposable {
