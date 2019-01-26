@@ -20,13 +20,13 @@ function nodeIsIncomplete(node: IHierarchyNode) {
 
 export abstract class Hierarchy<T extends IHierarchyNode> implements TreeDataProvider<IHierarchyNode>, Disposable {
   protected abstract contextValue: string;
+  protected _dispose: Disposable[] = [];
 
   private readonly onDidChangeEmitter: EventEmitter<any> = new EventEmitter<any>();
   // tslint:disable-next-line:member-ordering
   public readonly onDidChangeTreeData: Event<any> = this.onDidChangeEmitter.event;
 
   private root?: T;
-  private _dispose: Disposable[] = [];
 
   constructor(
     readonly languageClient: LanguageClient,

@@ -4,8 +4,8 @@ import {
   Uri
 } from "vscode";
 import { LanguageClient } from "vscode-languageclient/lib/main";
-import { Hierarchy } from "./hierarchies/hierarchy";
-import { IHierarchyNode } from "./types";
+import { IHierarchyNode } from "../types";
+import { Hierarchy } from "./hierarchy";
 
 function InheritanceHierarchySetWantsDerived(node: InheritanceHierarchyNode, value: boolean) {
   node.wantsDerived = value;
