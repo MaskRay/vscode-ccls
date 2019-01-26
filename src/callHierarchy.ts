@@ -1,3 +1,4 @@
+import * as path from "path";
 import {
   commands,
   Disposable,
@@ -17,14 +18,15 @@ enum CallType {
   Normal = 0,
   Base = 1,
   Derived = 2,
-  All = 3 // Normal & Base & Derived
+  All = CallType.Base | CallType.Derived // Normal and Base and Derived
+}
+
+function nodeIsIncomplete(node: CallHierarchyNode) {
+  return node.children.length !== node.numChildren;
 }
 
 interface CallHierarchyNode extends IHierarchyNode {
   callType: CallType;
-
-  // If |numChildren| != |children.length|, then the node has not been expanded
-  // and is incomplete - we need to send a new request to expand it.
   numChildren: number;
   children: CallHierarchyNode[];
 }
@@ -64,42 +66,32 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
   }
 
   public getTreeItem(element: CallHierarchyNode): TreeItem {
-    let collapseState = TreeItemCollapsibleState.None;
+    const ti = new TreeItem(element.name);
+    ti.contextValue = 'cclsGoto';
+    ti.command = {
+      arguments: [element, element.numChildren > 0],
+      command: 'ccls.hackGotoForTreeView',
+      title: 'Goto',
+    };
     if (element.numChildren > 0) {
       if (element.children.length > 0)
-        collapseState = TreeItemCollapsibleState.Expanded;
+        ti.collapsibleState = TreeItemCollapsibleState.Expanded;
       else
-        collapseState = TreeItemCollapsibleState.Collapsed;
+        ti.collapsibleState = TreeItemCollapsibleState.Collapsed;
     }
 
-    let iconPath: Icon = {
-      dark: "",
-      light: ""
-    };
     if (element.callType === CallType.Base) {
-      iconPath = this.baseIcon;
+      ti.iconPath = this.baseIcon;
     } else if (element.callType === CallType.Derived) {
-      iconPath = this.derivedIcon;
+      ti.iconPath = this.derivedIcon;
     }
 
-    let label = element.name;
     if (element.location) {
-      const path = Uri.parse(element.location.uri).path;
-      const name = path.substr(path.lastIndexOf('/') + 1);
-      label += ` (${name}:${element.location.range.start.line + 1})`;
+      const elpath = Uri.parse(element.location.uri).path;
+      ti.description = `${path.basename(elpath)}:${element.location.range.start.line + 1}`;
     }
 
-    return {
-      collapsibleState: collapseState,
-      command: {
-        arguments: [element, element.numChildren > 0],
-        command: 'ccls.hackGotoForTreeView',
-        title: 'Goto',
-      },
-      contextValue: 'cclsGoto',
-      iconPath,
-      label,
-    };
+    return ti;
   }
 
   public async getChildren(element?: CallHierarchyNode): Promise<CallHierarchyNode[]> {
@@ -107,7 +99,7 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
       return [];
     if (!element)
       return [this.root];
-    if (element.numChildren === element.children.length)
+    if (!nodeIsIncomplete(element))
       return element.children;
 
     const result = await this.languageClient.sendRequest<CallHierarchyNode>('$ccls/call', {
@@ -129,7 +121,7 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
     const callNode = await this.languageClient.sendRequest<CallHierarchyNode>(
       '$ccls/call',
       {
-        callType: 0x1 | 0x2,
+        callType: CallType.All,
         callee: false,
         hierarchy: true,
         levels: 2,
