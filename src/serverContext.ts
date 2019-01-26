@@ -36,6 +36,7 @@ import { StatusBarIconProvider } from "./statusBarIcon";
 import { ClientConfig, IHierarchyNode } from "./types";
 import { disposeAll, normalizeUri, unwrap, wait } from "./utils";
 import { jumpToUriAtPosition } from "./vscodeUtils";
+import { MemberHierarchyProvider } from "./hierarchies/memberHierarchy";
 
 interface LastGoto {
   id: any;
@@ -253,6 +254,12 @@ export class ServerContext implements Disposable {
     this._dispose.push(callHierarchyProvider);
     this._dispose.push(window.registerTreeDataProvider(
         "ccls.callHierarchy", callHierarchyProvider
+    ));
+
+    const memberHierarchyProvider = new MemberHierarchyProvider(this.client);
+    this._dispose.push(memberHierarchyProvider);
+    this._dispose.push(window.registerTreeDataProvider(
+        "ccls.memberHierarchy", memberHierarchyProvider
     ));
 
     // Common between tree views.
