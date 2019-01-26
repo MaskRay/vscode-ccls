@@ -88,6 +88,16 @@
           "group": "navigation"
         },
         {
+          "command": "ccls.call.useCallers",
+          "when": "view == ccls.callHierarchy",
+          "group": "navigation"
+        },
+        {
+          "command": "ccls.call.useCallees",
+          "when": "view == ccls.callHierarchy",
+          "group": "navigation"
+        },
+        {
           "command": "ccls.closeCallHierarchy",
           "when": "view == ccls.callHierarchy",
           "group": "navigation"
@@ -110,6 +120,14 @@
         },
         {
           "command": "ccls.gotoForTreeView",
+          "when": "false"
+        },
+        {
+          "command": "ccls.call.useCallers",
+          "when": "false"
+        },
+        {
+          "command": "ccls.call.useCallees",
           "when": "false"
         }
       ]
@@ -137,7 +155,11 @@
       },
       {
         "title": "Close",
-        "command": "ccls.closeInheritanceHierarchy"
+        "command": "ccls.closeInheritanceHierarchy",
+        "icon": {
+          "light": "resources/close-light.svg",
+          "dark": "resources/close-dark.svg"
+        }
       },
       {
         "title": "Call Hierarchy",
@@ -145,8 +167,30 @@
         "command": "ccls.callHierarchy"
       },
       {
+        "title": "Callers",
+        "category": "ccls",
+        "command": "ccls.call.useCallers",
+        "icon": {
+          "light": "resources/base-light.svg",
+          "dark": "resources/base-dark.svg"
+        }
+      },
+      {
+        "title": "Callees",
+        "category": "ccls",
+        "command": "ccls.call.useCallees",
+        "icon": {
+          "light": "resources/derived-light.svg",
+          "dark": "resources/derived-dark.svg"
+        }
+      },
+      {
         "title": "Close",
-        "command": "ccls.closeCallHierarchy"
+        "command": "ccls.closeCallHierarchy",
+        "icon": {
+          "light": "resources/close-light.svg",
+          "dark": "resources/close-dark.svg"
+        }
       },
       {
         "title": "Show Variables",

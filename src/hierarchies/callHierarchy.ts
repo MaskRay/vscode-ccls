@@ -1,4 +1,5 @@
 import {
+  commands,
   Position,
   TreeItem,
   Uri
@@ -24,6 +25,7 @@ export class CallHierarchyProvider extends Hierarchy<CallHierarchyNode> {
   protected contextValue: string = 'extension.ccls.callHierarchyVisible';
   private baseIcon: Icon;
   private derivedIcon: Icon;
+  private useCallee = false;
 
   constructor(
     languageClient: LanguageClient
@@ -37,6 +39,8 @@ export class CallHierarchyProvider extends Hierarchy<CallHierarchyNode> {
       dark: resourcePath("derived-dark.svg"),
       light: resourcePath("derived-light.svg")
     };
+    this._dispose.push(commands.registerCommand("ccls.call.useCallers", () => this.updateCallee(false)));
+    this._dispose.push(commands.registerCommand("ccls.call.useCallees", () => this.updateCallee(true)));
   }
 
   public onTreeItem(ti: TreeItem, element: CallHierarchyNode) {
@@ -50,7 +54,7 @@ export class CallHierarchyProvider extends Hierarchy<CallHierarchyNode> {
   protected async onGetChildren(element: CallHierarchyNode): Promise<CallHierarchyNode[]> {
     const result = await this.languageClient.sendRequest<CallHierarchyNode>('$ccls/call', {
       callType: CallType.All,
-      callee: false,
+      callee: this.useCallee,
       hierarchy: true,
       id: element.id,
       levels: 1,
@@ -65,7 +69,7 @@ export class CallHierarchyProvider extends Hierarchy<CallHierarchyNode> {
       '$ccls/call',
       {
         callType: CallType.All,
-        callee: false,
+        callee: this.useCallee,
         hierarchy: true,
         levels: 2,
         position,
@@ -75,5 +79,13 @@ export class CallHierarchyProvider extends Hierarchy<CallHierarchyNode> {
         },
       }
     );
+  }
+
+  private updateCallee(val: boolean) {
+    this.useCallee = val;
+    if (this.root) {
+      this.root.children = [];
+      this.onDidChangeEmitter.fire();
+    }
   }
 }
