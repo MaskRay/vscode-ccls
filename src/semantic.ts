@@ -88,6 +88,7 @@ function makeDecorations(type: string) {
   return colors.map((c) => makeSemanticDecorationType(c, u, i, b));
 }
 
+// TODO: enable bold/italic decorators, might need change in vscode
 export class SemanticContext implements Disposable {
   private semanticDecorations = new Map<string, TextEditorDecorationType[]>();
   private semanticEnabled = new Map<string, boolean>();

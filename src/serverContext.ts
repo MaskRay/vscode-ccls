@@ -264,12 +264,8 @@ export class ServerContext implements Disposable {
     ));
 
     // Semantic highlighting
-    // TODO:
-    //   - enable bold/italic decorators, might need change in vscode
-    //   - only function call icon if the call is implicit
     const semantic = new SemanticContext();
     this._dispose.push(semantic);
-    // await languageClient.onReady();
     this.client.onNotification('$ccls/publishSemanticHighlight',
         (args: PublishSemanticHighlightArgs) => semantic.publishSemanticHighlight(args)
     );
