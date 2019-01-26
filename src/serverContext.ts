@@ -343,15 +343,16 @@ export class ServerContext implements Disposable {
     if (!enableInlineCodeLens) {
       const uri = document.uri;
       const position = document.positionAt(0);
-      const lenses = await this.client.sendRequest<Array<any>>('textDocument/codeLens', {
+      const lensesObjs = await this.client.sendRequest<Array<any>>('textDocument/codeLens', {
         position,
         textDocument: {
           uri: uri.toString(true),
         },
       });
-      return lenses.map((lense) => {
+      const lenses = this.p2c.asCodeLenses(lensesObjs);
+      return lenses.map((lense: CodeLens) => {
         const cmd  = lense.command;
-        if (cmd.command === 'ccls.xref') {
+        if (cmd && cmd.command === 'ccls.xref') {
           // Change to a custom command which will fetch and then show the results
           cmd.command = 'ccls.showXrefs';
           cmd.arguments = [
@@ -373,7 +374,7 @@ export class ServerContext implements Disposable {
         },
       }
     );
-    const result: CodeLens[] = this.client.protocol2CodeConverter.asCodeLenses(a);
+    const result: CodeLens[] = this.p2c.asCodeLenses(a);
     this.displayCodeLens(document, result);
     return [];
   }
@@ -505,8 +506,7 @@ export class ServerContext implements Disposable {
     };
   }
 
-  private async showXrefsHandlerCmd(...args: any[]) { // TODO fix any
-    const [uri, position, xrefArgs] = args;
+  private async showXrefsHandlerCmd(uri: Uri, position: Position, xrefArgs: any[]) {
     const locations = await commands.executeCommand<ls.Location[]>('ccls.xref', ...xrefArgs);
     if (!locations)
       return;
