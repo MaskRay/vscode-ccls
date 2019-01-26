@@ -1,18 +1,12 @@
-import * as path from "path";
 import {
-  commands,
-  Disposable,
-  Event,
-  EventEmitter,
-  TextEditor,
-  TreeDataProvider,
+  Position,
   TreeItem,
-  TreeItemCollapsibleState,
   Uri
 } from "vscode";
 import { LanguageClient } from 'vscode-languageclient/lib/main';
 import { Icon, IHierarchyNode } from '../types';
-import { disposeAll, resourcePath, setContext } from "../utils";
+import { resourcePath } from "../utils";
+import { Hierarchy } from "./hierarchy";
 
 enum CallType {
   Normal = 0,
@@ -21,28 +15,20 @@ enum CallType {
   All = CallType.Base | CallType.Derived // Normal and Base and Derived
 }
 
-function nodeIsIncomplete(node: CallHierarchyNode) {
-  return node.children.length !== node.numChildren;
-}
-
 interface CallHierarchyNode extends IHierarchyNode {
   children: CallHierarchyNode[];
   callType: CallType;
 }
 
-export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode>, Disposable {
-  private readonly onDidChangeEmitter: EventEmitter<any> = new EventEmitter<any>();
-  // tslint:disable-next-line:member-ordering
-  public readonly onDidChangeTreeData: Event<any> = this.onDidChangeEmitter.event;
-
-  private root?: CallHierarchyNode;
+export class CallHierarchyProvider extends Hierarchy<CallHierarchyNode> {
+  protected contextValue: string = 'extension.ccls.callHierarchyVisible';
   private baseIcon: Icon;
   private derivedIcon: Icon;
-  private _dispose: Disposable[] = [];
 
   constructor(
-    readonly languageClient: LanguageClient
+    languageClient: LanguageClient
   ) {
+    super(languageClient, 'ccls.callHierarchy', 'ccls.closeCallHierarchy');
     this.baseIcon = {
       dark: resourcePath("base-dark.svg"),
       light: resourcePath("base-light.svg")
@@ -51,56 +37,17 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
       dark: resourcePath("derived-dark.svg"),
       light: resourcePath("derived-light.svg")
     };
-
-    this._dispose.push(commands.registerTextEditorCommand(
-      'ccls.callHierarchy', this.cclsCallHierarchy, this
-    ));
-    this._dispose.push(commands.registerCommand(
-      'ccls.closeCallHierarchy', this.closeCallHierarchy, this
-    ));
   }
 
-  public dispose() {
-    disposeAll(this._dispose);
-  }
-
-  public getTreeItem(element: CallHierarchyNode): TreeItem {
-    const ti = new TreeItem(element.name);
-    ti.contextValue = 'cclsGoto';
-    ti.command = {
-      arguments: [element, element.numChildren > 0],
-      command: 'ccls.hackGotoForTreeView',
-      title: 'Goto',
-    };
-    if (element.numChildren > 0) {
-      if (element.children.length > 0)
-        ti.collapsibleState = TreeItemCollapsibleState.Expanded;
-      else
-        ti.collapsibleState = TreeItemCollapsibleState.Collapsed;
-    }
-
+  public onTreeItem(ti: TreeItem, element: CallHierarchyNode) {
     if (element.callType === CallType.Base) {
       ti.iconPath = this.baseIcon;
     } else if (element.callType === CallType.Derived) {
       ti.iconPath = this.derivedIcon;
     }
-
-    if (element.location) {
-      const elpath = Uri.parse(element.location.uri).path;
-      ti.description = `${path.basename(elpath)}:${element.location.range.start.line + 1}`;
-    }
-
-    return ti;
   }
 
-  public async getChildren(element?: CallHierarchyNode): Promise<CallHierarchyNode[]> {
-    if (!this.root)
-      return [];
-    if (!element)
-      return [this.root];
-    if (!nodeIsIncomplete(element))
-      return element.children;
-
+  protected async onGetChildren(element: CallHierarchyNode): Promise<CallHierarchyNode[]> {
     const result = await this.languageClient.sendRequest<CallHierarchyNode>('$ccls/call', {
       callType: CallType.All,
       callee: false,
@@ -113,11 +60,8 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
     return result.children;
   }
 
-  private async cclsCallHierarchy(editor: TextEditor) {
-    setContext('extension.ccls.callHierarchyVisible', true);
-    const position = editor.selection.active;
-    const uri = editor.document.uri;
-    const callNode = await this.languageClient.sendRequest<CallHierarchyNode>(
+  protected async onReveal(uri: Uri, position: Position): Promise<CallHierarchyNode> {
+    return this.languageClient.sendRequest<CallHierarchyNode>(
       '$ccls/call',
       {
         callType: CallType.All,
@@ -131,14 +75,5 @@ export class CallHierarchyProvider implements TreeDataProvider<CallHierarchyNode
         },
       }
     );
-    this.root = callNode;
-    this.onDidChangeEmitter.fire();
-    commands.executeCommand("workbench.view.explorer");
-  }
-
-  private async closeCallHierarchy() {
-    setContext('extension.ccls.callHierarchyVisible', false);
-    this.root = undefined;
-    this.onDidChangeEmitter.fire();
   }
 }

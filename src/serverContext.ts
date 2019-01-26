@@ -26,10 +26,10 @@ import {
 } from "vscode-languageclient";
 import { Converter } from "vscode-languageclient/lib/protocolConverter";
 import * as ls from "vscode-languageserver-types";
-import { CallHierarchyProvider } from "./callHierarchy";
 import { CclsErrorHandler } from "./cclsErrorHandler";
 import { cclsChan, logChan } from './globalContext';
-import { InactiveRegionsProvider } from "./inactiveRegions";
+import { CallHierarchyProvider } from "./hierarchies/callHierarchy";
+import { InactiveRegionsProvider } from "./hierarchies/inactiveRegions";
 import { InheritanceHierarchyProvider } from "./inheritanceHierarchy";
 import { PublishSemanticHighlightArgs, SemanticContext, semanticTypes } from "./semantic";
 import { StatusBarIconProvider } from "./statusBarIcon";
