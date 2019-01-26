@@ -11,8 +11,8 @@ import {
   Uri
 } from "vscode";
 import { LanguageClient } from 'vscode-languageclient/lib/main';
-import { Icon, IHierarchyNode } from './types';
-import { disposeAll, resourcePath, setContext } from "./utils";
+import { Icon, IHierarchyNode } from '../types';
+import { disposeAll, resourcePath, setContext } from "../utils";
 
 enum CallType {
   Normal = 0,

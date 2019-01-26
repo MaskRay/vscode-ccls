@@ -8,7 +8,7 @@ import {
   workspace
 } from "vscode";
 import { LanguageClient } from "vscode-languageclient";
-import { disposeAll, normalizeUri } from "./utils";
+import { disposeAll, normalizeUri } from "../utils";
 
 export class InactiveRegionsProvider implements Disposable {
   private skippedRanges = new Map<string, Range[]>();
