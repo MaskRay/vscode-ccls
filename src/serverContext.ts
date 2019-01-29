@@ -26,15 +26,16 @@ import {
 } from "vscode-languageclient";
 import { Converter } from "vscode-languageclient/lib/protocolConverter";
 import * as ls from "vscode-languageserver-types";
-import { CallHierarchyNode, CallHierarchyProvider } from "./callHierarchy";
 import { CclsErrorHandler } from "./cclsErrorHandler";
-import { DataFlowHierarchyNode, DataFlowHierarchyProvider } from "./dataFlowHierarchy";
-import { cclsChan } from './globalContext';
+import { cclsChan, logChan } from './globalContext';
+import { CallHierarchyProvider } from "./hierarchies/callHierarchy";
+import { DataFlowHierarchyProvider } from "./hierarchies/dataFlowHierarchy";
+import { InheritanceHierarchyProvider } from "./hierarchies/inheritanceHierarchy";
+import { MemberHierarchyProvider } from "./hierarchies/memberHierarchy";
 import { InactiveRegionsProvider } from "./inactiveRegions";
-import { InheritanceHierarchyNode, InheritanceHierarchyProvider } from "./inheritanceHierarchy";
-import { PublishSemanticHighlightArgs, SemanticContext } from "./semantic";
+import { PublishSemanticHighlightArgs, SemanticContext, semanticTypes } from "./semantic";
 import { StatusBarIconProvider } from "./statusBarIcon";
-import { ClientConfig } from "./types";
+import { ClientConfig, IHierarchyNode } from './types';
 import { disposeAll, normalizeUri, unwrap, wait } from "./utils";
 import { jumpToUriAtPosition } from "./vscodeUtils";
 
@@ -78,25 +79,9 @@ function getClientConfig(wsRoot: string): ClientConfig {
   const kCacheDirPrefName = 'cacheDirectory';
 
   function hasAnySemanticHighlight() {
-    const options = [
-      'ccls.highlighting.enabled.types',
-      'ccls.highlighting.enabled.freeStandingFunctions',
-      'ccls.highlighting.enabled.memberFunctions',
-      'ccls.highlighting.enabled.freeStandingVariables',
-      'ccls.highlighting.enabled.memberVariables',
-      'ccls.highlighting.enabled.namespaces',
-      'ccls.highlighting.enabled.macros',
-      'ccls.highlighting.enabled.enums',
-      'ccls.highlighting.enabled.typeAliases',
-      'ccls.highlighting.enabled.enumConstants',
-      'ccls.highlighting.enabled.staticMemberFunctions',
-      'ccls.highlighting.enabled.parameters',
-      'ccls.highlighting.enabled.templateParameters',
-      'ccls.highlighting.enabled.staticMemberVariables',
-      'ccls.highlighting.enabled.globalVariables'];
-    const wsconfig = workspace.getConfiguration();
-    for (const name of options) {
-      if (wsconfig.get(name, false))
+    const hlconfig = workspace.getConfiguration('ccls.highlighting.enabled');
+    for (const name of Object.keys(semanticTypes)) {
+      if (hlconfig.get(name, false))
         return true;
     }
     return false;
@@ -219,7 +204,7 @@ export class ServerContext implements Disposable {
       this.ignoredConf.push(".index.initialBlacklist");
       this.cliConfig.index.initialBlacklist = [".*"];
     }
-    this._dispose.push(workspace.onDidChangeConfiguration(this.onDidChangeConfiguration, this));
+    workspace.onDidChangeConfiguration(this.onDidChangeConfiguration, this, this._dispose);
     this.client = this.initClient();
     this.p2c = this.client.protocol2CodeConverter;
   }
@@ -269,7 +254,13 @@ export class ServerContext implements Disposable {
     const callHierarchyProvider = new CallHierarchyProvider(this.client);
     this._dispose.push(callHierarchyProvider);
     this._dispose.push(window.registerTreeDataProvider(
-        "ccls.callHierarchy", callHierarchyProvider
+        'ccls.callHierarchy', callHierarchyProvider
+    ));
+
+    const memberHierarchyProvider = new MemberHierarchyProvider(this.client);
+    this._dispose.push(memberHierarchyProvider);
+    this._dispose.push(window.registerTreeDataProvider(
+        'ccls.memberHierarchy', memberHierarchyProvider
     ));
 
     const dfProvier = new DataFlowHierarchyProvider(this.client);
@@ -287,12 +278,8 @@ export class ServerContext implements Disposable {
     ));
 
     // Semantic highlighting
-    // TODO:
-    //   - enable bold/italic decorators, might need change in vscode
-    //   - only function call icon if the call is implicit
     const semantic = new SemanticContext();
     this._dispose.push(semantic);
-    // await languageClient.onReady();
     this.client.onNotification('$ccls/publishSemanticHighlight',
         (args: PublishSemanticHighlightArgs) => semantic.publishSemanticHighlight(args)
     );
@@ -310,16 +297,21 @@ export class ServerContext implements Disposable {
   }
 
   public async stop() {
-    await this.client.stop();
+    const pid = unwrap(this.clientPid);
+    const serverResponds = await Promise.race([
+      (async () => { await wait(300); return false; })(),
+      (async () => { await this.client.stop(); return true; })()
+    ]);
     // waitpid was called in client.stop
-    if (this.clientPid) {
-      await wait(200);
+    if (!serverResponds) {
+      console.info('Server does not repsond, killing');
       try {
-        process.kill(this.clientPid, "SIGTERM");
+        process.kill(pid, 'SIGTERM');
       } catch (e) {
-        // no such process
+        console.info('Kill failed: ' + (e as Error).message);
       }
     }
+    this.clientPid = undefined;
   }
 
   private reloadIndex() {
@@ -361,15 +353,16 @@ export class ServerContext implements Disposable {
     if (!enableInlineCodeLens) {
       const uri = document.uri;
       const position = document.positionAt(0);
-      const lenses = await this.client.sendRequest<Array<any>>('textDocument/codeLens', {
+      const lensesObjs = await this.client.sendRequest<Array<any>>('textDocument/codeLens', {
         position,
         textDocument: {
-          uri: uri.toString(),
+          uri: uri.toString(true),
         },
       });
-      return lenses.map((lense) => {
+      const lenses = this.p2c.asCodeLenses(lensesObjs);
+      return lenses.map((lense: CodeLens) => {
         const cmd  = lense.command;
-        if (cmd.command === 'ccls.xref') {
+        if (cmd && cmd.command === 'ccls.xref') {
           // Change to a custom command which will fetch and then show the results
           cmd.command = 'ccls.showXrefs';
           cmd.arguments = [
@@ -387,11 +380,11 @@ export class ServerContext implements Disposable {
       'textDocument/codeLens',
       {
         textDocument: {
-          uri: document.uri.toString(),
+          uri: document.uri.toString(true),
         },
       }
     );
-    const result: CodeLens[] = this.client.protocol2CodeConverter.asCodeLenses(a);
+    const result: CodeLens[] = this.p2c.asCodeLenses(a);
     this.displayCodeLens(document, result);
     return [];
   }
@@ -505,7 +498,7 @@ export class ServerContext implements Disposable {
           {
             position,
             textDocument: {
-              uri: uri.toString(),
+              uri: uri.toString(true),
             },
             ...extraParams,
             ...userParams
@@ -523,8 +516,7 @@ export class ServerContext implements Disposable {
     };
   }
 
-  private async showXrefsHandlerCmd(...args: any[]) { // TODO fix any
-    const [uri, position, xrefArgs] = args;
+  private async showXrefsHandlerCmd(uri: Uri, position: Position, xrefArgs: any[]) {
     const locations = await commands.executeCommand<ls.Location[]>('ccls.xref', ...xrefArgs);
     if (!locations)
       return;
@@ -568,7 +560,7 @@ export class ServerContext implements Disposable {
 
     // Find existing open document.
     for (const textEditor of window.visibleTextEditors) {
-      if (textEditor.document.uri.toString() === normalizeUri(uri)) {
+      if (textEditor.document.uri.toString(true) === normalizeUri(uri)) {
         applyEdits(textEditor);
         return;
       }
@@ -609,7 +601,7 @@ export class ServerContext implements Disposable {
     }
   }
 
-  private async gotoForTreeView(node: InheritanceHierarchyNode|CallHierarchyNode) {
+  private async gotoForTreeView(node: IHierarchyNode) {
     if (!node.location)
       return;
 
@@ -620,7 +612,7 @@ export class ServerContext implements Disposable {
   }
 
   private async hackGotoForTreeView(
-    node: InheritanceHierarchyNode|CallHierarchyNode|DataFlowHierarchyNode,
+    node: IHierarchyNode,
     hasChildren: boolean
   ) {
     if (!node.location)
@@ -656,7 +648,7 @@ export class ServerContext implements Disposable {
         {
           position,
           textDocument: {
-            uri: uri.toString(),
+            uri: uri.toString(true),
           },
           ...userParams
         }
