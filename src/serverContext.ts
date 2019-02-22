@@ -76,8 +76,6 @@ function flatObject(obj: any, pref = ""): Map<string, string> {
 }
 
 function getClientConfig(wsRoot: string): ClientConfig {
-  const kCacheDirPrefName = 'cacheDirectory';
-
   function hasAnySemanticHighlight() {
     const hlconfig = workspace.getConfiguration('ccls.highlighting.enabled');
     for (const name of Object.keys(semanticTypes)) {
@@ -109,7 +107,7 @@ function getClientConfig(wsRoot: string): ClientConfig {
   const configMapping: Array<[string, string]> = [
     ['launchCommand', 'launch.command'],
     ['launchArgs', 'launch.args'],
-    ['cacheDirectory', kCacheDirPrefName],
+    ['cache.directory', 'cache.directory'],
     ['compilationDatabaseCommand', 'misc.compilationDatabaseCommand'],
     ['compilationDatabaseDirectory', 'misc.compilationDatabaseDirectory'],
     ['clang.excludeArgs', 'clang.excludeArgs'],
@@ -148,7 +146,9 @@ function getClientConfig(wsRoot: string): ClientConfig {
   ];
   const castBooleanToInteger: string[] = [];
   const clientConfig: ClientConfig = {
-    cacheDirectory: '.ccls-cache',
+    cache: {
+      directory: '.ccls-cache',
+    },
     highlight: {
       enabled: hasAnySemanticHighlight(),
       lsRanges: true,

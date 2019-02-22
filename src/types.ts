@@ -7,7 +7,9 @@ export interface Icon {
 }
 
 export interface ClientConfig {
-  cacheDirectory: string;
+  cache: {
+    directory: string,
+  };
   highlight: {
     enabled: boolean;
     lsRanges: boolean;
