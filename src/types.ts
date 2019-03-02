@@ -20,6 +20,7 @@ export interface ClientConfig {
     sort: boolean,
   };
   statusUpdateInterval: number;
+  traceEndpoint: string;
   [key: string]: any;
 }
 

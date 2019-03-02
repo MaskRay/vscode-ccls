@@ -26,6 +26,7 @@ import {
 } from "vscode-languageclient";
 import { Converter } from "vscode-languageclient/lib/protocolConverter";
 import * as ls from "vscode-languageserver-types";
+import * as WebSocket from 'ws';
 import { CclsErrorHandler } from "./cclsErrorHandler";
 import { cclsChan, logChan } from './globalContext';
 import { CallHierarchyProvider } from "./hierarchies/callHierarchy";
@@ -143,6 +144,7 @@ function getClientConfig(wsRoot: string): ClientConfig {
     ['workspaceSymbol.maxNum', 'workspaceSymbol.maxNum'],
     ['workspaceSymbol.caseSensitivity', 'workspaceSymbol.caseSensitivity'],
     ['statusUpdateInterval', 'statusUpdateInterval'],
+    ['traceEndpoint', 'trace.websocketEndpointUrl'],
   ];
   const castBooleanToInteger: string[] = [];
   const clientConfig: ClientConfig = {
@@ -156,6 +158,7 @@ function getClientConfig(wsRoot: string): ClientConfig {
     launchArgs: [] as string[],
     launchCommand: '',
     statusUpdateInterval: 0,
+    traceEndpoint: '',
     workspaceSymbol: {
       sort: false,
     },
@@ -477,6 +480,28 @@ export class ServerContext implements Disposable {
       outputChannel: cclsChan,
       revealOutputChannelOn: RevealOutputChannelOn.Never,
     };
+
+    if (this.cliConfig.traceEndpoint) {
+      const socket = new WebSocket(this.cliConfig.traceEndpoint);
+      let log = '';
+      clientOptions.outputChannel = {
+        name: 'websocket',
+        append(value: string) {
+          log += value;
+        },
+        appendLine(value: string) {
+          log += value;
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(log);
+          }
+          log = '';
+        },
+        clear() {/**/},
+        show() {/**/},
+        hide() {/**/},
+        dispose() { socket.close(); }
+      };
+    }
 
     // Create the language client and start the client.
     return new LanguageClient('ccls', 'ccls', serverOptions, clientOptions);
