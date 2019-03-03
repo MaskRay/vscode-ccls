@@ -16,6 +16,7 @@ import {
   Uri,
   window,
   workspace,
+  WorkspaceConfiguration,
 } from "vscode";
 import {
   LanguageClient,
@@ -103,84 +104,80 @@ function getClientConfig(wsRoot: string): ClientConfig {
     return value;
   }
 
-  // Read prefs; this map goes from `ccls/js name` => `vscode prefs name`.
-  const configMapping: Array<[string, string]> = [
-    ['launchCommand', 'launch.command'],
-    ['launchArgs', 'launch.args'],
-    ['cache.directory', 'cache.directory'],
-    ['compilationDatabaseCommand', 'misc.compilationDatabaseCommand'],
-    ['compilationDatabaseDirectory', 'misc.compilationDatabaseDirectory'],
-    ['clang.excludeArgs', 'clang.excludeArgs'],
-    ['clang.extraArgs', 'clang.extraArgs'],
-    ['clang.pathMappings', 'clang.pathMappings'],
-    ['clang.resourceDir', 'clang.resourceDir'],
-    ['codeLens.localVariables', 'codeLens.localVariables'],
-    ['completion.caseSensitivity', 'completion.caseSensitivity'],
-    ['completion.detailedLabel', 'completion.detailedLabel'],
-    ['completion.duplicateOptional', 'completion.duplicateOptional'],
-    ['completion.filterAndSort', 'completion.filterAndSort'],
-    ['completion.include.maxPathSize', 'completion.include.maxPathSize'],
-    ['completion.include.suffixWhitelist', 'completion.include.suffixWhitelist'],
-    ['completion.include.whitelist', 'completion.include.whitelist'],
-    ['completion.include.blacklist', 'completion.include.blacklist'],
-    ['client.snippetSupport', 'completion.enableSnippetInsertion'],
-    ['diagnostics.blacklist', 'diagnostics.blacklist'],
-    ['diagnostics.whitelist', 'diagnostics.whitelist'],
-    ['diagnostics.onChange', 'diagnostics.onChange'],
-    ['diagnostics.onOpen', 'diagnostics.onOpen'],
-    ['diagnostics.onSave', 'diagnostics.onSave'],
-    ['diagnostics.spellChecking', 'diagnostics.spellChecking'],
-    ['highlight.blacklist', 'highlight.blacklist'],
-    ['highlight.whitelist', 'highlight.whitelist'],
-    ['largeFileSize', 'highlight.largeFileSize'],
-    ['index.whitelist', 'index.whitelist'],
-    ['index.blacklist', 'index.blacklist'],
-    ['index.initialWhitelist', 'index.initialWhitelist'],
-    ['index.initialBlacklist', 'index.initialBlacklist'],
-    ['index.multiVersion', 'index.multiVersion'],
-    ['index.onChange', 'index.onChange'],
-    ['index.threads', 'index.threads'],
-    ['workspaceSymbol.maxNum', 'workspaceSymbol.maxNum'],
-    ['workspaceSymbol.caseSensitivity', 'workspaceSymbol.caseSensitivity'],
-    ['statusUpdateInterval', 'statusUpdateInterval'],
-    ['traceEndpoint', 'trace.websocketEndpointUrl'],
-  ];
-  const castBooleanToInteger: string[] = [];
-  const clientConfig: ClientConfig = {
-    cache: {
-      directory: '.ccls-cache',
-    },
-    highlight: {
-      enabled: hasAnySemanticHighlight(),
-      lsRanges: true,
-    },
-    launchArgs: [] as string[],
-    launchCommand: '',
-    statusUpdateInterval: 0,
-    traceEndpoint: '',
-    workspaceSymbol: {
-      sort: false,
-    },
-  };
-  const config = workspace.getConfiguration('ccls');
-  for (const prop of configMapping) {
-    let value = config.get(prop[1]);
+  function setConfig(config: ClientConfig, dottedName: string, value: any) {
     if (value != null) {
-      const subprops = prop[0].split('.');
-      let subconfig = clientConfig;
+      const subprops = dottedName.split('.');
+      let subconfig = config;
       for (const subprop of subprops.slice(0, subprops.length - 1)) {
         if (!subconfig.hasOwnProperty(subprop)) {
           subconfig[subprop] = {};
         }
         subconfig = subconfig[subprop];
       }
-      if (castBooleanToInteger.includes(prop[1])) {
-        value = +value;
-      }
       subconfig[subprops[subprops.length - 1]] = resolveVariables(value);
     }
   }
 
+  function setClientConfigFromWorkspaceConfig(
+    cliConfig: ClientConfig,
+    workspaceConfig: WorkspaceConfiguration,
+    mapping: Map<string, string>,
+    blacklist: Set<string>
+  ) {
+    function recurse(config: WorkspaceConfiguration, parentPath = "") {
+      for (const key of Object.keys(config)) {
+        const value = config[key];
+        const currentPath = (parentPath ? parentPath + "." : "") + key;
+        if (blacklist.has(currentPath) || typeof value === "function") {
+          continue;
+        }
+        if (typeof value === "object" && value !== null && !(value instanceof Array)) {
+          recurse(value, currentPath);
+        } else {
+          setConfig(cliConfig, mapping.get(currentPath) || currentPath, value);
+        }
+      }
+    }
+    recurse(workspaceConfig);
+  }
+
+  // Read prefs; this map goes from `vscode prefs name` => `ccls/js name`.
+  // For flags which have different name between vscode-ccls prefs and
+  // ClientConfig / ccls initializationOption
+  const configMapping = new Map([
+    ['launch.command', 'launchCommand'],
+    ['launch.args', 'launchArgs'],
+    ['misc.compilationDatabaseCommand', 'compilationDatabaseCommand'],
+    ['misc.compilationDatabaseDirectory', 'compilationDatabaseDirectory'],
+    ['completion.enableSnippetInsertion', 'client.snippetSupport'],
+  ]);
+  // For flags which should not be populated in ClientConfig (used only by other parts of vscode-ccls)
+  // It seems like ccls happily ignores extra keys in initializationOption so this is not required.
+  const configBlacklist = new Set([
+    'codeLens.enabled',
+    'codeLens.renderInline',
+    'highlighting',
+    'misc.showInactiveRegions',
+    'theme',
+    'trace',
+    'treeViews',
+  ]);
+  const clientConfig: ClientConfig = {
+    highlight: {
+      blacklist: hasAnySemanticHighlight() ? [".*"] : [],
+      lsRanges: true,
+    },
+    launchArgs: [] as string[],
+    launchCommand: '',
+    statusUpdateInterval: 0,
+    traceEndpoint: '',
+  };
+  setClientConfigFromWorkspaceConfig(
+    clientConfig,
+    workspace.getConfiguration("ccls"),
+    configMapping,
+    configBlacklist
+  );
   return clientConfig;
 }
 
@@ -455,6 +452,7 @@ export class ServerContext implements Disposable {
       return child;
     };
 
+    const config = workspace.getConfiguration('ccls');
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
       diagnosticCollectionName: 'ccls',
@@ -463,7 +461,7 @@ export class ServerContext implements Disposable {
       // 	configurationSection: 'ccls',
       // 	fileEvents: workspace.createFileSystemWatcher('**/.cc')
       // },
-      errorHandler: new CclsErrorHandler(workspace.getConfiguration('ccls')),
+      errorHandler: new CclsErrorHandler(config),
       initializationFailedHandler: (e) => {
         console.log(e);
         return false;
@@ -474,8 +472,9 @@ export class ServerContext implements Disposable {
       revealOutputChannelOn: RevealOutputChannelOn.Never,
     };
 
-    if (this.cliConfig.traceEndpoint) {
-      const socket = new WebSocket(this.cliConfig.traceEndpoint);
+    const traceEndpoint = config.get<string>('trace.websocketEndpointUrl');
+    if (traceEndpoint) {
+      const socket = new WebSocket(traceEndpoint);
       let log = '';
       clientOptions.outputChannel = {
         name: 'websocket',
