@@ -6,5 +6,5 @@ This is the Visual Studio Code extension for [ccls](https://github.com/MaskRay/c
 
 See:
 
-* [Getting started](https://github.com/MaskRay/ccls/wiki/Getting-started)
+* [Home](https://github.com/MaskRay/ccls/wiki/Home)
 * [Visual Studio Code](https://github.com/MaskRay/ccls/wiki/Visual-Studio-Code)
