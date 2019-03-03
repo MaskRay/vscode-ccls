@@ -7,18 +7,12 @@ export interface Icon {
 }
 
 export interface ClientConfig {
-  cache: {
-    directory: string,
-  };
   highlight: {
-    enabled: boolean;
+    blacklist: string[];
     lsRanges: boolean;
   };
   launchArgs: string[];
   launchCommand: string;
-  workspaceSymbol: {
-    sort: boolean,
-  };
   statusUpdateInterval: number;
   traceEndpoint: string;
   [key: string]: any;
