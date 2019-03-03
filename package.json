@@ -934,6 +934,11 @@
           "default": 2,
           "description": "Whether to reparse a file if write times of its dependencies have changed. The file will always be reparsed if its own write time changes.\n\n0: no, 1: only during initial load of project, 2: yes"
         },
+        "ccls.index.maxInitializerLines": {
+          "type": "integer",
+          "default": 15,
+          "description": "Number of lines of the initializer / macro definition showed in hover."
+        },
         "ccls.codeLens.renderInline": {
           "type": "boolean",
           "default": false,
