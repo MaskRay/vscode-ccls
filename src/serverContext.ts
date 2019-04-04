@@ -434,6 +434,7 @@ export class ServerContext implements Disposable {
       'PATH',
       'CPATH',
       'LIBRARY_PATH',
+      'LD_LIBRARY_PATH'
     ];
     for (const e of kToForward)
       env[e] = process.env[e];
