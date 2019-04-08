@@ -428,26 +428,8 @@ export class ServerContext implements Disposable {
   private initClient(): LanguageClient {
     const args = this.cliConfig.launchArgs;
 
-    const env: any = {};
-    const kToForward = [
-      'ProgramData',
-      'PATH',
-      'CPATH',
-      'LIBRARY_PATH',
-    ];
-    for (const e of kToForward)
-      env[e] = process.env[e];
-
     const serverOptions: ServerOptions = async (): Promise<cp.ChildProcess> => {
-      const opts: cp.SpawnOptions = {
-        cwd: this.cwd,
-        env
-      };
-      const child = cp.spawn(
-        this.cliConfig.launchCommand,
-        args,
-        opts
-      );
+      const child = cp.spawn(this.cliConfig.launchCommand, args);
       this.clientPid = child.pid;
       return child;
     };
