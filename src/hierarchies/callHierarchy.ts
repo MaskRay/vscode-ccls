@@ -21,11 +21,11 @@ export class CallHierarchyProvider extends Hierarchy<CallHierarchyNode> {
   private baseIcon: Icon;
   private derivedIcon: Icon;
   private useCallee = false;
-  private detailedLabel = false;
+  private qualified = false;
 
   constructor(
     languageClient: LanguageClient,
-    detailedLabel: boolean
+    qualified: boolean
   ) {
     super(languageClient, 'ccls.callHierarchy', 'ccls.closeCallHierarchy');
     this.baseIcon = {
@@ -36,7 +36,7 @@ export class CallHierarchyProvider extends Hierarchy<CallHierarchyNode> {
       dark: resourcePath("derived-dark.svg"),
       light: resourcePath("derived-light.svg")
     };
-    this.detailedLabel = detailedLabel;
+    this.qualified = qualified;
     this._dispose.push(commands.registerCommand("ccls.call.useCallers", () => this.updateCallee(false)));
     this._dispose.push(commands.registerCommand("ccls.call.useCallees", () => this.updateCallee(true)));
   }
@@ -55,7 +55,7 @@ export class CallHierarchyProvider extends Hierarchy<CallHierarchyNode> {
       hierarchy: true,
       id: element.id,
       levels: 1,
-      qualified: this.detailedLabel,
+      qualified: this.qualified,
     });
     element.children = result.children;
     return result.children;
@@ -70,7 +70,7 @@ export class CallHierarchyProvider extends Hierarchy<CallHierarchyNode> {
         hierarchy: true,
         levels: 2,
         position,
-        qualified: this.detailedLabel,
+        qualified: this.qualified,
         textDocument: {
           uri: uri.toString(true),
         },
