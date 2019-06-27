@@ -796,6 +796,11 @@
           "default": "",
           "description": "Default value to use for clang -resource-dir argument. This will be automatically supplied by ccls if not provided."
         },
+        "ccls.detailedLabel": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, detailed name is used to each entry in call hiearchy, instead of symbol name"
+        },
         "ccls.misc.compilationDatabaseCommand": {
           "type": "string",
           "default": "",

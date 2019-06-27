@@ -163,6 +163,7 @@ function getClientConfig(wsRoot: string): ClientConfig {
     'treeViews',
   ]);
   const clientConfig: ClientConfig = {
+    detailedLabel: false,
     highlight: {
       blacklist: hasAnySemanticHighlight() ? [] : ['.*'],
       lsRanges: true,
@@ -250,7 +251,8 @@ export class ServerContext implements Disposable {
         "ccls.inheritanceHierarchy", inheritanceHierarchyProvider
     ));
 
-    const callHierarchyProvider = new CallHierarchyProvider(this.client);
+    const detailedLabel = this.cliConfig.detailedLabel;
+    const callHierarchyProvider = new CallHierarchyProvider(this.client, detailedLabel);
     this._dispose.push(callHierarchyProvider);
     this._dispose.push(window.registerTreeDataProvider(
         'ccls.callHierarchy', callHierarchyProvider
