@@ -21,10 +21,9 @@ export class CallHierarchyProvider extends Hierarchy<CallHierarchyNode> {
   private baseIcon: Icon;
   private derivedIcon: Icon;
   private useCallee = false;
+  private qualified = false;
 
-  constructor(
-    languageClient: LanguageClient
-  ) {
+  constructor(languageClient: LanguageClient, qualified: boolean) {
     super(languageClient, 'ccls.callHierarchy', 'ccls.closeCallHierarchy');
     this.baseIcon = {
       dark: resourcePath("base-dark.svg"),
@@ -34,6 +33,7 @@ export class CallHierarchyProvider extends Hierarchy<CallHierarchyNode> {
       dark: resourcePath("derived-dark.svg"),
       light: resourcePath("derived-light.svg")
     };
+    this.qualified = qualified;
     this._dispose.push(commands.registerCommand("ccls.call.useCallers", () => this.updateCallee(false)));
     this._dispose.push(commands.registerCommand("ccls.call.useCallees", () => this.updateCallee(true)));
   }
@@ -46,33 +46,31 @@ export class CallHierarchyProvider extends Hierarchy<CallHierarchyNode> {
   }
 
   protected async onGetChildren(element: CallHierarchyNode): Promise<CallHierarchyNode[]> {
-    const result = await this.languageClient.sendRequest<CallHierarchyNode>('$ccls/call', {
-      callType: CallType.All,
-      callee: this.useCallee,
-      hierarchy: true,
-      id: element.id,
-      levels: 1,
-      qualified: false,
-    });
+    const result =
+        await this.languageClient.sendRequest<CallHierarchyNode>('$ccls/call', {
+          callType: CallType.All,
+          callee: this.useCallee,
+          hierarchy: true,
+          id: element.id,
+          levels: 1,
+          qualified: this.qualified,
+        });
     element.children = result.children;
     return result.children;
   }
 
   protected async onReveal(uri: Uri, position: Position): Promise<CallHierarchyNode> {
-    return this.languageClient.sendRequest<CallHierarchyNode>(
-      '$ccls/call',
-      {
-        callType: CallType.All,
-        callee: this.useCallee,
-        hierarchy: true,
-        levels: 2,
-        position,
-        qualified: false,
-        textDocument: {
-          uri: uri.toString(true),
-        },
-      }
-    );
+    return this.languageClient.sendRequest<CallHierarchyNode>('$ccls/call', {
+      callType: CallType.All,
+      callee: this.useCallee,
+      hierarchy: true,
+      levels: 2,
+      position,
+      qualified: this.qualified,
+      textDocument: {
+        uri: uri.toString(true),
+      },
+    });
   }
 
   private updateCallee(val: boolean) {
