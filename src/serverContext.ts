@@ -151,6 +151,7 @@ function getClientConfig(wsRoot: string): ClientConfig {
     ['misc.compilationDatabaseCommand', 'compilationDatabaseCommand'],
     ['misc.compilationDatabaseDirectory', 'compilationDatabaseDirectory'],
     ['completion.enableSnippetInsertion', 'client.snippetSupport'],
+    ['callHierarchy.qualified', 'callHiearchyQualified'],
   ]);
   // For flags which should not be populated in ClientConfig (used only by other parts of vscode-ccls)
   // It seems like ccls happily ignores extra keys in initializationOption so this is not required.
@@ -164,6 +165,7 @@ function getClientConfig(wsRoot: string): ClientConfig {
     'treeViews',
   ]);
   const clientConfig: ClientConfig = {
+    callHiearchyQualified: false,
     highlight: {
       blacklist: hasAnySemanticHighlight() ? [] : ['.*'],
       lsRanges: true,
@@ -251,7 +253,9 @@ export class ServerContext implements Disposable {
         "ccls.inheritanceHierarchy", inheritanceHierarchyProvider
     ));
 
-    const callHierarchyProvider = new CallHierarchyProvider(this.client);
+    const callHiearchyQualified = this.cliConfig.callHiearchyQualified;
+    const callHierarchyProvider =
+        new CallHierarchyProvider(this.client, callHiearchyQualified);
     this._dispose.push(callHierarchyProvider);
     this._dispose.push(window.registerTreeDataProvider(
         'ccls.callHierarchy', callHierarchyProvider
@@ -315,7 +319,8 @@ export class ServerContext implements Disposable {
   }
 
   private reloadIndex() {
-    this.client.sendNotification("$ccls/reload");
+    this.client.sendNotification(
+        '$ccls/reload', {blacklist: [], dependencies: true, whilelist: []});
   }
 
   private async onDidChangeConfiguration() {
