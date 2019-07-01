@@ -311,7 +311,13 @@ export class ServerContext implements Disposable {
   }
 
   private reloadIndex() {
-    this.client.sendNotification("$ccls/reload");
+    this.client.sendNotification("$ccls/reload",
+      {
+        blacklist: [],
+        dependencies: true,
+        whilelist: []
+      }
+    );
   }
 
   private async onDidChangeConfiguration() {
