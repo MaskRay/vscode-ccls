@@ -9,6 +9,7 @@ enum MemberKind {
 }
 
 interface MemberHierarchyNode extends IHierarchyNode {
+  fieldName: string;
   children: MemberHierarchyNode[];
 }
 
@@ -22,7 +23,20 @@ export class MemberHierarchyProvider extends Hierarchy<MemberHierarchyNode> {
   }
 
   public onTreeItem(ti: TreeItem, element: MemberHierarchyNode) {
-    //
+    const parts: string[]  = element.fieldName.trim().split(' ');
+    const off: number = parseInt(parts[0], 10);
+    let fieldName: string = '';
+    if (isNaN(off) || (parts.length < 3)) {
+      fieldName = parts[1];
+    } else {
+      fieldName = parts[2];
+      ti.tooltip = `Offset: ${off} bytes`;
+    }
+
+    if (fieldName !== undefined) {
+      ti.label = fieldName;
+      ti.description = `(${element.name}) ` + ti.description;
+    }
   }
 
   protected async onGetChildren(element: MemberHierarchyNode): Promise<MemberHierarchyNode[]> {
