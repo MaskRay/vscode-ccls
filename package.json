@@ -1,6 +1,6 @@
 {
   "name": "ccls",
-  "description": "C/C++/ObjC language server supporting cross references, hierarchies, completion and semantic highlighting",
+  "description": "C/C++/ObjC language server supporting cross references, hierarchies, completion and semantic highlight",
   "author": "ccls-project",
   "license": "MIT",
   "version": "0.1.23",
@@ -271,82 +271,126 @@
           "default": false,
           "description": "If false, store cache files as $directory/@a@b/c.cc.blob\n\nIf true, $directory/a/b/c.cc.blob."
         },
-        "ccls.highlighting.enabled.types": {
-          "type": "boolean",
-          "default": false,
-          "description": "If semantic highlighting for classes, structs, and unions is enabled/disabled."
+        "ccls.highlight.function.face": {
+          "type": "array",
+          "default": []
         },
-        "ccls.highlighting.enabled.freeStandingFunctions": {
-          "type": "boolean",
-          "default": false,
-          "description": "If semantic highlighting for member functions is enabled/disabled."
+        "ccls.highlight.global.face": {
+          "type": "array",
+          "default": [
+            "fontWeight: bolder"
+          ]
         },
-        "ccls.highlighting.enabled.memberFunctions": {
-          "type": "boolean",
-          "default": false,
-          "description": "If semantic highlighting for member functions is enabled/disabled."
+        "ccls.highlight.member.face": {
+          "type": "array",
+          "default": [
+            "fontStyle: italic"
+          ]
         },
-        "ccls.highlighting.enabled.freeStandingVariables": {
-          "type": "boolean",
-          "default": false,
-          "description": "If semantic highlighting for member free-standing variables is enabled/disabled."
+        "ccls.highlight.static.face": {
+          "type": "array",
+          "default": [
+            "fontWeight: bold"
+          ]
         },
-        "ccls.highlighting.enabled.memberVariables": {
-          "type": "boolean",
-          "default": false,
-          "description": "If semantic highlighting for member variables is enabled/disabled."
+        "ccls.highlight.type.face": {
+          "type": "array",
+          "default": []
         },
-        "ccls.highlighting.enabled.namespaces": {
-          "type": "boolean",
-          "default": false,
-          "description": "If semantic highlighting for namespaces is enabled/disabled."
+        "ccls.highlight.variable.face": {
+          "type": "array",
+          "default": []
         },
-        "ccls.highlighting.enabled.macros": {
-          "type": "boolean",
-          "default": false,
-          "description": "If semantic highlighting for macros is enabled/disabled."
+        "ccls.highlight.enum.face": {
+          "type": "array",
+          "default": [
+            "variable",
+            "member"
+          ]
         },
-        "ccls.highlighting.enabled.enums": {
-          "type": "boolean",
-          "default": false,
-          "description": "If semantic highlighting for enumerations is enabled/disabled."
+        "ccls.highlight.globalVariable.face": {
+          "type": "array",
+          "default": [
+            "variable",
+            "global"
+          ]
         },
-        "ccls.highlighting.enabled.typeAliases": {
-          "type": "boolean",
-          "default": false,
-          "description": "If semantic highlighting for type aliases is enabled/disabled."
+        "ccls.highlight.macro.face": {
+          "type": "array",
+          "default": [
+            "variable"
+          ]
         },
-        "ccls.highlighting.enabled.enumConstants": {
-          "type": "boolean",
-          "default": false,
-          "description": "If semantic highlighting for enumerators is enabled/disabled."
+        "ccls.highlight.memberFunction.face": {
+          "type": "array",
+          "default": [
+            "function",
+            "member"
+          ]
         },
-        "ccls.highlighting.enabled.staticMemberFunctions": {
-          "type": "boolean",
-          "default": false,
-          "description": "If semantic highlighting for static member functions is enabled/disabled."
+        "ccls.highlight.memberVariable.face": {
+          "type": "array",
+          "default": [
+            "variable",
+            "member"
+          ]
         },
-        "ccls.highlighting.enabled.parameters": {
-          "type": "boolean",
-          "default": false,
-          "description": "If semantic highlighting for parameters is enabled/disabled."
+        "ccls.highlight.namespace.face": {
+          "type": "array",
+          "default": [
+            "type"
+          ]
         },
-        "ccls.highlighting.enabled.templateParameters": {
-          "type": "boolean",
-          "default": false,
-          "description": "If semantic highlighting for template parameters is enabled/disabled."
+        "ccls.highlight.parameter.face": {
+          "type": "array",
+          "default": [
+            "variable"
+          ]
         },
-        "ccls.highlighting.enabled.staticMemberVariables": {
-          "type": "boolean",
-          "default": false,
-          "description": "If semantic highlighting for static member variables is enabled/disabled."
+        "ccls.highlight.staticMemberFunction.face": {
+          "type": "array",
+          "default": [
+            "function",
+            "static"
+          ]
         },
-        "ccls.highlighting.enabled.globalVariables": {
-          "type": "boolean",
-          "default": false,
-          "description": "If semantic highlighting for global variables is enabled/disabled."
+        "ccls.highlight.staticMemberVariable.face": {
+          "type": "array",
+          "default": [
+            "variable",
+            "static"
+          ]
         },
-        "ccls.highlighting.colors.types": {
+        "ccls.highlight.staticVariable.face": {
+          "type": "array",
+          "default": [
+            "variable",
+            "static"
+          ]
+        },
+        "ccls.highlight.typeAlias.face": {
+          "type": "array",
+          "default": [
+            "type"
+          ]
+        },
+        "ccls.highlight.function.colors": {
+          "type": "array",
+          "default": [
+            "#e5b124",
+            "#927754",
+            "#eb992c",
+            "#e2bf8f",
+            "#d67c17",
+            "#88651e",
+            "#e4b953",
+            "#a36526",
+            "#b28927",
+            "#d69855"
+          ],
+          "description": "Colors to use for semantic highlight. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlight will cycle through them for successive symbols."
+        },
+        "ccls.highlight.type.colors": {
           "type": "array",
           "default": [
             "#e1afc3",
@@ -360,41 +404,9 @@
             "#dd7a90",
             "#e0438a"
           ],
-          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
+          "description": "Colors to use for semantic highlight. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlight will cycle through them for successive symbols."
         },
-        "ccls.highlighting.colors.freeStandingFunctions": {
-          "type": "array",
-          "default": [
-            "#e5b124",
-            "#927754",
-            "#eb992c",
-            "#e2bf8f",
-            "#d67c17",
-            "#88651e",
-            "#e4b953",
-            "#a36526",
-            "#b28927",
-            "#d69855"
-          ],
-          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
-        },
-        "ccls.highlighting.colors.memberFunctions": {
-          "type": "array",
-          "default": [
-            "#e5b124",
-            "#927754",
-            "#eb992c",
-            "#e2bf8f",
-            "#d67c17",
-            "#88651e",
-            "#e4b953",
-            "#a36526",
-            "#b28927",
-            "#d69855"
-          ],
-          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
-        },
-        "ccls.highlighting.colors.freeStandingVariables": {
+        "ccls.highlight.variable.colors": {
           "type": "array",
           "default": [
             "#587d87",
@@ -408,25 +420,9 @@
             "#48a5af",
             "#7ca6b7"
           ],
-          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
+          "description": "Colors to use for semantic highlight. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlight will cycle through them for successive symbols."
         },
-        "ccls.highlighting.colors.memberVariables": {
-          "type": "array",
-          "default": [
-            "#587d87",
-            "#26cdca",
-            "#397797",
-            "#57c2cc",
-            "#306b72",
-            "#6cbcdf",
-            "#368896",
-            "#3ea0d2",
-            "#48a5af",
-            "#7ca6b7"
-          ],
-          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
-        },
-        "ccls.highlighting.colors.namespaces": {
+        "ccls.highlight.namespace.colors": {
           "type": "array",
           "default": [
             "#429921",
@@ -440,9 +436,9 @@
             "#58bf89",
             "#3e9f4a"
           ],
-          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
+          "description": "Colors to use for semantic highlight. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlight will cycle through them for successive symbols."
         },
-        "ccls.highlighting.colors.macros": {
+        "ccls.highlight.macro.colors": {
           "type": "array",
           "default": [
             "#e79528",
@@ -456,315 +452,7 @@
             "#e27a71",
             "#cf6d49"
           ],
-          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
-        },
-        "ccls.highlighting.colors.enums": {
-          "type": "array",
-          "default": [
-            "#e1afc3",
-            "#d533bb",
-            "#9b677f",
-            "#e350b6",
-            "#a04360",
-            "#dd82bc",
-            "#de3864",
-            "#ad3f87",
-            "#dd7a90",
-            "#e0438a"
-          ],
-          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
-        },
-        "ccls.highlighting.colors.typeAliases": {
-          "type": "array",
-          "default": [
-            "#e1afc3",
-            "#d533bb",
-            "#9b677f",
-            "#e350b6",
-            "#a04360",
-            "#dd82bc",
-            "#de3864",
-            "#ad3f87",
-            "#dd7a90",
-            "#e0438a"
-          ],
-          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
-        },
-        "ccls.highlighting.colors.staticMemberFunctions": {
-          "type": "array",
-          "default": [
-            "#e5b124",
-            "#927754",
-            "#eb992c",
-            "#e2bf8f",
-            "#d67c17",
-            "#88651e",
-            "#e4b953",
-            "#a36526",
-            "#b28927",
-            "#d69855"
-          ],
-          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
-        },
-        "ccls.highlighting.colors.enumConstants": {
-          "type": "array",
-          "default": [
-            "#587d87",
-            "#26cdca",
-            "#397797",
-            "#57c2cc",
-            "#306b72",
-            "#6cbcdf",
-            "#368896",
-            "#3ea0d2",
-            "#48a5af",
-            "#7ca6b7"
-          ],
-          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
-        },
-        "ccls.highlighting.colors.parameters": {
-          "type": "array",
-          "default": [
-            "#587d87",
-            "#26cdca",
-            "#397797",
-            "#57c2cc",
-            "#306b72",
-            "#6cbcdf",
-            "#368896",
-            "#3ea0d2",
-            "#48a5af",
-            "#7ca6b7"
-          ],
-          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
-        },
-        "ccls.highlighting.colors.templateParameters": {
-          "type": "array",
-          "default": [
-            "#e1afc3",
-            "#d533bb",
-            "#9b677f",
-            "#e350b6",
-            "#a04360",
-            "#dd82bc",
-            "#de3864",
-            "#ad3f87",
-            "#dd7a90",
-            "#e0438a"
-          ],
-          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
-        },
-        "ccls.highlighting.colors.staticMemberVariables": {
-          "type": "array",
-          "default": [
-            "#587d87",
-            "#26cdca",
-            "#397797",
-            "#57c2cc",
-            "#306b72",
-            "#6cbcdf",
-            "#368896",
-            "#3ea0d2",
-            "#48a5af",
-            "#7ca6b7"
-          ],
-          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
-        },
-        "ccls.highlighting.colors.globalVariables": {
-          "type": "array",
-          "default": [
-            "#587d87",
-            "#26cdca",
-            "#397797",
-            "#57c2cc",
-            "#306b72",
-            "#6cbcdf",
-            "#368896",
-            "#3ea0d2",
-            "#48a5af",
-            "#7ca6b7"
-          ],
-          "description": "Colors to use for semantic highlighting. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlighting will cycle through them for successive symbols."
-        },
-        "ccls.highlighting.underline.types": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.underline.freeStandingFunctions": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.underline.memberFunctions": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.underline.freeStandingVariables": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.underline.memberVariables": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.underline.namespaces": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.underline.macros": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.underline.enums": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.underline.typeAliases": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.underline.enumConstants": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.underline.staticMemberFunctions": {
-          "type": "boolean",
-          "default": true
-        },
-        "ccls.highlighting.underline.parameters": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.underline.templateParameters": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.underline.staticMemberVariables": {
-          "type": "boolean",
-          "default": true
-        },
-        "ccls.highlighting.underline.globalVariables": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.italic.types": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.italic.freeStandingFunctions": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.italic.memberFunctions": {
-          "type": "boolean",
-          "default": true
-        },
-        "ccls.highlighting.italic.freeStandingVariables": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.italic.memberVariables": {
-          "type": "boolean",
-          "default": true
-        },
-        "ccls.highlighting.italic.namespaces": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.italic.macros": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.italic.enums": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.italic.typeAliases": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.italic.enumConstants": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.italic.staticMemberFunctions": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.italic.parameters": {
-          "type": "boolean",
-          "default": true
-        },
-        "ccls.highlighting.italic.templateParameters": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.italic.staticMemberVariables": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.italic.globalVariables": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.bold.types": {
-          "type": "boolean",
-          "default": true
-        },
-        "ccls.highlighting.bold.freeStandingFunctions": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.bold.memberFunctions": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.bold.freeStandingVariables": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.bold.memberVariables": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.bold.namespaces": {
-          "type": "boolean",
-          "default": true
-        },
-        "ccls.highlighting.bold.macros": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.bold.enums": {
-          "type": "boolean",
-          "default": true
-        },
-        "ccls.highlighting.bold.typeAliases": {
-          "type": "boolean",
-          "default": true
-        },
-        "ccls.highlighting.bold.enumConstants": {
-          "type": "boolean",
-          "default": true
-        },
-        "ccls.highlighting.bold.staticMemberFunctions": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.bold.parameters": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.bold.templateParameters": {
-          "type": "boolean",
-          "default": true
-        },
-        "ccls.highlighting.bold.staticMemberVariables": {
-          "type": "boolean",
-          "default": false
-        },
-        "ccls.highlighting.bold.globalVariables": {
-          "type": "boolean",
-          "default": false
+          "description": "Colors to use for semantic highlight. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlight will cycle through them for successive symbols."
         },
         "ccls.clang.extraArgs": {
           "type": "array",
@@ -891,7 +579,7 @@
             "null"
           ],
           "default": null,
-          "description": "Files that match these patterns won't have semantic highlighting."
+          "description": "Files that match these patterns won't have semantic highlight."
         },
         "ccls.highlight.whitelist": {
           "type": [
@@ -899,7 +587,7 @@
             "null"
           ],
           "default": null,
-          "description": "Files that match these patterns will have semantic highlighting."
+          "description": "Files that match these patterns will have semantic highlight."
         },
         "ccls.highlight.largeFileSize": {
           "type": [
@@ -907,7 +595,7 @@
             "null"
           ],
           "default": null,
-          "description": "Disable semantic highlighting for files larger than the size."
+          "description": "Disable semantic highlight for files larger than the size."
         },
         "ccls.index.initialBlacklist": {
           "type": "array",
