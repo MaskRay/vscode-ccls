@@ -14,16 +14,16 @@
     "lint": "npx tslint -p ./"
   },
   "devDependencies": {
-    "@types/node": "^9.6.41",
-    "@types/ws": "^6.0.1",
+    "@types/node": "^9.6.52",
+    "@types/ws": "^6.0.3",
+    "tslint": "^5.20.0",
     "typescript": "^2.9.2",
-    "tslint": "^5.11.0",
-    "vsce": "^1.54.0",
-    "vscode": "^1.1.26"
+    "vsce": "^1.67.1",
+    "vscode": "^1.1.36"
   },
   "dependencies": {
     "vscode-languageclient": "^5.2.1",
-    "ws": "^6.1.4"
+    "ws": "^6.2.1"
   },
   "repository": {
     "type": "git",
@@ -31,7 +31,7 @@
   },
   "preview": true,
   "engines": {
-    "vscode": "^1.30.0"
+    "vscode": "^1.36.0"
   },
   "categories": [
     "Programming Languages"
