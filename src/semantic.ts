@@ -31,8 +31,8 @@ enum StorageClass {
 
 interface SemanticSymbol {
   readonly id: number;
-  readonly parentKind: SymbolKind;
-  readonly kind: SymbolKind;
+  readonly parentKind: SymbolKind|CclsSymbolKind;
+  readonly kind: SymbolKind|CclsSymbolKind;
   readonly isTypeMember: boolean;
   readonly storage: StorageClass;
   readonly lsRanges: Range[];
@@ -43,50 +43,22 @@ export interface PublishSemanticHighlightArgs {
   readonly symbols: SemanticSymbol[];
 }
 
-function makeSemanticDecorationType(
-  color: string|undefined, underline: boolean, italic: boolean,
-  bold: boolean): TextEditorDecorationType {
-  const opts: DecorationRenderOptions = {};
-  opts.rangeBehavior = DecorationRangeBehavior.ClosedClosed;
-  opts.color = color;
-  if (underline === true)
-    opts.textDecoration = 'underline';
-  if (italic === true)
-    opts.fontStyle = 'italic';
-  if (bold === true)
-    opts.fontWeight = 'bold';
-  return window.createTextEditorDecorationType(
-      opts as DecorationRenderOptions);
-}
+export const semanticKinds: string[] = [
+  'function',
+  'variable',
+  'type',
 
-export const semanticTypes: {[name: string]: Array<SymbolKind|CclsSymbolKind>} = {
-  enumConstants: [SymbolKind.EnumMember],
-  enums: [SymbolKind.Enum],
-  freeStandingFunctions: [SymbolKind.Function],
-  freeStandingVariables: [],
-  globalVariables: [],
-  macros: [CclsSymbolKind.Macro],
-  memberFunctions: [SymbolKind.Method, SymbolKind.Constructor],
-  memberVariables: [SymbolKind.Field],
-  namespaces: [SymbolKind.Namespace],
-  parameters: [CclsSymbolKind.Parameter],
-  staticMemberFunctions: [CclsSymbolKind.StaticMethod],
-  staticMemberVariables: [],
-  templateParameters: [SymbolKind.TypeParameter],
-  typeAliases: [CclsSymbolKind.TypeAlias],
-  types: [SymbolKind.Class, SymbolKind.Struct],
-};
-
-function makeDecorations(type: string) {
-  const config = workspace.getConfiguration('ccls');
-  let colors = config.get(`highlighting.colors.${type}`, [undefined]);
-  if (colors.length === 0)
-    colors = [undefined];
-  const u = config.get(`highlighting.underline.${type}`, false);
-  const i = config.get(`highlighting.italic.${type}`, false);
-  const b = config.get(`highlighting.bold.${type}`, false);
-  return colors.map((c) => makeSemanticDecorationType(c, u, i, b));
-}
+  'enum',
+  'globalVariable',
+  'macro',
+  'memberFunction',
+  'memberVariable',
+  'namespace',
+  'parameter',
+  'staticMemberFunction',
+  'staticVariable',
+  'typeAlias',
+]
 
 // TODO: enable bold/italic decorators, might need change in vscode
 export class SemanticContext implements Disposable {
@@ -96,11 +68,6 @@ export class SemanticContext implements Disposable {
   private _dispose: Disposable[] = [];
 
   public constructor() {
-    for (const type of Object.keys(semanticTypes)) {
-      this.semanticDecorations.set(type, makeDecorations(type));
-      this.semanticEnabled.set(type, false);
-    }
-
     this.updateConfigValues();
 
     window.onDidChangeActiveTextEditor(
@@ -150,10 +117,44 @@ export class SemanticContext implements Disposable {
   }
 
   private updateConfigValues() {
-    // Fetch new config instance, since vscode will cache the previous one.
     const config = workspace.getConfiguration('ccls');
-    for (const [name, _value] of this.semanticEnabled) {
-      this.semanticEnabled.set(name, config.get(`highlighting.enabled.${name}`, false));
+
+    for (const kind of semanticKinds) {
+      let face = config.get<string[]>(`highlight.${kind}.face`, []);
+      let enabled = false;
+      let colors = config.get<Array<undefined|string>>(`highlight.${kind}.colors`, []);
+      let props: string[][] = [];
+      while (face.length > 0) {
+        let newFace = []
+        for (const f of face) {
+          if (f == 'enabled')
+            enabled = true;
+          else if (f.indexOf(':') >= 0) {
+            enabled = true;
+            props.push(f.split(':'));
+          } else {
+            if (colors.length === 0)
+              colors = config.get<Array<undefined|string>>(`highlight.${f}.colors`, []);
+            const face1 = config.get(`highlight.${f}.face`);
+            if (face1 instanceof Array)
+              for (const f1 of (face1 as string[]))
+                newFace.push(f1);
+          }
+        }
+        face = newFace;
+      }
+      this.semanticEnabled.set(kind, enabled);
+
+      if (colors.length === 0)
+        colors = [undefined];
+      this.semanticDecorations.set(kind, colors.map((color) => {
+        const opt: DecorationRenderOptions = {};
+        opt.rangeBehavior = DecorationRangeBehavior.ClosedClosed;
+        opt.color = color;
+        for (const prop of props)
+          (opt as any)[prop[0]] = prop[1].trim();
+        return window.createTextEditorDecorationType(opt as DecorationRenderOptions);
+      }));
     }
   }
 
@@ -167,25 +168,43 @@ export class SemanticContext implements Disposable {
       return decorations[symbol.id % decorations.length];
     };
 
-    if (symbol.kind === SymbolKind.Variable) {
-      if (symbol.parentKind === SymbolKind.Function ||
-          symbol.parentKind === SymbolKind.Method ||
-          symbol.parentKind === SymbolKind.Constructor) {
-        return get('freeStandingVariables');
-      }
-      return get('globalVariables');
-    } else if (symbol.kind === SymbolKind.Field) {
-      if (symbol.storage === StorageClass.Static) {
-        return get('staticMemberVariables');
-      }
-      return get('memberVariables');
-    } else {
-      for (const name of Object.keys(semanticTypes)) {
-        const kinds = semanticTypes[name];
-        if (kinds.some((e) => e === symbol.kind)) {
-          return get(name);
-        }
-      }
+    switch (symbol.kind) {
+    // Functions
+    case SymbolKind.Method:
+    case SymbolKind.Constructor:
+      return get('memberFunction');
+    case SymbolKind.Function:
+      return get('function');
+    case CclsSymbolKind.StaticMethod:
+      return get('staticMemberFunction');
+
+    // Types
+    case SymbolKind.Namespace:
+      return get('namespace');
+    case SymbolKind.Class:
+    case SymbolKind.Struct:
+    case SymbolKind.Enum:
+    case SymbolKind.TypeParameter:
+      return get('type');
+    case CclsSymbolKind.TypeAlias:
+      return get('typeAlias');
+
+    // Variables
+    case SymbolKind.Field:
+      if (symbol.storage == StorageClass.Static)
+        return get('staticVariable');
+      return get('memberVariable');
+    case SymbolKind.Variable:
+      if (symbol.parentKind === SymbolKind.File ||
+          symbol.parentKind === SymbolKind.Namespace)
+        return get('globalVariable');
+      return get('variable');
+    case SymbolKind.EnumMember:
+      return get('enum');
+    case CclsSymbolKind.Parameter:
+      return get('parameter');
+    case CclsSymbolKind.Macro:
+      return get('macro');
     }
   }
 

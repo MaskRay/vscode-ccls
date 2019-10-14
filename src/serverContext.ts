@@ -34,7 +34,7 @@ import { CallHierarchyProvider } from "./hierarchies/callHierarchy";
 import { InheritanceHierarchyProvider } from "./hierarchies/inheritanceHierarchy";
 import { MemberHierarchyProvider } from "./hierarchies/memberHierarchy";
 import { InactiveRegionsProvider } from "./inactiveRegions";
-import { PublishSemanticHighlightArgs, SemanticContext, semanticTypes } from "./semantic";
+import { PublishSemanticHighlightArgs, SemanticContext, semanticKinds } from "./semantic";
 import { StatusBarIconProvider } from "./statusBarIcon";
 import { ClientConfig, IHierarchyNode } from './types';
 import { disposeAll, normalizeUri, unwrap, wait } from "./utils";
@@ -78,9 +78,10 @@ function flatObject(obj: any, pref = ""): Map<string, string> {
 
 function getClientConfig(wsRoot: string): ClientConfig {
   function hasAnySemanticHighlight() {
-    const hlconfig = workspace.getConfiguration('ccls.highlighting.enabled');
-    for (const name of Object.keys(semanticTypes)) {
-      if (hlconfig.get(name, false))
+    const config = workspace.getConfiguration('ccls');
+    for (const kind of semanticKinds) {
+      const face = config.get<string[]>(`highlight.${kind}.face`, []);
+      if (face.length > 0)
         return true;
     }
     return false;
