@@ -35,7 +35,7 @@ import { DataFlowHierarchyProvider } from "./hierarchies/dataFlowHierarchy";
 import { InheritanceHierarchyProvider } from "./hierarchies/inheritanceHierarchy";
 import { MemberHierarchyProvider } from "./hierarchies/memberHierarchy";
 import { InactiveRegionsProvider } from "./inactiveRegions";
-import { PublishSemanticHighlightArgs, SemanticContext, semanticTypes } from "./semantic";
+import { PublishSemanticHighlightArgs, SemanticContext, semanticKinds } from "./semantic";
 import { StatusBarIconProvider } from "./statusBarIcon";
 import { ClientConfig, IHierarchyNode } from './types';
 import { disposeAll, normalizeUri, unwrap, wait } from "./utils";
@@ -79,9 +79,10 @@ function flatObject(obj: any, pref = ""): Map<string, string> {
 
 function getClientConfig(wsRoot: string): ClientConfig {
   function hasAnySemanticHighlight() {
-    const hlconfig = workspace.getConfiguration('ccls.highlighting.enabled');
-    for (const name of Object.keys(semanticTypes)) {
-      if (hlconfig.get(name, false))
+    const config = workspace.getConfiguration('ccls');
+    for (const kind of semanticKinds) {
+      const face = config.get<string[]>(`highlight.${kind}.face`, []);
+      if (face.length > 0)
         return true;
     }
     return false;
@@ -158,7 +159,7 @@ function getClientConfig(wsRoot: string): ClientConfig {
   const configBlacklist = new Set([
     'codeLens.enabled',
     'codeLens.renderInline',
-    'highlighting',
+    'highlight',
     'misc.showInactiveRegions',
     'theme',
     'trace',
@@ -281,7 +282,7 @@ export class ServerContext implements Disposable {
         "ccls.hackGotoForTreeView", this.hackGotoForTreeView, this
     ));
 
-    // Semantic highlighting
+    // Semantic highlight
     const semantic = new SemanticContext();
     this._dispose.push(semantic);
     this.client.onNotification('$ccls/publishSemanticHighlight',
