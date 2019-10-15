@@ -666,6 +666,11 @@
           "default": 15,
           "description": "Number of lines of the initializer / macro definition showed in hover."
         },
+        "ccls.index.reloadDatabaseOnChange": {
+          "type": "boolean",
+          "default": true,
+          "description": "Reload the compilation database when it is modified."
+        },
         "ccls.codeLens.renderInline": {
           "type": "boolean",
           "default": false,
