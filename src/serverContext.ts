@@ -294,7 +294,11 @@ export class ServerContext implements Disposable {
     this._dispose.push(commands.registerCommand("ccls.reload", this.reloadIndex, this));
 
     if (config.get('index.reloadDatabaseOnChange', true)) {
-      const db_watcher = workspace.createFileSystemWatcher(this.cwd + "/compile_commands.json", false, false, false);
+      let db_dir = config.get('misc.compilationDatabaseDirectory');
+      if (!db_dir || db_dir === '') {
+        db_dir = this.cwd;
+      }
+      const db_watcher = workspace.createFileSystemWatcher(db_dir + "/compile_commands.json", false, false, false);
       this._dispose.push(db_watcher);
       db_watcher.onDidChange((e: Uri) => {
         this.client.sendNotification("workspace/didChangeConfiguration");
