@@ -295,10 +295,9 @@ export class ServerContext implements Disposable {
 
     if (config.get('index.reloadDatabaseOnChange', true)) {
       let db_dir = config.get('misc.compilationDatabaseDirectory');
-      if (!db_dir || db_dir === '') {
+      if (!db_dir || db_dir === '')
         db_dir = this.cwd;
-      }
-      const db_watcher = workspace.createFileSystemWatcher(db_dir + "/compile_commands.json", false, false, false);
+      const db_watcher = workspace.createFileSystemWatcher(db_dir + '/compile_commands.json', false, false, false);
       this._dispose.push(db_watcher);
       db_watcher.onDidChange((e: Uri) => {
         this.client.sendNotification("workspace/didChangeConfiguration");
