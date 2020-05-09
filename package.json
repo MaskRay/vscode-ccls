@@ -1,707 +1,718 @@
 {
-  "name": "ccls",
-  "description": "C/C++/ObjC language server supporting cross references, hierarchies, completion and semantic highlight",
-  "author": "ccls-project",
-  "license": "MIT",
-  "version": "0.1.28",
-  "publisher": "ccls-project",
-  "scripts": {
-    "vscode:prepublish": "npm run lint && npm run compile",
-    "compile": "npx tsc -p ./",
-    "update-vscode": "node ./node_modules/vscode/bin/install",
-    "postinstall": "node ./node_modules/vscode/bin/install",
-    "test": "node ./node_modules/vscode/bin/test",
-    "lint": "npx tslint -p ./"
-  },
-  "devDependencies": {
-    "@types/node": "^9.6.52",
-    "@types/ws": "^6.0.3",
-    "tslint": "^5.20.0",
-    "typescript": "^2.9.2",
-    "vsce": "^1.67.1",
-    "vscode": "^1.1.36"
-  },
-  "dependencies": {
-    "vscode-languageclient": "^5.2.1",
-    "ws": "^6.2.1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/MaskRay/vscode-ccls"
-  },
-  "engines": {
-    "vscode": "^1.36.0"
-  },
-  "categories": [
-    "Programming Languages",
-    "Linters",
-    "Snippets"
-  ],
-  "activationEvents": [
-    "onLanguage:c",
-    "onLanguage:cpp",
-    "onLanguage:objective-c",
-    "onLanguage:objective-cpp",
-    "workspaceContains:.ccls",
-    "workspaceContains:compile_commands.json"
-  ],
-  "main": "./out/extension",
-  "contributes": {
-    "views": {
-      "explorer": [
-        {
-          "id": "ccls.callHierarchy",
-          "name": "Call Hierarchy",
-          "when": "extension.ccls.callHierarchyVisible"
-        },
-        {
-          "id": "ccls.inheritanceHierarchy",
-          "name": "Inheritance Hierarchy",
-          "when": "extension.ccls.inheritanceHierarchyVisible"
-        },
-        {
-          "id": "ccls.memberHierarchy",
-          "name": "Member Hierarchy",
-          "when": "extension.ccls.memberHierarchyVisible"
-        }
-      ]
-    },
-    "menus": {
-      "editor/context": [
-        {
-          "command": "ccls.inheritanceHierarchy",
-          "when": "resourceLangId == cpp",
-          "group": "navigation@1.31"
-        },
-        {
-          "command": "ccls.callHierarchy",
-          "when": "resourceLangId == cpp",
-          "group": "navigation@1.32"
-        },
-        {
-          "command": "ccls.memberHierarchy",
-          "when": "resourceLangId == cpp",
-          "group": "navigation@1.32"
-        },
-        {
-          "command": "ccls.vars",
-          "when": "resourceLangId == cpp",
-          "group": "navigation@1.33"
-        },
-        {
-          "command": "ccls.base",
-          "when": "resourceLangId == cpp",
-          "group": "navigation@1.34"
-        }
-      ],
-      "view/title": [
-        {
-          "command": "ccls.call.useCallers",
-          "when": "view == ccls.callHierarchy",
-          "group": "navigation"
-        },
-        {
-          "command": "ccls.call.useCallees",
-          "when": "view == ccls.callHierarchy",
-          "group": "navigation"
-        },
-        {
-          "command": "ccls.closeCallHierarchy",
-          "when": "view == ccls.callHierarchy",
-          "group": "navigation"
-        },
-        {
-          "command": "ccls.closeInheritanceHierarchy",
-          "when": "view == ccls.inheritanceHierarchy",
-          "group": "navigation"
-        },
-        {
-          "command": "ccls.closeMemberHierarchy",
-          "when": "view == ccls.memberHierarchy",
-          "group": "navigation"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "ccls.gotoForTreeView",
-          "when": "viewItem == cclsGoto"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "ccls.closeCallHierarchy",
-          "when": "false"
-        },
-        {
-          "command": "ccls.closeInheritanceHierarchy",
-          "when": "false"
-        },
-        {
-          "command": "ccls.closeMemberHierarchy",
-          "when": "false"
-        },
-        {
-          "command": "ccls.gotoForTreeView",
-          "when": "false"
-        },
-        {
-          "command": "ccls.call.useCallers",
-          "when": "false"
-        },
-        {
-          "command": "ccls.call.useCallees",
-          "when": "false"
-        }
-      ]
-    },
-    "commands": [
-      {
-        "title": "Reload Index",
-        "category": "ccls",
-        "command": "ccls.reload"
-      },
-      {
-        "title": "Restart language server",
-        "category": "ccls",
-        "command": "ccls.restart"
-      },
-      {
-        "title": "Restart language server in lazy mode",
-        "category": "ccls",
-        "command": "ccls.restartLazy"
-      },
-      {
-        "title": "Call Hierarchy",
-        "category": "ccls",
-        "command": "ccls.callHierarchy"
-      },
-      {
-        "title": "Callers",
-        "category": "ccls",
-        "command": "ccls.call.useCallers",
-        "icon": {
-          "light": "resources/base-light.svg",
-          "dark": "resources/base-dark.svg"
-        }
-      },
-      {
-        "title": "Callees",
-        "category": "ccls",
-        "command": "ccls.call.useCallees",
-        "icon": {
-          "light": "resources/derived-light.svg",
-          "dark": "resources/derived-dark.svg"
-        }
-      },
-      {
-        "title": "Close",
-        "command": "ccls.closeCallHierarchy",
-        "icon": {
-          "light": "resources/close-light.svg",
-          "dark": "resources/close-dark.svg"
-        }
-      },
-      {
-        "title": "Inheritance Hierarchy",
-        "category": "ccls",
-        "command": "ccls.inheritanceHierarchy"
-      },
-      {
-        "title": "Close",
-        "command": "ccls.closeInheritanceHierarchy",
-        "icon": {
-          "light": "resources/close-light.svg",
-          "dark": "resources/close-dark.svg"
-        }
-      },
-      {
-        "title": "Member Hierarchy",
-        "category": "ccls",
-        "command": "ccls.memberHierarchy"
-      },
-      {
-        "title": "Close",
-        "command": "ccls.closeMemberHierarchy",
-        "icon": {
-          "light": "resources/close-light.svg",
-          "dark": "resources/close-dark.svg"
-        }
-      },
-      {
-        "title": "Show Variables",
-        "category": "ccls",
-        "command": "ccls.vars"
-      },
-      {
-        "title": "Show Cross References",
-        "category": "ccls",
-        "command": "ccls.call"
-      },
-      {
-        "title": "Show Base",
-        "category": "ccls",
-        "command": "ccls.base"
-      },
-      {
-        "title": "Go to Tree View Entry",
-        "category": "ccls",
-        "command": "ccls.gotoForTreeView"
-      }
-    ],
-    "configuration": {
-      "type": "object",
-      "title": "ccls",
-      "properties": {
-        "ccls.launch.command": {
-          "type": "string",
-          "default": "ccls",
-          "description": "Path to the ccls binary (default assumes the binary is in the PATH)"
-        },
-        "ccls.launch.args": {
-          "type": "array",
-          "default": [],
-          "description": "Array containing extra arguments to pass to the ccls binary"
-        },
-        "ccls.cache.directory": {
-          "type": "string",
-          "default": ".ccls-cache",
-          "description": "Absolute or relative (from the project root) path to the directory that the cached index will be stored in. Try to have this directory on an SSD. If empty, cached indexes will not be saved on disk.\n\n${workspaceFolder} will be replaced by the folder where .vscode/settings.json resides.\n\nCache directories are project-wide, so this should be configured in the workspace settings so multiple indexes do not clash.\n\nExample value: \"/work/ccls-cache/chrome/\""
-        },
-        "ccls.cache.hierarchicalPath": {
-          "type": "boolean",
-          "default": false,
-          "description": "If false, store cache files as $directory/@a@b/c.cc.blob\n\nIf true, $directory/a/b/c.cc.blob."
-        },
-        "ccls.highlight.function.face": {
-          "type": "array",
-          "default": []
-        },
-        "ccls.highlight.global.face": {
-          "type": "array",
-          "default": [
-            "fontWeight: bolder"
-          ]
-        },
-        "ccls.highlight.member.face": {
-          "type": "array",
-          "default": [
-            "fontStyle: italic"
-          ]
-        },
-        "ccls.highlight.static.face": {
-          "type": "array",
-          "default": [
-            "fontWeight: bold"
-          ]
-        },
-        "ccls.highlight.type.face": {
-          "type": "array",
-          "default": []
-        },
-        "ccls.highlight.variable.face": {
-          "type": "array",
-          "default": []
-        },
-        "ccls.highlight.enum.face": {
-          "type": "array",
-          "default": [
-            "variable",
-            "member"
-          ]
-        },
-        "ccls.highlight.globalVariable.face": {
-          "type": "array",
-          "default": [
-            "variable",
-            "global"
-          ]
-        },
-        "ccls.highlight.macro.face": {
-          "type": "array",
-          "default": [
-            "variable"
-          ]
-        },
-        "ccls.highlight.memberFunction.face": {
-          "type": "array",
-          "default": [
-            "function",
-            "member"
-          ]
-        },
-        "ccls.highlight.memberVariable.face": {
-          "type": "array",
-          "default": [
-            "variable",
-            "member"
-          ]
-        },
-        "ccls.highlight.namespace.face": {
-          "type": "array",
-          "default": [
-            "type"
-          ]
-        },
-        "ccls.highlight.parameter.face": {
-          "type": "array",
-          "default": [
-            "variable"
-          ]
-        },
-        "ccls.highlight.staticMemberFunction.face": {
-          "type": "array",
-          "default": [
-            "function",
-            "static"
-          ]
-        },
-        "ccls.highlight.staticMemberVariable.face": {
-          "type": "array",
-          "default": [
-            "variable",
-            "static"
-          ]
-        },
-        "ccls.highlight.staticVariable.face": {
-          "type": "array",
-          "default": [
-            "variable",
-            "static"
-          ]
-        },
-        "ccls.highlight.typeAlias.face": {
-          "type": "array",
-          "default": [
-            "type"
-          ]
-        },
-        "ccls.highlight.function.colors": {
-          "type": "array",
-          "default": [
-            "#e5b124",
-            "#927754",
-            "#eb992c",
-            "#e2bf8f",
-            "#d67c17",
-            "#88651e",
-            "#e4b953",
-            "#a36526",
-            "#b28927",
-            "#d69855"
-          ],
-          "description": "Colors to use for semantic highlight. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlight will cycle through them for successive symbols."
-        },
-        "ccls.highlight.type.colors": {
-          "type": "array",
-          "default": [
-            "#e1afc3",
-            "#d533bb",
-            "#9b677f",
-            "#e350b6",
-            "#a04360",
-            "#dd82bc",
-            "#de3864",
-            "#ad3f87",
-            "#dd7a90",
-            "#e0438a"
-          ],
-          "description": "Colors to use for semantic highlight. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlight will cycle through them for successive symbols."
-        },
-        "ccls.highlight.variable.colors": {
-          "type": "array",
-          "default": [
-            "#587d87",
-            "#26cdca",
-            "#397797",
-            "#57c2cc",
-            "#306b72",
-            "#6cbcdf",
-            "#368896",
-            "#3ea0d2",
-            "#48a5af",
-            "#7ca6b7"
-          ],
-          "description": "Colors to use for semantic highlight. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlight will cycle through them for successive symbols."
-        },
-        "ccls.highlight.namespace.colors": {
-          "type": "array",
-          "default": [
-            "#429921",
-            "#58c1a4",
-            "#5ec648",
-            "#36815b",
-            "#83c65d",
-            "#417b2f",
-            "#43cc71",
-            "#7eb769",
-            "#58bf89",
-            "#3e9f4a"
-          ],
-          "description": "Colors to use for semantic highlight. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlight will cycle through them for successive symbols."
-        },
-        "ccls.highlight.macro.colors": {
-          "type": "array",
-          "default": [
-            "#e79528",
-            "#c5373d",
-            "#e8a272",
-            "#d84f2b",
-            "#a67245",
-            "#e27a33",
-            "#9b4a31",
-            "#b66a1e",
-            "#e27a71",
-            "#cf6d49"
-          ],
-          "description": "Colors to use for semantic highlight. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlight will cycle through them for successive symbols."
-        },
-        "ccls.clang.extraArgs": {
-          "type": "array",
-          "default": [],
-          "description": "An extra set of command line arguments to give clang when indexing. Each list entry is a separate argument."
-        },
-        "ccls.clang.excludeArgs": {
-          "type": "array",
-          "default": [],
-          "description": "An set of command line arguments to strip before passing to clang when indexing. Each list entry is a separate argument."
-        },
-        "ccls.clang.pathMappings": {
-          "type": "array",
-          "default": [],
-          "description": "Translate paths in compile_commands.json entries, .ccls options and cache files. This allows to reuse cache files built otherwhere if the source paths are different."
-        },
-        "ccls.index.whitelist": {
-          "type": "array",
-          "default": [],
-          "description": "If a translation unit's absolute path partially matches any ECMAScript regex in this list, it will be indexed. The whitelist takes priority over the blacklist. To only index files in the whitelist, make \"ccls.index.blacklist\" match everything, ie, set it to \".*\"."
-        },
-        "ccls.index.blacklist": {
-          "type": "array",
-          "default": [],
-          "description": "A translation unit (cc/cpp file) is not indexed if any of the ECMAScript regexes in this list partially matches translation unit's the absolute path."
-        },
-        "ccls.clang.resourceDir": {
-          "type": "string",
-          "default": "",
-          "description": "Default value to use for clang -resource-dir argument. This will be automatically supplied by ccls if not provided."
-        },
-        "ccls.callHierarchy.qualified": {
-          "type": "boolean",
-          "default": true,
-          "description": "If true, use qualified names in the call hiearchy"
-        },
-        "ccls.misc.compilationDatabaseCommand": {
-          "type": "string",
-          "default": "",
-          "description": "If not empty, the compilation database command to use"
-        },
-        "ccls.misc.compilationDatabaseDirectory": {
-          "type": "string",
-          "default": "",
-          "description": "If not empty, the compilation database directory to use instead of the project root"
-        },
-        "ccls.misc.showInactiveRegions": {
-          "type": "boolean",
-          "default": true,
-          "description": "If true, ccls will highlight skipped ranges."
-        },
-        "ccls.completion.include.maxPathSize": {
-          "type": "integer",
-          "default": 37,
-          "description": "Maximum length for path in #include proposals. If the path length goes beyond this number it will be elided. Set to 0 to always display the full path."
-        },
-        "ccls.completion.include.suffixWhitelist": {
-          "type": "array",
-          "default": [
-            ".h",
-            ".hpp",
-            ".hh"
-          ],
-          "description": "Only files ending in one of these values will be shown in include auto-complete. Set to the empty-list to disable include auto-complete."
-        },
-        "ccls.completion.include.whitelist": {
-          "type": "array",
-          "default": [],
-          "description": "ECMAScript regex that checks absolute file path. If it does not partially match, the file is not added to include path auto-complete. An example is \"/src/\""
-        },
-        "ccls.completion.include.blacklist": {
-          "type": "array",
-          "default": [],
-          "description": "ECMAScript regex that checks absolute path. If it partially matches, the file is not added to include path auto-complete. An example is \"/CACHE/\""
-        },
-        "ccls.completion.caseSensitivity": {
-          "type": "integer",
-          "default": 2,
-          "description": "Case sensitivity when code completion is filtered. 0: case-insensitive, 1: case-folded, i.e. insensitive if no input character is uppercase, 2: case-sensitive"
-        },
-        "ccls.completion.detailedLabel": {
-          "type": "boolean",
-          "default": false,
-          "description": "When this option is enabled, the completion item label is very detailed, it shows the full signature of the candidate."
-        },
-        "ccls.completion.duplicateOptional": {
-          "type": "boolean",
-          "default": false,
-          "description": "For functions with default arguments, generate one more item per default argument."
-        },
-        "ccls.diagnostics.blacklist": {
-          "type": "array",
-          "default": [],
-          "description": "Files that match these patterns won't be displayed in diagnostics view."
-        },
-        "ccls.diagnostics.whitelist": {
-          "type": "array",
-          "default": [],
-          "description": "Files that match these patterns will be displayed in diagnostics view."
-        },
-        "ccls.diagnostics.onChange": {
-          "type": "integer",
-          "default": 1000,
-          "description": "Time in milliseconds to wait before computing diagnostics on type. -1: disable diagnostics on type."
-        },
-        "ccls.diagnostics.onOpen": {
-          "type": "integer",
-          "default": 0,
-          "description": "Time in milliseconds to wait before computing diagnostics when a file is opened."
-        },
-        "ccls.diagnostics.onSave": {
-          "type": "integer",
-          "default": 0,
-          "description": "Time in milliseconds to wait before computing diagnostics when a file is saved."
-        },
-        "ccls.diagnostics.spellChecking": {
-          "type": "boolean",
-          "default": true,
-          "description": "Whether to do spell checking on undefined symbol names when computing diagnostics."
-        },
-        "ccls.highlight.blacklist": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "default": null,
-          "description": "Files that match these patterns won't have semantic highlight."
-        },
-        "ccls.highlight.whitelist": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "default": null,
-          "description": "Files that match these patterns will have semantic highlight."
-        },
-        "ccls.highlight.largeFileSize": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "default": null,
-          "description": "Disable semantic highlight for files larger than the size."
-        },
-        "ccls.index.initialBlacklist": {
-          "type": "array",
-          "default": [],
-          "description": "Files matched by the regexes should not be indexed on initialization. Indexing is deferred to when they are opened."
-        },
-        "ccls.index.initialWhitelist": {
-          "type": "array",
-          "default": [],
-          "description": "Files matched by the regexes should be indexed on initialization."
-        },
-        "ccls.index.multiVersion": {
-          "type": "integer",
-          "default": 0,
-          "description": "If not 0, a file will be indexed in each tranlation unit that includes it."
-        },
-        "ccls.index.onChange": {
-          "type": "boolean",
-          "default": false,
-          "description": "Allow indexing on textDocument/didChange. May be too slow for big projects, so it is off by default."
-        },
-        "ccls.index.threads": {
-          "type": "number",
-          "default": 0,
-          "description": "Number of indexer threads. If 0, 80% of cores are used."
-        },
-        "ccls.index.trackDependency": {
-          "type": "integer",
-          "default": 2,
-          "description": "Whether to reparse a file if write times of its dependencies have changed. The file will always be reparsed if its own write time changes.\n\n0: no, 1: only during initial load of project, 2: yes"
-        },
-        "ccls.index.maxInitializerLines": {
-          "type": "integer",
-          "default": 15,
-          "description": "Number of lines of the initializer / macro definition showed in hover."
-        },
-        "ccls.codeLens.renderInline": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enables a custom code lens renderer so code lens are displayed inline with code. This removes any vertical-space footprint at the cost of horizontal space."
-        },
-        "ccls.codeLens.localVariables": {
-          "type": "boolean",
-          "default": false,
-          "description": "Set to false to hide code lens on parameters and function local variables."
-        },
-        "ccls.treeViews.doubleClickTimeoutMs": {
-          "type": "number",
-          "default": 500,
-          "description": "If a tree view entry is double-clicked within this timeout value, vscode will navigate to the entry."
-        },
-        "ccls.theme.light.skippedRange.textColor": {
-          "type": "string",
-          "default": "rgb(100, 100, 100)",
-          "description": "CSS color to apply to text when the code region has been disabled by the preprocessor in a light theme."
-        },
-        "ccls.theme.light.skippedRange.backgroundColor": {
-          "type": "string",
-          "default": "rgba(220, 220, 220, 0.3)",
-          "description": "CSS color to apply to the background when the code region has been disabled by the preprocessor in a light theme."
-        },
-        "ccls.theme.dark.skippedRange.textColor": {
-          "type": "string",
-          "default": "rgb(100, 100, 100)",
-          "description": "CSS color to apply to text when the code region has been disabled by the preprocessor in a dark theme."
-        },
-        "ccls.theme.dark.skippedRange.backgroundColor": {
-          "type": "string",
-          "default": "rgba(18, 18, 18, 0.3)",
-          "description": "CSS color to apply to the background when the code region has been disabled by the preprocessor in a dark theme."
-        },
-        "ccls.completion.enableSnippetInsertion": {
-          "type": "boolean",
-          "default": false,
-          "description": "If true, parameter declarations are inserted as snippets in function/method call arguments when completing a function/method call"
-        },
-        "ccls.workspaceSymbol.caseSensitivity": {
-          "type": "integer",
-          "default": 1,
-          "description": "Case sensitivity when searching workspace symbols. 0: case-insensitive, 1: case-folded, i.e. insensitive if no input character is uppercase, 2: case-sensitive"
-        },
-        "ccls.workspaceSymbol.maxNum": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "default": null,
-          "description": "The maximum number of global search (ie, Ctrl+P + #foo) search results to report. For small search strings on large projects there can be a massive number of results (ie, over 1,000,000) so this limit is important to avoid extremely long delays. null means use the default value provided by the ccls language server."
-        },
-        "ccls.codeLens.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Specifies whether the references CodeLens should be shown."
-        },
-        "ccls.statusUpdateInterval": {
-          "type": "integer",
-          "default": 2000,
-          "description": "Interval between updating ccls status in milliseconds. Set to 0 to disable."
-        },
-        "ccls.trace.websocketEndpointUrl": {
-          "type": "string",
-          "default": "",
-          "description": "When set, logs all LSP messages to specified WebSocket endpoint."
-        }
-      }
-    }
-  }
+	"name": "ccls",
+	"description": "C/C++/ObjC language server supporting cross references, hierarchies, completion and semantic highlight",
+	"author": "ccls-project",
+	"license": "MIT",
+	"version": "0.1.28",
+	"publisher": "ccls-project",
+	"scripts": {
+		"vscode:prepublish": "npm run lint && npm run compile",
+		"compile": "npx tsc -p ./",
+		"update-vscode": "node ./node_modules/vscode/bin/install",
+		"postinstall": "node ./node_modules/vscode/bin/install",
+		"test": "node ./node_modules/vscode/bin/test",
+		"lint": "npx tslint -p ./"
+	},
+	"devDependencies": {
+		"@types/node": "^9.6.52",
+		"@types/ws": "^6.0.3",
+		"tslint": "^5.20.0",
+		"typescript": "^2.9.2",
+		"vsce": "^1.67.1",
+		"vscode": "^1.1.36"
+	},
+	"dependencies": {
+		"vscode-languageclient": "^5.2.1",
+		"ws": "^6.2.1",
+		"fs": "^0.0.1-security"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/MaskRay/vscode-ccls"
+	},
+	"engines": {
+		"vscode": "^1.36.0"
+	},
+	"categories": [
+		"Programming Languages",
+		"Linters",
+		"Snippets"
+	],
+	"activationEvents": [
+		"onLanguage:c",
+		"onLanguage:cpp",
+		"onLanguage:objective-c",
+		"onLanguage:objective-cpp",
+		"workspaceContains:.ccls",
+		"workspaceContains:compile_commands.json"
+	],
+	"main": "./out/extension",
+	"contributes": {
+		"views": {
+			"explorer": [
+				{
+					"id": "ccls.callHierarchy",
+					"name": "Call Hierarchy",
+					"when": "extension.ccls.callHierarchyVisible"
+				},
+				{
+					"id": "ccls.inheritanceHierarchy",
+					"name": "Inheritance Hierarchy",
+					"when": "extension.ccls.inheritanceHierarchyVisible"
+				},
+				{
+					"id": "ccls.memberHierarchy",
+					"name": "Member Hierarchy",
+					"when": "extension.ccls.memberHierarchyVisible"
+				}
+			]
+		},
+		"menus": {
+			"editor/context": [
+				{
+					"command": "ccls.inheritanceHierarchy",
+					"when": "resourceLangId == cpp",
+					"group": "navigation@1.31"
+				},
+				{
+					"command": "ccls.callHierarchy",
+					"when": "resourceLangId == cpp",
+					"group": "navigation@1.32"
+				},
+				{
+					"command": "ccls.memberHierarchy",
+					"when": "resourceLangId == cpp",
+					"group": "navigation@1.32"
+				},
+				{
+					"command": "ccls.vars",
+					"when": "resourceLangId == cpp",
+					"group": "navigation@1.33"
+				},
+				{
+					"command": "ccls.base",
+					"when": "resourceLangId == cpp",
+					"group": "navigation@1.34"
+				}
+			],
+			"view/title": [
+				{
+					"command": "ccls.call.useCallers",
+					"when": "view == ccls.callHierarchy",
+					"group": "navigation"
+				},
+				{
+					"command": "ccls.call.useCallees",
+					"when": "view == ccls.callHierarchy",
+					"group": "navigation"
+				},
+				{
+					"command": "ccls.closeCallHierarchy",
+					"when": "view == ccls.callHierarchy",
+					"group": "navigation"
+				},
+				{
+					"command": "ccls.closeInheritanceHierarchy",
+					"when": "view == ccls.inheritanceHierarchy",
+					"group": "navigation"
+				},
+				{
+					"command": "ccls.closeMemberHierarchy",
+					"when": "view == ccls.memberHierarchy",
+					"group": "navigation"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "ccls.gotoForTreeView",
+					"when": "viewItem == cclsGoto"
+				}
+			],
+			"commandPalette": [
+				{
+					"command": "ccls.closeCallHierarchy",
+					"when": "false"
+				},
+				{
+					"command": "ccls.closeInheritanceHierarchy",
+					"when": "false"
+				},
+				{
+					"command": "ccls.closeMemberHierarchy",
+					"when": "false"
+				},
+				{
+					"command": "ccls.gotoForTreeView",
+					"when": "false"
+				},
+				{
+					"command": "ccls.call.useCallers",
+					"when": "false"
+				},
+				{
+					"command": "ccls.call.useCallees",
+					"when": "false"
+				}
+			]
+		},
+		"commands": [
+			{
+				"title": "Reload Index",
+				"category": "ccls",
+				"command": "ccls.reload"
+			},
+			{
+				"title": "Restart language server",
+				"category": "ccls",
+				"command": "ccls.restart"
+			},
+			{
+				"title": "Restart language server in lazy mode",
+				"category": "ccls",
+				"command": "ccls.restartLazy"
+			},
+			{
+				"title": "Call Hierarchy",
+				"category": "ccls",
+				"command": "ccls.callHierarchy"
+			},
+			{
+				"title": "Callers",
+				"category": "ccls",
+				"command": "ccls.call.useCallers",
+				"icon": {
+					"light": "resources/base-light.svg",
+					"dark": "resources/base-dark.svg"
+				}
+			},
+			{
+				"title": "Callees",
+				"category": "ccls",
+				"command": "ccls.call.useCallees",
+				"icon": {
+					"light": "resources/derived-light.svg",
+					"dark": "resources/derived-dark.svg"
+				}
+			},
+			{
+				"title": "Close",
+				"command": "ccls.closeCallHierarchy",
+				"icon": {
+					"light": "resources/close-light.svg",
+					"dark": "resources/close-dark.svg"
+				}
+			},
+			{
+				"title": "Inheritance Hierarchy",
+				"category": "ccls",
+				"command": "ccls.inheritanceHierarchy"
+			},
+			{
+				"title": "Close",
+				"command": "ccls.closeInheritanceHierarchy",
+				"icon": {
+					"light": "resources/close-light.svg",
+					"dark": "resources/close-dark.svg"
+				}
+			},
+			{
+				"title": "Member Hierarchy",
+				"category": "ccls",
+				"command": "ccls.memberHierarchy"
+			},
+			{
+				"title": "Close",
+				"command": "ccls.closeMemberHierarchy",
+				"icon": {
+					"light": "resources/close-light.svg",
+					"dark": "resources/close-dark.svg"
+				}
+			},
+			{
+				"title": "Show Variables",
+				"category": "ccls",
+				"command": "ccls.vars"
+			},
+			{
+				"title": "Show Cross References",
+				"category": "ccls",
+				"command": "ccls.call"
+			},
+			{
+				"title": "Show Base",
+				"category": "ccls",
+				"command": "ccls.base"
+			},
+			{
+				"title": "Go to Tree View Entry",
+				"category": "ccls",
+				"command": "ccls.gotoForTreeView"
+			}
+		],
+		"configuration": {
+			"type": "object",
+			"title": "ccls",
+			"properties": {
+				"ccls.launch.command": {
+					"type": "string",
+					"default": "ccls",
+					"description": "Path to the ccls binary (default assumes the binary is in the PATH)"
+				},
+				"ccls.launch.args": {
+					"type": "array",
+					"default": [],
+					"description": "Array containing extra arguments to pass to the ccls binary"
+				},
+				"ccls.cache.directory": {
+					"type": "string",
+					"default": ".ccls-cache",
+					"description": "Absolute or relative (from the project root) path to the directory that the cached index will be stored in. Try to have this directory on an SSD. If empty, cached indexes will not be saved on disk.\n\n${workspaceFolder} will be replaced by the folder where .vscode/settings.json resides.\n\nCache directories are project-wide, so this should be configured in the workspace settings so multiple indexes do not clash.\n\nExample value: \"/work/ccls-cache/chrome/\""
+				},
+				"ccls.cache.hierarchicalPath": {
+					"type": "boolean",
+					"default": false,
+					"description": "If false, store cache files as $directory/@a@b/c.cc.blob\n\nIf true, $directory/a/b/c.cc.blob."
+				},
+				"ccls.highlight.function.face": {
+					"type": "array",
+					"default": []
+				},
+				"ccls.highlight.global.face": {
+					"type": "array",
+					"default": [
+						"fontWeight: bolder"
+					]
+				},
+				"ccls.highlight.member.face": {
+					"type": "array",
+					"default": [
+						"fontStyle: italic"
+					]
+				},
+				"ccls.highlight.static.face": {
+					"type": "array",
+					"default": [
+						"fontWeight: bold"
+					]
+				},
+				"ccls.highlight.type.face": {
+					"type": "array",
+					"default": []
+				},
+				"ccls.highlight.variable.face": {
+					"type": "array",
+					"default": []
+				},
+				"ccls.highlight.enum.face": {
+					"type": "array",
+					"default": [
+						"variable",
+						"member"
+					]
+				},
+				"ccls.highlight.globalVariable.face": {
+					"type": "array",
+					"default": [
+						"variable",
+						"global"
+					]
+				},
+				"ccls.highlight.macro.face": {
+					"type": "array",
+					"default": [
+						"variable"
+					]
+				},
+				"ccls.highlight.memberFunction.face": {
+					"type": "array",
+					"default": [
+						"function",
+						"member"
+					]
+				},
+				"ccls.highlight.memberVariable.face": {
+					"type": "array",
+					"default": [
+						"variable",
+						"member"
+					]
+				},
+				"ccls.highlight.namespace.face": {
+					"type": "array",
+					"default": [
+						"type"
+					]
+				},
+				"ccls.highlight.parameter.face": {
+					"type": "array",
+					"default": [
+						"variable"
+					]
+				},
+				"ccls.highlight.staticMemberFunction.face": {
+					"type": "array",
+					"default": [
+						"function",
+						"static"
+					]
+				},
+				"ccls.highlight.staticMemberVariable.face": {
+					"type": "array",
+					"default": [
+						"variable",
+						"static"
+					]
+				},
+				"ccls.highlight.staticVariable.face": {
+					"type": "array",
+					"default": [
+						"variable",
+						"static"
+					]
+				},
+				"ccls.highlight.typeAlias.face": {
+					"type": "array",
+					"default": [
+						"type"
+					]
+				},
+				"ccls.highlight.function.colors": {
+					"type": "array",
+					"default": [
+						"#e5b124",
+						"#927754",
+						"#eb992c",
+						"#e2bf8f",
+						"#d67c17",
+						"#88651e",
+						"#e4b953",
+						"#a36526",
+						"#b28927",
+						"#d69855"
+					],
+					"description": "Colors to use for semantic highlight. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlight will cycle through them for successive symbols."
+				},
+				"ccls.highlight.type.colors": {
+					"type": "array",
+					"default": [
+						"#e1afc3",
+						"#d533bb",
+						"#9b677f",
+						"#e350b6",
+						"#a04360",
+						"#dd82bc",
+						"#de3864",
+						"#ad3f87",
+						"#dd7a90",
+						"#e0438a"
+					],
+					"description": "Colors to use for semantic highlight. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlight will cycle through them for successive symbols."
+				},
+				"ccls.highlight.variable.colors": {
+					"type": "array",
+					"default": [
+						"#587d87",
+						"#26cdca",
+						"#397797",
+						"#57c2cc",
+						"#306b72",
+						"#6cbcdf",
+						"#368896",
+						"#3ea0d2",
+						"#48a5af",
+						"#7ca6b7"
+					],
+					"description": "Colors to use for semantic highlight. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlight will cycle through them for successive symbols."
+				},
+				"ccls.highlight.namespace.colors": {
+					"type": "array",
+					"default": [
+						"#429921",
+						"#58c1a4",
+						"#5ec648",
+						"#36815b",
+						"#83c65d",
+						"#417b2f",
+						"#43cc71",
+						"#7eb769",
+						"#58bf89",
+						"#3e9f4a"
+					],
+					"description": "Colors to use for semantic highlight. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlight will cycle through them for successive symbols."
+				},
+				"ccls.highlight.macro.colors": {
+					"type": "array",
+					"default": [
+						"#e79528",
+						"#c5373d",
+						"#e8a272",
+						"#d84f2b",
+						"#a67245",
+						"#e27a33",
+						"#9b4a31",
+						"#b66a1e",
+						"#e27a71",
+						"#cf6d49"
+					],
+					"description": "Colors to use for semantic highlight. A good generator is http://tools.medialab.sciences-po.fr/iwanthue/. If multiple colors are specified, semantic highlight will cycle through them for successive symbols."
+				},
+				"ccls.clang.extraArgs": {
+					"type": "array",
+					"default": [],
+					"description": "An extra set of command line arguments to give clang when indexing. Each list entry is a separate argument."
+				},
+				"ccls.clang.excludeArgs": {
+					"type": "array",
+					"default": [],
+					"description": "An set of command line arguments to strip before passing to clang when indexing. Each list entry is a separate argument."
+				},
+				"ccls.clang.pathMappings": {
+					"type": "array",
+					"default": [],
+					"description": "Translate paths in compile_commands.json entries, .ccls options and cache files. This allows to reuse cache files built otherwhere if the source paths are different."
+				},
+				"ccls.index.whitelist": {
+					"type": "array",
+					"default": [],
+					"description": "If a translation unit's absolute path partially matches any ECMAScript regex in this list, it will be indexed. The whitelist takes priority over the blacklist. To only index files in the whitelist, make \"ccls.index.blacklist\" match everything, ie, set it to \".*\"."
+				},
+				"ccls.index.blacklist": {
+					"type": "array",
+					"default": [],
+					"description": "A translation unit (cc/cpp file) is not indexed if any of the ECMAScript regexes in this list partially matches translation unit's the absolute path."
+				},
+				"ccls.clang.resourceDir": {
+					"type": "string",
+					"default": "",
+					"description": "Default value to use for clang -resource-dir argument. This will be automatically supplied by ccls if not provided."
+				},
+				"ccls.callHierarchy.qualified": {
+					"type": "boolean",
+					"default": true,
+					"description": "If true, use qualified names in the call hiearchy"
+				},
+				"ccls.misc.compilationDatabaseCommand": {
+					"type": "string",
+					"default": "",
+					"description": "If not empty, the compilation database command to use"
+				},
+				"ccls.misc.compilationDatabaseDirectory": {
+					"type": "string",
+					"default": "",
+					"description": "If not empty, the compilation database directory to use instead of the project root"
+				},
+				"ccls.misc.showInactiveRegions": {
+					"type": "boolean",
+					"default": true,
+					"description": "If true, ccls will highlight skipped ranges."
+				},
+				"ccls.completion.include.maxPathSize": {
+					"type": "integer",
+					"default": 37,
+					"description": "Maximum length for path in #include proposals. If the path length goes beyond this number it will be elided. Set to 0 to always display the full path."
+				},
+				"ccls.completion.include.suffixWhitelist": {
+					"type": "array",
+					"default": [
+						".h",
+						".hpp",
+						".hh"
+					],
+					"description": "Only files ending in one of these values will be shown in include auto-complete. Set to the empty-list to disable include auto-complete."
+				},
+				"ccls.completion.include.whitelist": {
+					"type": "array",
+					"default": [],
+					"description": "ECMAScript regex that checks absolute file path. If it does not partially match, the file is not added to include path auto-complete. An example is \"/src/\""
+				},
+				"ccls.completion.include.blacklist": {
+					"type": "array",
+					"default": [],
+					"description": "ECMAScript regex that checks absolute path. If it partially matches, the file is not added to include path auto-complete. An example is \"/CACHE/\""
+				},
+				"ccls.completion.caseSensitivity": {
+					"type": "integer",
+					"default": 2,
+					"description": "Case sensitivity when code completion is filtered. 0: case-insensitive, 1: case-folded, i.e. insensitive if no input character is uppercase, 2: case-sensitive"
+				},
+				"ccls.completion.detailedLabel": {
+					"type": "boolean",
+					"default": false,
+					"description": "When this option is enabled, the completion item label is very detailed, it shows the full signature of the candidate."
+				},
+				"ccls.completion.duplicateOptional": {
+					"type": "boolean",
+					"default": false,
+					"description": "For functions with default arguments, generate one more item per default argument."
+				},
+				"ccls.diagnostics.blacklist": {
+					"type": "array",
+					"default": [],
+					"description": "Files that match these patterns won't be displayed in diagnostics view."
+				},
+				"ccls.diagnostics.whitelist": {
+					"type": "array",
+					"default": [],
+					"description": "Files that match these patterns will be displayed in diagnostics view."
+				},
+				"ccls.diagnostics.onChange": {
+					"type": "integer",
+					"default": 1000,
+					"description": "Time in milliseconds to wait before computing diagnostics on type. -1: disable diagnostics on type."
+				},
+				"ccls.diagnostics.onOpen": {
+					"type": "integer",
+					"default": 0,
+					"description": "Time in milliseconds to wait before computing diagnostics when a file is opened."
+				},
+				"ccls.diagnostics.onSave": {
+					"type": "integer",
+					"default": 0,
+					"description": "Time in milliseconds to wait before computing diagnostics when a file is saved."
+				},
+				"ccls.diagnostics.spellChecking": {
+					"type": "boolean",
+					"default": true,
+					"description": "Whether to do spell checking on undefined symbol names when computing diagnostics."
+				},
+				"ccls.highlight.blacklist": {
+					"type": [
+						"array",
+						"null"
+					],
+					"default": null,
+					"description": "Files that match these patterns won't have semantic highlight."
+				},
+				"ccls.highlight.whitelist": {
+					"type": [
+						"array",
+						"null"
+					],
+					"default": null,
+					"description": "Files that match these patterns will have semantic highlight."
+				},
+				"ccls.highlight.largeFileSize": {
+					"type": [
+						"integer",
+						"null"
+					],
+					"default": null,
+					"description": "Disable semantic highlight for files larger than the size."
+				},
+				"ccls.index.initialBlacklist": {
+					"type": "array",
+					"default": [],
+					"description": "Files matched by the regexes should not be indexed on initialization. Indexing is deferred to when they are opened."
+				},
+				"ccls.index.initialWhitelist": {
+					"type": "array",
+					"default": [],
+					"description": "Files matched by the regexes should be indexed on initialization."
+				},
+				"ccls.index.multiVersion": {
+					"type": "integer",
+					"default": 0,
+					"description": "If not 0, a file will be indexed in each tranlation unit that includes it."
+				},
+				"ccls.index.onChange": {
+					"type": "boolean",
+					"default": false,
+					"description": "Allow indexing on textDocument/didChange. May be too slow for big projects, so it is off by default."
+				},
+				"ccls.index.threads": {
+					"type": "number",
+					"default": 0,
+					"description": "Number of indexer threads. If 0, 80% of cores are used."
+				},
+				"ccls.index.trackDependency": {
+					"type": "integer",
+					"default": 2,
+					"description": "Whether to reparse a file if write times of its dependencies have changed. The file will always be reparsed if its own write time changes.\n\n0: no, 1: only during initial load of project, 2: yes"
+				},
+				"ccls.index.maxInitializerLines": {
+					"type": "integer",
+					"default": 15,
+					"description": "Number of lines of the initializer / macro definition showed in hover."
+				},
+				"ccls.index.reloadDatabaseOnChange": {
+					"type": "boolean",
+					"default": true,
+					"description": "Reload the compilation database when it is modified."
+				},
+				"ccls.codeLens.renderInline": {
+					"type": "boolean",
+					"default": false,
+					"description": "Enables a custom code lens renderer so code lens are displayed inline with code. This removes any vertical-space footprint at the cost of horizontal space."
+				},
+				"ccls.codeLens.localVariables": {
+					"type": "boolean",
+					"default": false,
+					"description": "Set to false to hide code lens on parameters and function local variables."
+				},
+				"ccls.treeViews.doubleClickTimeoutMs": {
+					"type": "number",
+					"default": 500,
+					"description": "If a tree view entry is double-clicked within this timeout value, vscode will navigate to the entry."
+				},
+				"ccls.theme.light.skippedRange.textColor": {
+					"type": "string",
+					"default": "rgb(100, 100, 100)",
+					"description": "CSS color to apply to text when the code region has been disabled by the preprocessor in a light theme."
+				},
+				"ccls.theme.light.skippedRange.backgroundColor": {
+					"type": "string",
+					"default": "rgba(220, 220, 220, 0.3)",
+					"description": "CSS color to apply to the background when the code region has been disabled by the preprocessor in a light theme."
+				},
+				"ccls.theme.dark.skippedRange.textColor": {
+					"type": "string",
+					"default": "rgb(100, 100, 100)",
+					"description": "CSS color to apply to text when the code region has been disabled by the preprocessor in a dark theme."
+				},
+				"ccls.theme.dark.skippedRange.backgroundColor": {
+					"type": "string",
+					"default": "rgba(18, 18, 18, 0.3)",
+					"description": "CSS color to apply to the background when the code region has been disabled by the preprocessor in a dark theme."
+				},
+				"ccls.completion.enableSnippetInsertion": {
+					"type": "boolean",
+					"default": false,
+					"description": "If true, parameter declarations are inserted as snippets in function/method call arguments when completing a function/method call"
+				},
+				"ccls.workspaceSymbol.caseSensitivity": {
+					"type": "integer",
+					"default": 1,
+					"description": "Case sensitivity when searching workspace symbols. 0: case-insensitive, 1: case-folded, i.e. insensitive if no input character is uppercase, 2: case-sensitive"
+				},
+				"ccls.workspaceSymbol.maxNum": {
+					"type": [
+						"number",
+						"null"
+					],
+					"default": null,
+					"description": "The maximum number of global search (ie, Ctrl+P + #foo) search results to report. For small search strings on large projects there can be a massive number of results (ie, over 1,000,000) so this limit is important to avoid extremely long delays. null means use the default value provided by the ccls language server."
+				},
+				"ccls.codeLens.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Specifies whether the references CodeLens should be shown."
+				},
+				"ccls.statusUpdateInterval": {
+					"type": "integer",
+					"default": 2000,
+					"description": "Interval between updating ccls status in milliseconds. Set to 0 to disable."
+				},
+				"ccls.trace.websocketEndpointUrl": {
+					"type": "string",
+					"default": "",
+					"description": "When set, logs all LSP messages to specified WebSocket endpoint."
+				}
+			}
+		}
+	},
+	"__metadata": {
+		"id": "8e21d425-1e30-4072-8436-786a9017e5c7",
+		"publisherDisplayName": "ccls-project",
+		"publisherId": "c8f976c9-da3f-47d4-a344-bc810b73caed"
+	}
 }
