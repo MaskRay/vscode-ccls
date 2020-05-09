@@ -23,7 +23,8 @@
   },
   "dependencies": {
     "vscode-languageclient": "^5.2.1",
-    "ws": "^6.2.1"
+    "ws": "^6.2.1",
+    "fs": "^0.0.1-security"
   },
   "repository": {
     "type": "git",
@@ -741,5 +742,10 @@
         }
       }
     }
+  },
+  "__metadata": {
+    "id": "8e21d425-1e30-4072-8436-786a9017e5c7",
+    "publisherDisplayName": "ccls-project",
+    "publisherId": "c8f976c9-da3f-47d4-a344-bc810b73caed"
   }
 }

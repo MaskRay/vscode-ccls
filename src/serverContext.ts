@@ -1,4 +1,5 @@
 import * as cp from "child_process";
+import * as fs from 'fs';
 import {
   CancellationToken,
   CodeLens,
@@ -304,7 +305,11 @@ export class ServerContext implements Disposable {
       let db_dir = config.get('misc.compilationDatabaseDirectory');
       if (!db_dir || db_dir === '')
         db_dir = this.cwd;
-      const db_watcher = workspace.createFileSystemWatcher(db_dir + '/compile_commands.json', false, false, false);
+      const db_path = db_dir + '/compile_commands.json';
+      // resolve db_path in case it is a symlink, otherwise the file system watcher
+      // won't catch modifications of the linked file
+      const db_real_path = fs.realpathSync(db_path);
+      const db_watcher = workspace.createFileSystemWatcher(db_real_path, false, false, false);
       this._dispose.push(db_watcher);
       db_watcher.onDidChange((e: Uri) => {
         this.client.sendNotification("workspace/didChangeConfiguration");
@@ -465,7 +470,7 @@ export class ServerContext implements Disposable {
       documentSelector: ['c', 'cpp', 'objective-c', 'objective-cpp'],
       // synchronize: {
       // 	configurationSection: 'ccls',
-      // 	fileEvents: workspace.createFileSystemWatcher('**/.cc')
+      // 	fileEvents: workspace.createfsWatcher('**/.cc')
       // },
       errorHandler: new CclsErrorHandler(config),
       initializationFailedHandler: (e) => {
