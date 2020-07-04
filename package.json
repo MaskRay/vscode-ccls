@@ -3,7 +3,7 @@
   "description": "C/C++/ObjC language server supporting cross references, hierarchies, completion and semantic highlight",
   "author": "ccls-project",
   "license": "MIT",
-  "version": "0.1.28",
+  "version": "0.1.29",
   "publisher": "ccls-project",
   "scripts": {
     "vscode:prepublish": "npm run lint && npm run compile",
@@ -30,7 +30,7 @@
     "url": "https://github.com/MaskRay/vscode-ccls"
   },
   "engines": {
-    "vscode": "^1.36.0"
+    "vscode": "^1.42.0"
   },
   "categories": [
     "Programming Languages",

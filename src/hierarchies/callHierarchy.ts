@@ -77,7 +77,7 @@ export class CallHierarchyProvider extends Hierarchy<CallHierarchyNode> {
     this.useCallee = val;
     if (this.root) {
       this.root.children = [];
-      this.onDidChangeEmitter.fire();
+      this.onDidChangeEmitter.fire(this.root);
     }
   }
 }

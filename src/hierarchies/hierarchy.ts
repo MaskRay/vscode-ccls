@@ -92,13 +92,12 @@ export abstract class Hierarchy<T extends IHierarchyNode> implements TreeDataPro
     const uri = editor.document.uri;
     const callNode = await this.onReveal(uri, position);
     this.root = callNode;
-    this.onDidChangeEmitter.fire();
+    this.onDidChangeEmitter.fire(callNode);
     commands.executeCommand('workbench.view.explorer');
   }
 
   private close() {
     setContext(this.contextValue, false);
     this.root = undefined;
-    this.onDidChangeEmitter.fire();
   }
 }
