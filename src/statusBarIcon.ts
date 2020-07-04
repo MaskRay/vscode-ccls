@@ -12,7 +12,9 @@ interface CclsInfoResponse {
     vars: number;
   };
   pipeline: {
-    pendingIndexRequests: number;
+    lastIdle: number;
+    completed: number;
+    enqueued: number;
   };
   project: {
     entries: number;
@@ -53,14 +55,18 @@ export class StatusBarIconProvider implements Disposable {
       unwrap(cclsChan).show();
       return;
     }
+    const lastIdle = info.pipeline.lastIdle || 0;
+    const completed = info.pipeline.completed || 0;
+    const enqueued = info.pipeline.enqueued || 0;
     this.icon.color = "";
-    this.icon.text = `ccls: ${info.pipeline.pendingIndexRequests || 0} jobs`;
-    this.icon.tooltip = dedent`${info.db.files} files,
-      ${info.db.funcs} functions,
-      ${info.db.types} types,
-      ${info.db.vars} variables,
-      ${info.project.entries} entries in project.
+    this.icon.text = `ccls: ${completed}/${enqueued} jobs`;
+    this.icon.tooltip = `${info.db.files} files,
+${info.db.funcs} functions,
+${info.db.types} types,
+${info.db.vars} variables,
+${info.project.entries} entries in project.
 
-      ${info.pipeline.pendingIndexRequests} pending index requests`;
+completed ${completed}/${enqueued} index requests
+last idle: ${lastIdle}`;
   }
 }
