@@ -316,6 +316,13 @@
             "global"
           ]
         },
+        "ccls.highlight.staticGlobalVariable.face": {
+          "type": "array",
+          "default": [
+            "variable",
+            "static"
+          ]
+        },
         "ccls.highlight.macro.face": {
           "type": "array",
           "default": [

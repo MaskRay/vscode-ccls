@@ -48,6 +48,7 @@ export const semanticKinds: string[] = [
   'type',
 
   'enum',
+  'staticGlobalVariable',
   'globalVariable',
   'macro',
   'memberFunction',
@@ -199,12 +200,16 @@ export class SemanticContext implements Disposable {
         return get('staticMemberVariable');
       return get('memberVariable');
     case SymbolKind.Variable:
-      if (symbol.storage === StorageClass.Static)
-        return get('staticVariable');
       if (symbol.parentKind === SymbolKind.File ||
-          symbol.parentKind === SymbolKind.Namespace)
+          symbol.parentKind === SymbolKind.Namespace) {
+        if (symbol.storage === StorageClass.Static)
+          return get('staticGlobalVariable');
         return get('globalVariable');
-      return get('variable');
+      } else {
+        if (symbol.storage === StorageClass.Static)
+          return get('staticVariable');
+        return get('variable');
+      }
     case SymbolKind.EnumMember:
       return get('enum');
     case CclsSymbolKind.Parameter:
