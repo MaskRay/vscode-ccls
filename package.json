@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "vscode-languageclient": "^6.1.3",
-    "ws": "^7.3.0"
+    "ws": "^7.4.6"
   },
   "repository": {
     "type": "git",
