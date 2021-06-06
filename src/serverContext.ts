@@ -435,7 +435,7 @@ export class ServerContext implements Disposable {
     const args = this.cliConfig.launchArgs;
 
     const serverOptions: ServerOptions = async (): Promise<cp.ChildProcess> => {
-      const child = cp.spawn(this.cliConfig.launchCommand, args);
+      const child = cp.spawn(this.cliConfig.launchCommand, args, {cwd: this.cwd});
       this.clientPid = child.pid;
       return child;
     };
