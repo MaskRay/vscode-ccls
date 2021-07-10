@@ -65,6 +65,11 @@
           "when": "extension.ccls.inheritanceHierarchyVisible"
         },
         {
+          "id": "ccls.dataFlowInto",
+          "name": "Data Flow Hierarchy",
+          "when": "extension.ccls.dataFlowHierarchyVisible"
+        },
+        {
           "id": "ccls.memberHierarchy",
           "name": "Member Hierarchy",
           "when": "extension.ccls.memberHierarchyVisible"
@@ -97,6 +102,11 @@
           "command": "ccls.base",
           "when": "resourceLangId == cpp",
           "group": "navigation@1.34"
+        },
+        {
+          "command": "ccls.dataFlowInto",
+          "when": "resourceLangId == cpp",
+          "group": "navigation@1.35"
         }
       ],
       "view/title": [
@@ -113,6 +123,11 @@
         {
           "command": "ccls.closeCallHierarchy",
           "when": "view == ccls.callHierarchy",
+          "group": "navigation"
+        },
+        {
+          "command": "ccls.closeDataFlowHierarchy",
+          "when": "view == ccls.dataFlowInto",
           "group": "navigation"
         },
         {
@@ -143,6 +158,10 @@
         },
         {
           "command": "ccls.closeMemberHierarchy",
+          "when": "false"
+        },
+        {
+          "command": "ccls.closeDataFlowHierarchy",
           "when": "false"
         },
         {
@@ -236,6 +255,20 @@
         "title": "Show Variables",
         "category": "ccls",
         "command": "ccls.vars"
+      },
+      {
+        "title": "Show Data Flow Into",
+        "category": "ccls",
+        "command": "ccls.dataFlowInto"
+      },
+      {
+        "title": "Close",
+        "category": "ccls",
+        "command": "ccls.closeDataFlowHierarchy",
+        "icon": {
+          "light": "resources/close-light.svg",
+          "dark": "resources/close-dark.svg"
+        }
       },
       {
         "title": "Show Cross References",
