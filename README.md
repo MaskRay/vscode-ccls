@@ -6,4 +6,4 @@ a C/C++/ObjC language server supporting cross references, hierarchies, completio
 See:
 
 * [ccls/wiki/Home](https://github.com/MaskRay/ccls/wiki/Home)
-* [ccls/wiki/Visual Studio Code](https://github.com/MaskRay/ccls/wiki/Visual-Studio-Code)
+* [ccls/wiki/Visual Studio Code](https://github.com/MaskRay/ccls/wiki/Visual-Studio-Code) **Must read to configure ccls correctly**
