@@ -22,9 +22,9 @@ export abstract class Hierarchy<T extends IHierarchyNode> implements TreeDataPro
   protected abstract contextValue: string;
   protected _dispose: Disposable[] = [];
 
-  protected readonly onDidChangeEmitter: EventEmitter<IHierarchyNode> = new EventEmitter<IHierarchyNode>();
+  protected readonly onDidChangeEmitter: EventEmitter<IHierarchyNode | null> = new EventEmitter<IHierarchyNode | null>();
   // tslint:disable-next-line:member-ordering
-  public readonly onDidChangeTreeData: Event<IHierarchyNode> = this.onDidChangeEmitter.event;
+  public readonly onDidChangeTreeData: Event<IHierarchyNode | null> = this.onDidChangeEmitter.event;
 
   protected root?: T;
 
@@ -92,7 +92,7 @@ export abstract class Hierarchy<T extends IHierarchyNode> implements TreeDataPro
     const uri = editor.document.uri;
     const callNode = await this.onReveal(uri, position);
     this.root = callNode;
-    this.onDidChangeEmitter.fire(callNode);
+    this.onDidChangeEmitter.fire(null);
     commands.executeCommand('workbench.view.explorer');
   }
 
