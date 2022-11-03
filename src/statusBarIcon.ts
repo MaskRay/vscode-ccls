@@ -1,6 +1,6 @@
 import { StatusBarAlignment, StatusBarItem, window } from "vscode";
 import { Disposable } from "vscode-jsonrpc";
-import { LanguageClient } from "vscode-languageclient";
+import { BaseLanguageClient } from "vscode-languageclient";
 import { cclsChan } from './globalContext';
 import { dedent, unwrap } from './utils';
 
@@ -26,7 +26,7 @@ export class StatusBarIconProvider implements Disposable {
   private timer: NodeJS.Timer;
   private wasError = false;
 
-  public constructor(private client: LanguageClient, private updateInterval: number) {
+  public constructor(private client: BaseLanguageClient, private updateInterval: number) {
     this.icon = window.createStatusBarItem(StatusBarAlignment.Right);
     this.icon.text = "ccls: loading";
     this.icon.tooltip = "ccls is starting / loading project metadata";
