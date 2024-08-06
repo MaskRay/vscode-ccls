@@ -455,7 +455,7 @@ export class ServerContext implements Disposable {
         return false;
       },
       initializationOptions: this.cliConfig,
-      middleware: {provideCodeLenses: (doc, next, token) => this.provideCodeLens(doc, next, token)},
+      middleware: {provideCodeLenses: (doc, token, next) => this.provideCodeLens(doc, token, next)},
       outputChannel: cclsChan,
       revealOutputChannelOn: RevealOutputChannelOn.Never,
     };
