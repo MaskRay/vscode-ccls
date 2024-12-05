@@ -31,6 +31,7 @@ import * as WebSocket from 'ws';
 import { CclsErrorHandler } from "./cclsErrorHandler";
 import { cclsChan, logChan } from './globalContext';
 import { CallHierarchyProvider } from "./hierarchies/callHierarchy";
+import { DataFlowHierarchyProvider } from "./hierarchies/dataFlowHierarchy";
 import { InheritanceHierarchyProvider } from "./hierarchies/inheritanceHierarchy";
 import { MemberHierarchyProvider } from "./hierarchies/memberHierarchy";
 import { InactiveRegionsProvider } from "./inactiveRegions";
@@ -265,6 +266,12 @@ export class ServerContext implements Disposable {
     this._dispose.push(memberHierarchyProvider);
     this._dispose.push(window.registerTreeDataProvider(
         'ccls.memberHierarchy', memberHierarchyProvider
+    ));
+
+    const dfProvier = new DataFlowHierarchyProvider(this.client);
+    this._dispose.push(dfProvier);
+    this._dispose.push(window.registerTreeDataProvider(
+        'ccls.dataFlowInto', dfProvier
     ));
 
     // Common between tree views.
