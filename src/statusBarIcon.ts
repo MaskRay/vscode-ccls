@@ -1,6 +1,6 @@
 import { StatusBarAlignment, StatusBarItem, window } from "vscode";
 import { Disposable } from "vscode-jsonrpc";
-import { LanguageClient } from "vscode-languageclient";
+import { LanguageClient } from "vscode-languageclient/node";
 import { cclsChan } from './globalContext';
 import { dedent, unwrap } from './utils';
 

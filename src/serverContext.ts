@@ -24,8 +24,8 @@ import {
   ProvideCodeLensesSignature,
   RevealOutputChannelOn,
   ServerOptions,
-} from "vscode-languageclient";
-import { Converter } from "vscode-languageclient/lib/protocolConverter";
+} from "vscode-languageclient/node";
+import { Converter } from "vscode-languageclient/lib/common/protocolConverter";
 import * as ls from "vscode-languageserver-types";
 import * as WebSocket from 'ws';
 import { CclsErrorHandler } from "./cclsErrorHandler";

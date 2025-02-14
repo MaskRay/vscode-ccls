@@ -1,5 +1,5 @@
 import { Position, TreeItem, Uri } from 'vscode';
-import { LanguageClient } from 'vscode-languageclient/lib/main';
+import { LanguageClient } from 'vscode-languageclient/node';
 import { IHierarchyNode } from '../types';
 import { Hierarchy } from './hierarchy';
 
@@ -42,7 +42,7 @@ export class InheritanceHierarchyProvider extends Hierarchy<InheritanceHierarchy
         qualified: false,
     });
     element.children = result.children;
-    result.children.map((c) => InheritanceHierarchySetWantsDerived(c, element.wantsDerived));
+    result.children.map((c: InheritanceHierarchyNode) => InheritanceHierarchySetWantsDerived(c, element.wantsDerived));
     return result.children;
   }
 
