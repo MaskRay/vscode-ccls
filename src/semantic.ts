@@ -34,7 +34,7 @@ interface SemanticSymbol {
   readonly kind: SymbolKind|CclsSymbolKind;
   readonly isTypeMember: boolean;
   readonly storage: StorageClass;
-  readonly lsRanges: Range[];
+  // readonly lsRanges: Range[];
 }
 
 export interface PublishSemanticHighlightArgs {
@@ -85,34 +85,34 @@ export class SemanticContext implements Disposable {
     disposeAll(this._dispose);
   }
 
-  public publishSemanticHighlight(args: PublishSemanticHighlightArgs) {
-    const normUri = normalizeUri(args.uri);
+  // public publishSemanticHighlight(args: PublishSemanticHighlightArgs) {
+  //   const normUri = normalizeUri(args.uri);
 
-    for (const visibleEditor of window.visibleTextEditors) {
-      if (normUri !== visibleEditor.document.uri.toString(true))
-        continue;
+  //   for (const visibleEditor of window.visibleTextEditors) {
+  //     if (normUri !== visibleEditor.document.uri.toString(true))
+  //       continue;
 
-      const decorations = new Map<TextEditorDecorationType, Array<Range>>();
+  //     const decorations = new Map<TextEditorDecorationType, Array<Range>>();
 
-      for (const symbol of args.symbols) {
-        const type = this.tryFindDecoration(symbol);
-        if (!type)
-          continue;
-        const existing = decorations.get(type);
-        if (existing) {
-          for (const range of symbol.lsRanges) {
-            existing.push(range);
-          }
-        } else {
-          decorations.set(type, symbol.lsRanges);
-        }
-      }
+  //     for (const symbol of args.symbols) {
+  //       const type = this.tryFindDecoration(symbol);
+  //       if (!type)
+  //         continue;
+  //       const existing = decorations.get(type);
+  //       if (existing) {
+  //         for (const range of symbol.lsRanges) {
+  //           existing.push(range);
+  //         }
+  //       } else {
+  //         decorations.set(type, symbol.lsRanges);
+  //       }
+  //     }
 
-      // TODO limit cache size
-      this.cachedDecorations.set(normUri, decorations);
-      this.updateDecoration(visibleEditor);
-    }
-  }
+  //     // TODO limit cache size
+  //     this.cachedDecorations.set(normUri, decorations);
+  //     this.updateDecoration(visibleEditor);
+  //   }
+  // }
 
   private updateConfigValues() {
     const config = workspace.getConfiguration('ccls');

@@ -173,7 +173,6 @@ function getClientConfig(wsRoot: string): ClientConfig {
     callHiearchyQualified: false,
     highlight: {
       blacklist: hasAnySemanticHighlight() ? [] : ['.*'],
-      lsRanges: false,
       rainbow: 10,
     },
     launchArgs: [] as string[],
