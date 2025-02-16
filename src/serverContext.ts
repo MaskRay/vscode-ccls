@@ -17,6 +17,8 @@ import {
   window,
   workspace,
   WorkspaceConfiguration,
+  SemanticTokens,
+  SemanticTokensLegend
 } from "vscode";
 import {
   LanguageClient,
@@ -28,6 +30,7 @@ import {
 import { Converter } from "vscode-languageclient/lib/common/protocolConverter";
 import * as ls from "vscode-languageserver-types";
 import * as WebSocket from 'ws';
+import * as vscode from 'vscode';
 import { CclsErrorHandler } from "./cclsErrorHandler";
 import { cclsChan, logChan } from './globalContext';
 import { CallHierarchyProvider } from "./hierarchies/callHierarchy";
@@ -39,6 +42,8 @@ import { StatusBarIconProvider } from "./statusBarIcon";
 import { ClientConfig, IHierarchyNode } from './types';
 import { disposeAll, normalizeUri, unwrap, wait } from "./utils";
 import { jumpToUriAtPosition } from "./vscodeUtils";
+import { SemanticTokenProvider } from './semanticToken';
+
 
 interface LastGoto {
   id: any;
@@ -168,7 +173,8 @@ function getClientConfig(wsRoot: string): ClientConfig {
     callHiearchyQualified: false,
     highlight: {
       blacklist: hasAnySemanticHighlight() ? [] : ['.*'],
-      lsRanges: true,
+      lsRanges: false,
+      rainbow: 10,
     },
     launchArgs: [] as string[],
     launchCommand: '',
@@ -196,6 +202,7 @@ export class ServerContext implements Disposable {
     clockTime: 0,
     id: undefined,
   };
+  private semanticTokenProvider: SemanticTokenProvider;
 
   public constructor(
     public readonly cwd: string,
@@ -209,6 +216,7 @@ export class ServerContext implements Disposable {
     workspace.onDidChangeConfiguration(this.onDidChangeConfiguration, this, this._dispose);
     this.client = this.initClient();
     this.p2c = this.client.protocol2CodeConverter;
+    this.semanticTokenProvider = new SemanticTokenProvider(this.client);
   }
 
   public dispose() {
@@ -276,11 +284,11 @@ export class ServerContext implements Disposable {
     ));
 
     // Semantic highlight
-    const semantic = new SemanticContext();
-    this._dispose.push(semantic);
-    this.client.onNotification('$ccls/publishSemanticHighlight',
-        (args: PublishSemanticHighlightArgs) => semantic.publishSemanticHighlight(args)
-    );
+    // const semantic = new SemanticContext();
+    // this._dispose.push(semantic);
+    // this.client.onNotification('$ccls/publishSemanticHighlight',
+    //     (args: PublishSemanticHighlightArgs) => semantic.publishSemanticHighlight(args)
+    // );
     this._dispose.push(commands.registerCommand(
         'ccls.navigate', this.makeNavigateHandler('$ccls/navigate')
     ));
@@ -455,7 +463,13 @@ export class ServerContext implements Disposable {
         return false;
       },
       initializationOptions: this.cliConfig,
-      middleware: {provideCodeLenses: (doc, token, next) => this.provideCodeLens(doc, token, next)},
+      middleware: {
+        provideCodeLenses: (doc, token, next) => this.provideCodeLens(doc, token, next),
+        provideDocumentSemanticTokens: (doc, token, next) =>
+          this.semanticTokenProvider.provideDocumentSemanticTokens(doc, token),
+        provideDocumentRangeSemanticTokens: (doc, range, token, next) =>
+          this.semanticTokenProvider.provideRangeSemanticTokens(doc, range, token)
+      },
       outputChannel: cclsChan,
       revealOutputChannelOn: RevealOutputChannelOn.Never,
     };
