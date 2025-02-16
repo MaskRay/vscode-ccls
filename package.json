@@ -3,7 +3,7 @@
   "description": "C/C++/ObjC language server supporting cross references, hierarchies, completion and semantic highlight",
   "author": "ccls-project",
   "license": "MIT",
-  "version": "0.1.29",
+  "version": "0.1.31",
   "publisher": "ccls-project",
   "repository": {
     "type": "git",
@@ -578,6 +578,13 @@
           "type": "boolean",
           "default": true,
           "description": "Whether to do spell checking on undefined symbol names when computing diagnostics."
+        },
+        "ccls.highlight.rainbow": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 20,
+          "description": "Enable rainbow semantic tokens by assigning different colors to symbols. Value indicates number of colors (0 to disable)."
         },
         "ccls.highlight.blacklist": {
           "type": [
