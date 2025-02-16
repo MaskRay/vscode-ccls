@@ -10,7 +10,7 @@ import {
   TreeItemCollapsibleState,
   Uri
 } from 'vscode';
-import { Disposable, LanguageClient } from 'vscode-languageclient/lib/main';
+import { Disposable, LanguageClient } from 'vscode-languageclient/node';
 import { IHierarchyNode } from '../types';
 import { disposeAll, setContext } from '../utils';
 

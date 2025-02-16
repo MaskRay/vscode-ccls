@@ -7,7 +7,7 @@ import {
   window,
   workspace
 } from "vscode";
-import { LanguageClient } from "vscode-languageclient";
+import { LanguageClient } from "vscode-languageclient/node";
 import { disposeAll, normalizeUri } from "./utils";
 
 export class InactiveRegionsProvider implements Disposable {

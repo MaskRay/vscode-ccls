@@ -9,7 +9,7 @@ export interface Icon {
 export interface ClientConfig {
   highlight: {
     blacklist: string[];
-    lsRanges: boolean;
+    rainbow: number;
   };
   launchArgs: string[];
   launchCommand: string;

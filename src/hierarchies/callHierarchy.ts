@@ -1,5 +1,5 @@
 import { commands, Position, TreeItem, Uri } from 'vscode';
-import { LanguageClient } from 'vscode-languageclient/lib/main';
+import { LanguageClient } from 'vscode-languageclient/node';
 import { Icon, IHierarchyNode } from '../types';
 import { resourcePath } from '../utils';
 import { Hierarchy } from './hierarchy';
