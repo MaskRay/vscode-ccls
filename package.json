@@ -719,11 +719,8 @@
       "[c][cpp][objective-c][objective-cpp]": {
         "editor.semanticHighlighting.enabled": true,
         "editor.semanticTokenColorCustomizations": {
-          "enabled": true
-        }
-      },
-      "editor.semanticTokenColorCustomizations": {
-        "rules": {
+          "enabled": true,
+          "rules": {
           "class": { "foreground": "#e1afc3" },
           "constructor": { "foreground": "#e5b124" },
           "enum": { "foreground": "#e1afc3" },
